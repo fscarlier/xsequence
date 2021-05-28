@@ -24,7 +24,6 @@ class Lattice():
     def __init__(self, name, sequence, key='line', **kwargs):
         self.name = name
         self.key = key
-        self.energy = kwargs.pop('energy', 0.0)
         if key == 'line':
             self._sequence_with_drifts = sequence
             self._calc_s_positions()
@@ -32,6 +31,7 @@ class Lattice():
         elif key == 'sequence':
             self._sequence = sequence
             self._convert_sequence_to_line()
+        self.update(**kwargs)
 
     def _convert_line_to_sequence(self):
         elements_only = [ele for ele in self._sequence_with_drifts or self.__class__.__name__ != 'Drift']
@@ -74,6 +74,10 @@ class Lattice():
         elif reference == 'end': 
             return [element.pos+element.length/2. for element in self._sequence]
 
+    def update(self, **kwargs):
+        for (key, value) in kwargs.items():
+            setattr(self, key, value)
+    
     @property
     def sequence(self):
         return ElementList(self._sequence)
