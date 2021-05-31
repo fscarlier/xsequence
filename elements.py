@@ -1,105 +1,6 @@
 import numpy as np
 
 
-class Element(object):
-    """Base of pyat elements"""
-
-    REQUIRED_ATTRIBUTES = ['FamName']
-
-    _entrance_fields = ['T1', 'R1']
-    _exit_fields = ['T2', 'R2']
-
-    def __init__(self, family_name, **kwargs):
-        self.FamName = family_name
-        self.Length = kwargs.pop('Length', 0.0)
-        self.Position = kwargs.pop('Position', 0.0)
-        self.PassMethod = kwargs.pop('PassMethod', 'IdentityPass')
-        self.update(kwargs)
-
-    def __setattr__(self, key, value):
-        try:
-            super(Element, self).__setattr__(
-                key, self._conversions.get(key, _nop)(value))
-        except Exception as exc:
-            exc.args = ('In element {0}, parameter {1}: {2}'.format(
-                self.FamName, key, exc),)
-            raise
-
-    def __str__(self):
-        first3 = ['FamName', 'Length', 'PassMethod']
-        attrs = dict(self.items())
-        keywords = ['\t{0} : {1!s}'.format(k, attrs.pop(k)) for k in first3]
-        keywords += ['\t{0} : {1!s}'.format(k, v) for k, v in attrs.items()]
-        return '\n'.join((self.__class__.__name__ + ':', '\n'.join(keywords)))
-
-    def __repr__(self):
-        attrs = dict(self.items())
-        arguments = [attrs.pop(k, getattr(self, k)) for k in
-                     self.REQUIRED_ATTRIBUTES]
-        defelem = self.__class__(*arguments)
-        keywords = ['{0!r}'.format(arg) for arg in arguments]
-        keywords += ['{0}={1!r}'.format(k, v) for k, v in sorted(attrs.items())
-                     if not numpy.array_equal(v, getattr(defelem, k, None))]
-        args = re.sub('\n\s*', ' ', ', '.join(keywords))
-        return '{0}({1})'.format(self.__class__.__name__, args)
-
-    def equals(self, other):
-        """Whether an element is equivalent to another.
-
-        This implementation was found to be too slow for the generic
-        __eq__ method when comparing lattices.
-
-        """
-        return repr(self) == repr(other)
-
-    def divide(self, frac):
-        """split the element in len(frac) pieces whose length
-        is frac[i]*self.Length
-
-        arguments:
-            frac            length of each slice expressed as a fraction of the
-                            initial length. sum(frac) may differ from 1.
-
-        Return a list of elements equivalent to the original.
-
-        Example:
-
-        >>> Drift('dr', 0.5).divide([0.2, 0.6, 0.2])
-        [Drift('dr', 0.1), Drift('dr', 0.3), Drift('dr', 0.1)]
-        """
-        # Bx default, the element is indivisible
-        return [self]
-
-    def update(self, *args, **kwargs):
-        """Update the element attributes with the given arguments
-
-        update(**kwargs)
-        update(mapping, **kwargs)
-        update(iterable, **kwargs)
-        """
-        attrs = dict(*args, **kwargs)
-        for (key, value) in attrs.items():
-            setattr(self, key, value)
-
-    def copy(self):
-        """Return a shallow copy of the element"""
-        return copy.copy(self)
-
-    def deepcopy(self):
-        """Return a deep copy of the element"""
-        return copy.deepcopy(self)
-
-    def items(self):
-        """Iterates through the data members including slots and properties"""
-        # Get attributes
-        for k, v in vars(self).items():
-            yield k, v
-        # Get slots and properties
-        for k, v in getmembers(self.__class__, isdatadescriptor):
-            if not k.startswith('_'):
-                yield k, getattr(self, k)
-
-
 class Element:
     """
     Base element class  
@@ -113,21 +14,15 @@ class Element:
 
     Methods
     -------
-    string
-        a value in a string
+    update  
+        update element attributes from **kwargs
 
     """
 
     def __init__(self, name, **kwargs):
         self.name = name
         self.length = kwargs.pop('length', 0.0)
-        try: self.pos = kwargs.pop('pos')
-        except: KeyError
-        self.update(kwargs)
-
-    def update(self, **kwargs):
-        for (key, value) in kwargs.items():
-            self.setattr(key, value)
+        self.update(**kwargs)
 
     def __str__(self):
         args_dict = vars(self).items()
@@ -139,6 +34,19 @@ class Element:
         args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
         return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
 
+    def update(self, **kwargs):
+        for (key, value) in kwargs.items():
+            setattr(self, key, value)
+
+    def items(self):
+        """Iterates through the data members including slots and properties"""
+        # Get attributes
+        for k, v in vars(self).items():
+            yield k, v
+        # Get slots and properties
+        for k, v in getmembers(self.__class__, isdatadescriptor):
+            if not k.startswith('_'):
+                yield k, getattr(self, k)
 
 
 class Drift(Element):
@@ -159,7 +67,7 @@ class Drift(Element):
 
     """
     def __init__(self, name, **kwargs):
-        assert kwargs.pop('length') > 0.0
+        # assert kwargs['length'] > 0.0
         super().__init__(name, **kwargs)
 
 
@@ -173,6 +81,7 @@ class Marker(Element):
         name of element
     """
     def __init__(self, name, **kwargs):
+        assert kwargs['length'] == 0.0
         super().__init__(name, **kwargs)
 
 
@@ -200,9 +109,8 @@ class Dipole(Element):
 
     """
     def __init__(self, name, angle=0.0, bend_type='sbend', **kwargs):
-        super().__init__(name, **kwargs)
-        self.bend_type = bend_type
-        self.angle = angle
+        self.bend_type = kwargs.pop('bend_type')
+        self.angle = kwargs.pop('angle')
 
         if self.bend_type == 'sbend':
             self.length = kwargs.pop('length', 0.0)
@@ -212,6 +120,7 @@ class Dipole(Element):
             self.length = self._calc_arclength() 
         self.e1 = kwargs.pop('e1', 0.0)
         self.e2 = kwargs.pop('e2', 0.0)
+        super().__init__(name, **kwargs)
      
     def _calc_arclength(self) :
         """ Calculate arc length from angle and chord length """
@@ -222,7 +131,7 @@ class Dipole(Element):
         return self.length*(2*np.sin(self.angle/2.))/self.angle
 
 
-class SBend(Element):   
+class Sbend(Element):   
     """
     Dipole specific element class
     
@@ -245,20 +154,10 @@ class SBend(Element):
         Calculate arclength from angle and rbend r_length
 
     """
-    def __init__(self, name, angle=0.0, bend_type='sbend', **kwargs):
+    def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
-        self.bend_type = bend_type
-        self.angle = angle
-
-        if self.bend_type == 'sbend':
-            self.length = kwargs.pop('length', 0.0)
-            self.chord_length = self._calc_chordlength() 
-        elif self.bend_type == 'rbend':
-            self.chord_length = kwargs.pop('chord_length', 0.0)
-            self.length = self._calc_arclength() 
-        self.e1 = kwargs.pop('e1', 0.0)
-        self.e2 = kwargs.pop('e2', 0.0)
-     
+        self.chord_length = self._calc_chordlength() 
+    
     def _calc_arclength(self) :
         """ Calculate arc length from angle and chord length """
         return (self.angle*self.chord_length)/(2*np.sin(self.angle/2.))
@@ -268,7 +167,7 @@ class SBend(Element):
         return self.length*(2*np.sin(self.angle/2.))/self.angle
 
 
-class RBend(Element):   
+class Rbend(Element):   
     """
     Dipole specific element class
     
@@ -291,27 +190,17 @@ class RBend(Element):
         Calculate arclength from angle and rbend r_length
 
     """
-    def __init__(self, name, angle=0.0, bend_type='sbend', **kwargs):
+    def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
-        self.bend_type = bend_type
-        self.angle = angle
-
-        if self.bend_type == 'sbend':
-            self.length = kwargs.pop('length', 0.0)
-            self.chord_length = self._calc_chordlength() 
-        elif self.bend_type == 'rbend':
-            self.chord_length = kwargs.pop('chord_length', 0.0)
-            self.length = self._calc_arclength() 
-        self.e1 = kwargs.pop('e1', 0.0)
-        self.e2 = kwargs.pop('e2', 0.0)
+        self.arc_length = self._calc_arclength() 
      
     def _calc_arclength(self) :
         """ Calculate arc length from angle and chord length """
-        return (self.angle*self.chord_length)/(2*np.sin(self.angle/2.))
+        return (self.angle*self.length)/(2*np.sin(self.angle/2.))
 
     def _calc_chordlength(self) :
         """ Calculate chord length from angle and arc length """
-        return self.length*(2*np.sin(self.angle/2.))/self.angle
+        return self.arc_length*(2*np.sin(self.angle/2.))/self.angle
 
 
 class Quadrupole(Element):
