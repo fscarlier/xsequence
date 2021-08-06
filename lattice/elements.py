@@ -140,8 +140,10 @@ class Sbend(Element):
         kwargs = copy.copy(vars(self))
         kwargs['arc_length'] = kwargs.pop('length')
         kwargs['length'] = kwargs.pop('chord_length')
-        kwargs['e1'] = kwargs.pop('e1')-self.angle/2.
-        kwargs['e2'] = kwargs.pop('e2')-self.angle/2.
+        if 'e1' in kwargs:
+            kwargs['e1'] = kwargs.pop('e1')-self.angle/2.
+        if 'e2' in kwargs:
+            kwargs['e2'] = kwargs.pop('e2')-self.angle/2.
         kwargs.pop('name')
         return Rbend(self.name, **kwargs) 
 
@@ -187,8 +189,10 @@ class Rbend(Element):
         kwargs = copy.copy(vars(self))
         kwargs['chord_length'] = kwargs.pop('length')
         kwargs['length'] = kwargs.pop('arc_length')
-        kwargs['e1'] = kwargs.pop('e1')+self.angle/2.
-        kwargs['e2'] = kwargs.pop('e2')+self.angle/2.
+        if 'e1' in kwargs:
+            kwargs['e1'] = kwargs.pop('e1')+self.angle/2.
+        if 'e2' in kwargs:
+            kwargs['e2'] = kwargs.pop('e2')+self.angle/2.
         kwargs.pop('name')
         return Sbend(self.name, **kwargs) 
 
@@ -459,7 +463,5 @@ class Placeholder(Element):
 class ArbitraryMatrixElement(Element):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
-
-
 
 

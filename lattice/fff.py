@@ -3,7 +3,7 @@
 import os
 from lattice import elements
 import lattice.conversion_functions as cf
-
+import toolkit
 
 class Lattice():
     """
@@ -95,17 +95,37 @@ class Lattice():
         self._calc_s_positions()
         self._convert_line_to_sequence()
     
-    def export(code='cpymad'):
+    def export(self, code='cpymad'):
         if code == 'cpymad':
-            return cf.create_cpymad_from_lattice(self)
+            return cf.export_cpymad_from_fff(self)
         elif code == 'pyat':
-            return cf.create_pyat_from_lattice(self)
+            return cf.export_pyat_from_fff(self)
 
-    def optics(self, engine='madx', tofile=None):
+    def optics(self, engine='madx', tofile=None, drop_drifts=False):
         if engine == 'madx':
-            cpymad_instance = cf.create_cpymad_from_lattice(self)
+            cpymad_instance = cf.export_cpymad_from_fff(self)
             cpymad_instance.use(self.name)
-            return cpymad_instance.twiss(file='md_seq.twiss', sequence=self.name)
+            cpymad_instance.twiss(sequence=self.name)
+            tw = cpymad_instance.table.twiss.dframe().copy()
+            tw.name = [element[:-2] for element in tw.name]
+        if engine == 'pyat':
+            pyat_instance = cf.export_pyat_from_fff(self)
+            lin = toolkit.pyat_functions.calc_optics_pyat(pyat_instance)
+            tw = toolkit.pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
+        
+        if drop_drifts:
+            tw = tw.drop(tw[tw['keyword']=='drift'].index)
+        tw.set_index('name', inplace=True)
+        return tw 
+    
+    def get_element(self, element_name):
+        return [element for element in self._line if element.name == element_name]
+
+    def get_class(self, class_name):
+        return [element for element in self._line if element.__class__.__name__ == class_name]
+
+    def convert_rbend_to_sbend(self):
+        self.sequence = [element.convert_to_sbend() if element.__class__.__name__ == 'Rbend' else element for element in self.sequence]
 
     def save(self):
         return

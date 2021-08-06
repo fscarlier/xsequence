@@ -14,15 +14,8 @@ CPYMAD_TO_FFF_MAP = {'marker': elements.Marker,
                      'sbend':  elements.Sbend, 
                      'quadrupole': elements.Quadrupole, 
                      'sextupole': elements.Sextupole, 
+                     'collimator': elements.Collimator, 
                      'rfcavity': elements.RFCavity}
-
-
-PYAT_TO_FFF_MAP = {'Marker': elements.Marker, 
-                   'Drift':  elements.Drift, 
-                   'Dipole':  elements.Sbend, 
-                   'Quadrupole': elements.Quadrupole, 
-                   'Sextupole': elements.Sextupole, 
-                   'RFCavity': elements.RFCavity}
 
 
 def create_cpymad_from_file(sequence_path, energy, particle_type='electron', logging=False):
@@ -105,9 +98,12 @@ def convert_cpymad_element_to_fff(element):
         kwargs['length'] = kwargs.pop('l')
         return CPYMAD_TO_FFF_MAP[base_type](name, **kwargs)
     
-    base_type_set = element.base_type.items()
-    element_set = element.items()
-    kwargs = dict(element_set - base_type_set)
+    kwargs_element = {k: v.value for k, v in element._data.items() if v.inform}
+    if element.parent.name != element.base_type.name:
+        kwargs = {k: v.value for k, v in element.parent._data.items() if v.inform}
+        kwargs.update(kwargs_element)
+    else:
+        kwargs = kwargs_element
     
     try: kwargs['pos'] = kwargs.pop('at')
     except KeyError: pass
@@ -139,51 +135,65 @@ def create_pyat_from_file(file_path):
     return ring
 
 
-def export_pyat_from_fff(fff_lattice):
+def export_pyat_from_fff(fff_lattice, aperture=False):
     elements = fff_lattice.line
     seq = []
     for element in elements:
+        aper_kwarg = {}
+        if aperture:
+            try:
+                if element.apertype == 'circle':
+                    aper_kwarg = {'EApertures':[element.aperture[0], element.aperture[0]]}
+                    if element.aperture[0] == 0:
+                        aper_kwarg = {}
+                elif element.apertype == 'ellipse':
+                    aper_kwarg = {'EApertures':[element.aperture[0], element.aperture[1]]}
+                    if element.aperture[0] == 0 and element.aperture[1] == 0:
+                        aper_kwarg = {}
+                elif element.apertype == 'rectangle':
+                    aper_kwarg = {'RApertures':[-element.aperture[0], element.aperture[0], -element.aperture[1], element.aperture[1]]}
+                    if element.aperture[0] == 0 and element.aperture[1] == 0:
+                        aper_kwarg = {}
+            except AttributeError:
+                pass
         if element.__class__.__name__ == 'Marker':
-            marker = at.lattice.elements.Marker(element.name)
+            marker = at.lattice.elements.Marker(element.name, **aper_kwarg)
             seq.append(marker)
         elif element.__class__.__name__ == 'Drift':
-            drift = at.lattice.elements.Drift(element.name, element.length, NumIntSteps=getattr(element, 'NumIntSteps', 20))
+            drift = at.lattice.elements.Drift(element.name, element.length, NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(drift)
         elif element.__class__.__name__ == 'Sbend':
             dipole = at.lattice.elements.Dipole(element.name, element.length, element.angle,
-                                                EntranceAngle=element.e1, ExitAngle=element.e2,
+                                                EntranceAngle=getattr(element, 'e1', 0.0), ExitAngle=getattr(element, 'e2', 0.0),
                                                 PassMethod=getattr(element, 'PassMethod', 'BndMPoleSymplectic4Pass'), 
-                                                NumIntSteps=getattr(element, 'NumIntSteps', 20))
+                                                NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(dipole)
         elif element.__class__.__name__ == 'Rbend':
             element_temp = element.convert_to_sbend()
             dipole = at.lattice.elements.Dipole(element_temp.name, element_temp.length, element_temp.angle, 
-                                                EntranceAngle=element_temp.e1, ExitAngle=element_temp.e2,
+                                                EntranceAngle=getattr(element_temp, 'e1', 0.0), ExitAngle=getattr(element_temp, 'e2', 0.0),
                                                 PassMethod=getattr(element, 'PassMethod', 'BndMPoleSymplectic4Pass'), 
-                                                NumIntSteps=getattr(element, 'NumIntSteps', 20))
+                                                NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(dipole)
         elif element.__class__.__name__ == 'Quadrupole':
             quadrupole = at.lattice.elements.Quadrupole(element.name, element.length, element.k1, 
                                                 PassMethod=getattr(element, 'PassMethod', 'StrMPoleSymplectic4Pass'), 
-                                                NumIntSteps=getattr(element, 'NumIntSteps', 20))
+                                                NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(quadrupole)
         elif element.__class__.__name__ == 'Sextupole':
             sextupole = at.lattice.elements.Sextupole(element.name, element.length, element.k2,
                                                 PassMethod=getattr(element, 'PassMethod', 'StrMPoleSymplectic4Pass'), 
-                                                NumIntSteps=getattr(element, 'NumIntSteps', 20))
+                                                NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(sextupole)
         elif element.__class__.__name__ == 'RFCavity':
             harmonic_number = int(element.freq/(scipy.constants.c/elements[-1].pos))
-            rfcavity = at.lattice.elements.RFCavity(element.name.replace('.', '_').upper(), 
-                                                    element.length, voltage=element.volt, 
-                                                    frequency=element.freq, 
+            rfcavity = at.lattice.elements.RFCavity(element.name, element.length, 
+                                                    voltage=element.volt, frequency=element.freq, 
                                                     harmonic_number=harmonic_number, 
-                                                    energy=fff_lattice.energy)
+                                                    energy=fff_lattice.energy, **aper_kwarg)
             seq.append(rfcavity)
     pyat_lattice = at.Lattice(seq, name=fff_lattice.name, key='line', energy=fff_lattice.energy*1e9)
     return pyat_lattice
-
-
 
 
 def import_fff_from_pyat(pyat_lattice):
