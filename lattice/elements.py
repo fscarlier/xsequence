@@ -6,22 +6,18 @@ import numpy as np
 class Element:
     """
     Base element class  
-
-    Attributes
-    ----------
-    name : string
-        name of element
-    length : float
-        length of element
-
-    Methods
-    -------
-    update  
-        update element attributes from **kwargs
-
     """
 
     def __init__(self, name, **kwargs):
+        """
+        Args:
+            name : string
+                name of element
+        
+        Key Args:
+            length: float
+                length of element [m]
+        """
         self.name = name
         self.length = kwargs.pop('length', 0.0)
         self.parent = kwargs.pop('parent', self.__class__.__name__)
@@ -66,19 +62,6 @@ class Element:
 class Drift(Element):
     """
     Drift element class
-
-    Attributes
-    ----------
-    name : string
-        name of element
-    length : float
-        length of element, cannot be 0.0
-
-    Methods
-    -------
-    string
-        a value in a string
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -88,11 +71,6 @@ class Drift(Element):
 class Marker(Element):
     """
     Marker element class
-    
-    Attributes
-    ----------
-    name : string
-        name of element
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -101,42 +79,47 @@ class Marker(Element):
 
 class Sbend(Element):   
     """
-    Dipole element class
-    
-    Attributes
-    ----------
-    name : string
-        name of element
-    length : float
-        arc length of bending magnet
-    chord_length : float
-        straight line length from entry to exit (see rbends in MAD-X)
-    angle : float
-        bending angle of bend magnet
-    
-    Methods
-    -------
-    _calc_arclength()
-        Calculate arclength from 'angle' and 'chord_length' 
-
-    _calc_chordlength()
-        Calculate chordlength from 'angle' and 'length' ('arc_length')
-
+    Sbend element class
     """
     def __init__(self, name, **kwargs):
+        """
+        Args:
+            name : string
+                name of element
+        
+        Key Args:
+            length: float
+                arclength of element [m]
+        """
         super().__init__(name, **kwargs)
         self.chord_length = kwargs.pop('chord_length', self._calc_chordlength())
         assert np.isclose(self.length, self._calc_arclength(), rtol=1e-8), f"{self.length},  {self._calc_arclength()}"
     
     def _calc_arclength(self) :
-        """ Calculate arc length from angle and chord length """
+        """
+        Calculate arclength from angle and chordlength
+        
+        Returns:
+            Float with arclength
+        """
         return (self.angle*self.chord_length)/(2*np.sin(self.angle/2.))
 
     def _calc_chordlength(self) :
-        """ Calculate chord length from angle and arc length """
+        """
+        Calculate chordlength from angle and arclength
+        
+        Returns:
+            Float with chordlength 
+        """
         return self.length*(2*np.sin(self.angle/2.))/self.angle
 
     def convert_to_rbend(self):
+        """
+        Convert Sbend element to Rbend element
+        
+        Returns:
+            Rbend instance of element 
+        """
         kwargs = copy.copy(vars(self))
         kwargs['arc_length'] = kwargs.pop('length')
         kwargs['length'] = kwargs.pop('chord_length')
@@ -150,27 +133,7 @@ class Sbend(Element):
 
 class Rbend(Element):   
     """
-    Dipole element class
-    
-    Attributes
-    ----------
-    name : string
-        name of element
-    length : float
-         chord length of bending magnet from entry to exit (see rbends in MAD-X)
-    arc_length : float
-        arc length of bending magnet
-    angle : float
-        bending angle of bend magnet
-    
-    Methods
-    -------
-    _calc_arclength()
-        Calculate arclength from 'angle' and 'length' ('chord_length')
-
-    _calc_chordlength()
-        Calculate chordlength from 'angle' and 'arc_length' 
-
+    Rbend element class
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -178,14 +141,30 @@ class Rbend(Element):
         assert np.isclose(self.length, self._calc_chordlength(), rtol=1e-8)
      
     def _calc_arclength(self) :
-        """ Calculate arc length from angle and chord length """
+        """
+        Calculate arclength from angle and chordlength
+        
+        Returns:
+            Float with arclength
+        """
         return (self.angle*self.length)/(2*np.sin(self.angle/2.))
 
     def _calc_chordlength(self) :
-        """ Calculate chord length from angle and arc length """
+        """
+        Calculate chordlength from angle and arclength
+        
+        Returns:
+            Float with chordlength 
+        """
         return self.arc_length*(2*np.sin(self.angle/2.))/self.angle
 
     def convert_to_sbend(self):
+        """
+        Convert Rbend element to Sbend element
+        
+        Returns:
+            Sbend instance of element 
+        """
         kwargs = copy.copy(vars(self))
         kwargs['chord_length'] = kwargs.pop('length')
         kwargs['length'] = kwargs.pop('arc_length')
@@ -200,16 +179,6 @@ class Rbend(Element):
 class Quadrupole(Element):
     """
     Quadrupole element class
-    
-    Attributes
-    ----------
-    name : string
-        name of element
-    knl : float array
-        normal magnetic strengths array to arbitrary order
-    ksl : float array
-        skew magnetic strengths array to arbitrary order
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -218,16 +187,6 @@ class Quadrupole(Element):
 class Sextupole(Element):
     """
     Sextupole element class
-    
-    Attributes
-    ----------
-    name : string
-        name of element
-    knl : float array
-        normal magnetic strengths array to arbitrary order
-    ksl : float array
-        skew magnetic strengths array to arbitrary order
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -236,16 +195,6 @@ class Sextupole(Element):
 class Octupole(Element):
     """
     Octupole element class
-    
-    Attributes
-    ----------
-    name : string
-        name of element
-    knl : float array
-        normal magnetic strengths array to arbitrary order
-    ksl : float array
-        skew magnetic strengths array to arbitrary order
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -254,18 +203,6 @@ class Octupole(Element):
 class RFCavity(Element):
     """
     RFCavity element class
-    
-    Attributes
-    ----------
-    name : string
-        name of element
-    volt : float
-        peak electrical rf voltage
-    freq : float
-        frequency of rfcavity in MHz
-    harmon : integer
-        harmonic number h 
-
     """
     def __init__(self, name, **kwargs):
         self.volt = kwargs.pop('volt', 0.0)
@@ -276,10 +213,6 @@ class RFCavity(Element):
 class Collimator(Drift):
     """
     Collimator element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -288,10 +221,6 @@ class Collimator(Drift):
 class Solenoid(Element):
     """
     Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -299,13 +228,6 @@ class Solenoid(Element):
 
 class ThinMultipole(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-    order : int
-        Multipolar order of element
-
     """
     def __init__(self, name, order=1, **kwargs):
         self.knl = kwargs.pop('knl', np.zeros(order))
@@ -317,8 +239,6 @@ class BeamBeam(Element):
     """
     Beam-beam element class
     
-    Attributes
-    ----------
     charge : int
         charge of particles in the opposite beam
     sigx : float
@@ -344,11 +264,6 @@ class BeamBeam(Element):
 
 class DipoleEdge(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -356,11 +271,6 @@ class DipoleEdge(Element):
 
 class ClosedOrbitCorrector(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -368,11 +278,6 @@ class ClosedOrbitCorrector(Element):
 
 class TransverseKicker(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -380,11 +285,6 @@ class TransverseKicker(Element):
 
 class TravellingWaveCavity(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -392,11 +292,6 @@ class TravellingWaveCavity(Element):
 
 class ThinRFMultipole(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -404,11 +299,6 @@ class ThinRFMultipole(Element):
 
 class CrabCavity(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -416,11 +306,6 @@ class CrabCavity(Element):
 
 class ACDipole(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -428,11 +313,6 @@ class ACDipole(Element):
 
 class ElectrostaticSeparator(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
@@ -440,11 +320,6 @@ class ElectrostaticSeparator(Element):
 
 class BeamPositionMonitor(Element):
     """
-    Solenoid element class
-    
-    Attributes
-    ----------
-
     """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
