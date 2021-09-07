@@ -5,6 +5,12 @@ import pytest
 
 @pytest.fixture(scope="module")
 def example_cpymad_fff_cpymad():
+    """
+    Create cpymad instance from import and export through fff
+    
+    Returns:
+        Old and new twiss tables from cpymad
+    """
     madx_lattice = cf.create_cpymad_from_file('../sequences/lattice.seq', 120)
     fff_lattice = cf.import_fff_from_cpymad(madx_lattice)
     madx_lattice_new = cf.export_cpymad_from_fff(fff_lattice)
@@ -46,6 +52,13 @@ def test_cpymad_fff_cpymad_phase(example_cpymad_fff_cpymad):
 
 @pytest.fixture(scope="module")
 def example_cpymad_fff_cpymad_coll():
+    """
+    Create cpymad instance from import and export through fff from lattice
+    with collimators
+    
+    Returns:
+        Old and new twiss tables from cpymad
+    """
     madx_lattice = cf.create_cpymad_from_file('../sequences/collimators.seq', 120)
     fff_lattice = cf.import_fff_from_cpymad(madx_lattice)
     madx_lattice_new = cf.export_cpymad_from_fff(fff_lattice)
@@ -87,6 +100,13 @@ def test_cpymad_fff_cpymad_coll_phase(example_cpymad_fff_cpymad_coll):
 
 @pytest.fixture(scope="module")
 def example_pyat_fff_pyat():
+    """
+    Create pyat instance from import and export through fff
+    
+    Returns:
+        Old and new twiss data arrays
+        Old and new s position arrays
+    """
     pyat_lattice = cf.create_pyat_from_file('../sequences/fcch_norad.mat')
     fff_lattice = cf.import_fff_from_pyat(pyat_lattice)
     pyat_lattice_new = cf.export_pyat_from_fff(fff_lattice)
