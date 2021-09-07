@@ -1,4 +1,3 @@
-import os, sys
 import copy
 import numpy as np
 
@@ -23,22 +22,27 @@ class Element:
         self.parent = kwargs.pop('parent', self.__class__.__name__)
         self.update(**kwargs)
 
+
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
 
     def __str__(self):
         args_dict = vars(self).items()
         args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
         return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
 
+
     def __repr__(self):
         args_dict = vars(self).items()
         args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
         return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
 
+
     def update(self, **kwargs):
         for (key, value) in kwargs.items():
             setattr(self, key, value)
+
 
     def items(self):
         """Iterates through the data members including slots and properties"""
@@ -50,9 +54,11 @@ class Element:
             if not k.startswith('_'):
                 yield k, getattr(self, k)
 
+
     @property
     def pos(self):
         return self._position 
+
 
     @pos.setter
     def pos(self, position):
@@ -94,6 +100,7 @@ class Sbend(Element):
         super().__init__(name, **kwargs)
         self.chord_length = kwargs.pop('chord_length', self._calc_chordlength())
         assert np.isclose(self.length, self._calc_arclength(), rtol=1e-8), f"{self.length},  {self._calc_arclength()}"
+
     
     def _calc_arclength(self) :
         """
@@ -104,6 +111,7 @@ class Sbend(Element):
         """
         return (self.angle*self.chord_length)/(2*np.sin(self.angle/2.))
 
+
     def _calc_chordlength(self) :
         """
         Calculate chordlength from angle and arclength
@@ -112,6 +120,7 @@ class Sbend(Element):
             Float with chordlength 
         """
         return self.length*(2*np.sin(self.angle/2.))/self.angle
+
 
     def convert_to_rbend(self):
         """
@@ -139,6 +148,7 @@ class Rbend(Element):
         super().__init__(name, **kwargs)
         self.arc_length = kwargs.pop('arc_length', self._calc_arclength())
         assert np.isclose(self.length, self._calc_chordlength(), rtol=1e-8)
+
      
     def _calc_arclength(self) :
         """
@@ -149,6 +159,7 @@ class Rbend(Element):
         """
         return (self.angle*self.length)/(2*np.sin(self.angle/2.))
 
+
     def _calc_chordlength(self) :
         """
         Calculate chordlength from angle and arclength
@@ -157,6 +168,7 @@ class Rbend(Element):
             Float with chordlength 
         """
         return self.arc_length*(2*np.sin(self.angle/2.))/self.angle
+
 
     def convert_to_sbend(self):
         """
