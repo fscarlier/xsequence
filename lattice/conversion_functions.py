@@ -8,6 +8,16 @@ from lattice import elements
 import lattice.fff as f3
 
 
+
+PYAT_TO_FFF_MAP = {'Marker': elements.Marker, 
+                   'Drift':  elements.Drift, 
+                   'Dipole':  elements.Sbend, 
+                   'Quadrupole': elements.Quadrupole, 
+                   'Sextupole': elements.Sextupole, 
+                   'Collimator': elements.Collimator, 
+                   'RFCavity': elements.RFCavity}
+
+
 CPYMAD_TO_FFF_MAP = {'marker': elements.Marker, 
                      'drift':  elements.Drift, 
                      'rbend':  elements.Rbend, 
@@ -92,35 +102,20 @@ def export_cpymad_from_fff(fff_lattice):
 
 
 def convert_cpymad_element_to_fff(element):
-    name = element.name.replace('.', '_').lower()
     base_type = element.base_type.name
+    return CPYMAD_TO_FFF_MAP[base_type].from_cpymad(element)
 
-    if name == base_type:
-        kwargs = dict(element.items())
-        kwargs['pos'] = kwargs.pop('at')
-        kwargs['length'] = kwargs.pop('l')
-        return CPYMAD_TO_FFF_MAP[base_type](name, **kwargs)
-    
-    kwargs_element = {k: v.value for k, v in element._data.items() if v.inform}
-    if element.parent.name != element.base_type.name:
-        kwargs = {k: v.value for k, v in element.parent._data.items() if v.inform}
-        kwargs.update(kwargs_element)
-    else:
-        kwargs = kwargs_element
-    
-    try: kwargs['pos'] = kwargs.pop('at')
-    except KeyError: pass
-    try: kwargs['length'] = kwargs.pop('l')
-    except KeyError: pass
-    kwargs['parent'] = element.parent.name
-    return CPYMAD_TO_FFF_MAP[base_type](name, **kwargs)
+
+def convert_pyat_element_to_fff(element):
+    base_type = element.__class__.__name__
+    return PYAT_TO_FFF_MAP[base_type].from_pyat(element)
 
 
 def convert_fff_element_to_cpymad(element, madx):
     element_type = element.__class__.__name__.lower()
     kwargs = copy.copy(vars(element))
     kwargs['l'] = kwargs.pop('length')
-    kwargs['at'] = kwargs.pop('_position')
+    kwargs['at'] = kwargs.pop('pos')
     kwargs.pop('name')
     kwargs.pop('parent')
     
@@ -129,19 +124,19 @@ def convert_fff_element_to_cpymad(element, madx):
         if key not in madx.elements[element_type].keys():
             kwargs.pop(key)
     if element_type == 'quadrupole':
-        try: kwargs['k1'] = kwargs['knl'][0]
+        try: kwargs['k1'] = kwargs['knl'][1]
         except: KeyError
-        try: kwargs['k1s'] = kwargs['ksl'][0]
+        try: kwargs['k1s'] = kwargs['ksl'][1]
         except: KeyError
     elif element_type == 'sextuupole':
-        try: kwargs['k2'] = kwargs['knl'][1]
+        try: kwargs['k2'] = kwargs['knl'][2]
         except: KeyError
-        try: kwargs['k2s'] = kwargs['ksl'][1]
+        try: kwargs['k2s'] = kwargs['ksl'][2]
         except: KeyError
     elif element_type == 'octupole':
-        try: kwargs['k3'] = kwargs['knl'][2]
+        try: kwargs['k3'] = kwargs['knl'][3]
         except: KeyError
-        try: kwargs['k3s'] = kwargs['ksl'][2]
+        try: kwargs['k3s'] = kwargs['ksl'][3]
         except: KeyError
     try: kwargs['knl'] = list(kwargs['knl'])
     except: KeyError
@@ -198,12 +193,12 @@ def export_pyat_from_fff(fff_lattice, aperture=False):
                                                 NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(dipole)
         elif element.__class__.__name__ == 'Quadrupole':
-            quadrupole = at.lattice.elements.Quadrupole(element.name, element.length, element.knl[0], 
+            quadrupole = at.lattice.elements.Quadrupole(element.name, element.length, element.knl[1], 
                                                 PassMethod=getattr(element, 'PassMethod', 'StrMPoleSymplectic4Pass'), 
                                                 NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(quadrupole)
         elif element.__class__.__name__ == 'Sextupole':
-            sextupole = at.lattice.elements.Sextupole(element.name, element.length, element.ksl[1],
+            sextupole = at.lattice.elements.Sextupole(element.name, element.length, element.knl[2],
                                                 PassMethod=getattr(element, 'PassMethod', 'StrMPoleSymplectic4Pass'), 
                                                 NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(sextupole)
@@ -222,33 +217,7 @@ def import_fff_from_pyat(pyat_lattice):
     total_length = pyat_lattice.get_s_pos([-1])
     seq = []
     for el in pyat_lattice:
-        if el.__class__.__name__ == 'Marker':
-            marker = elements.Marker(el.FamName)
-            seq.append(marker)
-        if el.__class__.__name__ == 'Drift':
-            drift = elements.Drift(el.FamName, length=el.Length, 
-                                   PassMethod=el.PassMethod, NumIntSteps=el.NumIntSteps)
-            seq.append(drift)
-        elif el.__class__.__name__ == 'Dipole':
-            dipole = elements.Sbend(el.FamName, length=el.Length, 
-                                    PassMethod=el.PassMethod, NumIntSteps=el.NumIntSteps, 
-                                    angle=el.BendingAngle, e1=el.EntranceAngle, 
-                                    e2=el.ExitAngle)
-            seq.append(dipole)
-        elif el.__class__.__name__ == 'Quadrupole':
-            quadrupole = elements.Quadrupole(element.FamName, length=el.Length, 
-                                             PassMethod=el.PassMethod, NumIntSteps=el.NumIntSteps, 
-                                             k1=el.PolynomB[1], k1s=el.PolynomA[1])
-            seq.append(quadrupole)
-        elif el.__class__.__name__ == 'Sextupole':
-            sextupole = elements.Sextupole(el.FamName, length=el.Length, 
-                                           PassMethod=el.PassMethod, NumIntSteps=el.NumIntSteps, 
-                                           k2=el.PolynomB[2], k2s=el.PolynomA[2])
-            seq.append(sextupole)
-        elif el.__class__.__name__ == 'RFCavity':
-            rfcavity = elements.RFCavity(el.FamName.replace('.', '_').upper(), length=el.Length, 
-                                         volt=el.Voltage, freq=el.Frequency, PassMethod=el.PassMethod, 
-                                         energy=el.Energy)
-            seq.append(rfcavity)
+        new_element = convert_pyat_element_to_fff(el)
+        seq.append(new_element)
     fff_lattice = f3.Lattice(pyat_lattice.name, seq, key='line', energy=pyat_lattice.energy) 
     return fff_lattice
