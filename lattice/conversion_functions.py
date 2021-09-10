@@ -18,11 +18,13 @@ CPYMAD_TO_FFF_MAP = {'marker': elements.Marker,
                      'rfcavity': elements.RFCavity}
 
 
-def create_cpymad_from_file(sequence_path, energy, particle_type='electron', logging=False):
+def create_cpymad_from_file(sequence_path, energy, particle_type='electron', logging=True):
     if logging:
         madx = Madx(command_log='log.madx')
     else:
         madx = Madx()
+
+    madx.option(echo=False, info=False, debug=False)
     madx.call(file=sequence_path)
     madx.input('SET, FORMAT="25.20e";')
     madx.command.beam(particle=particle_type, energy=energy)
@@ -62,6 +64,7 @@ def export_cpymad_from_fff(fff_lattice):
     # TODO: - Should develop complete constraint on allowed keyword arguments for cpymad
     #       - Reproduce inheritance from global elements
     madx = Madx(command_log='log.madx')
+    madx.option(echo=False, info=False, debug=False)
     seq_command = ''
     global_elements_defined = False
     
@@ -125,6 +128,25 @@ def convert_fff_element_to_cpymad(element, madx):
     for key in kw.keys():
         if key not in madx.elements[element_type].keys():
             kwargs.pop(key)
+    if element_type == 'quadrupole':
+        try: kwargs['k1'] = kwargs['knl'][0]
+        except: KeyError
+        try: kwargs['k1s'] = kwargs['ksl'][0]
+        except: KeyError
+    elif element_type == 'sextuupole':
+        try: kwargs['k2'] = kwargs['knl'][1]
+        except: KeyError
+        try: kwargs['k2s'] = kwargs['ksl'][1]
+        except: KeyError
+    elif element_type == 'octupole':
+        try: kwargs['k3'] = kwargs['knl'][2]
+        except: KeyError
+        try: kwargs['k3s'] = kwargs['ksl'][2]
+        except: KeyError
+    try: kwargs['knl'] = list(kwargs['knl'])
+    except: KeyError
+    try: kwargs['ksl'] = list(kwargs['ksl'])
+    except: KeyError
     madx.command[element_type].clone(element.name, **kwargs)
     return 
 
@@ -176,12 +198,12 @@ def export_pyat_from_fff(fff_lattice, aperture=False):
                                                 NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(dipole)
         elif element.__class__.__name__ == 'Quadrupole':
-            quadrupole = at.lattice.elements.Quadrupole(element.name, element.length, element.k1, 
+            quadrupole = at.lattice.elements.Quadrupole(element.name, element.length, element.knl[0], 
                                                 PassMethod=getattr(element, 'PassMethod', 'StrMPoleSymplectic4Pass'), 
                                                 NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(quadrupole)
         elif element.__class__.__name__ == 'Sextupole':
-            sextupole = at.lattice.elements.Sextupole(element.name, element.length, element.k2,
+            sextupole = at.lattice.elements.Sextupole(element.name, element.length, element.ksl[1],
                                                 PassMethod=getattr(element, 'PassMethod', 'StrMPoleSymplectic4Pass'), 
                                                 NumIntSteps=getattr(element, 'NumIntSteps', 20), **aper_kwarg)
             seq.append(sextupole)
@@ -199,34 +221,34 @@ def export_pyat_from_fff(fff_lattice, aperture=False):
 def import_fff_from_pyat(pyat_lattice):
     total_length = pyat_lattice.get_s_pos([-1])
     seq = []
-    for element in pyat_lattice:
-        if element.__class__.__name__ == 'Marker':
-            marker = elements.Marker(element.FamName)
+    for el in pyat_lattice:
+        if el.__class__.__name__ == 'Marker':
+            marker = elements.Marker(el.FamName)
             seq.append(marker)
-        if element.__class__.__name__ == 'Drift':
-            drift = elements.Drift(element.FamName, length=element.Length, 
-                                   PassMethod=element.PassMethod, NumIntSteps=element.NumIntSteps)
+        if el.__class__.__name__ == 'Drift':
+            drift = elements.Drift(el.FamName, length=el.Length, 
+                                   PassMethod=el.PassMethod, NumIntSteps=el.NumIntSteps)
             seq.append(drift)
-        elif element.__class__.__name__ == 'Dipole':
-            dipole = elements.Sbend(element.FamName, length=element.Length, 
-                                    PassMethod=element.PassMethod, NumIntSteps=element.NumIntSteps, 
-                                    angle=element.BendingAngle, e1=element.EntranceAngle, 
-                                    e2=element.ExitAngle)
+        elif el.__class__.__name__ == 'Dipole':
+            dipole = elements.Sbend(el.FamName, length=el.Length, 
+                                    PassMethod=el.PassMethod, NumIntSteps=el.NumIntSteps, 
+                                    angle=el.BendingAngle, e1=el.EntranceAngle, 
+                                    e2=el.ExitAngle)
             seq.append(dipole)
-        elif element.__class__.__name__ == 'Quadrupole':
-            quadrupole = elements.Quadrupole(element.FamName, length=element.Length, 
-                                             PassMethod=element.PassMethod, NumIntSteps=element.NumIntSteps, 
-                                             k1=element.PolynomB[1], k1s=element.PolynomA[1])
+        elif el.__class__.__name__ == 'Quadrupole':
+            quadrupole = elements.Quadrupole(element.FamName, length=el.Length, 
+                                             PassMethod=el.PassMethod, NumIntSteps=el.NumIntSteps, 
+                                             k1=el.PolynomB[1], k1s=el.PolynomA[1])
             seq.append(quadrupole)
-        elif element.__class__.__name__ == 'Sextupole':
-            sextupole = elements.Sextupole(element.FamName, length=element.Length, 
-                                           PassMethod=element.PassMethod, NumIntSteps=element.NumIntSteps, 
-                                           k2=element.PolynomB[2], k2s=element.PolynomA[2])
+        elif el.__class__.__name__ == 'Sextupole':
+            sextupole = elements.Sextupole(el.FamName, length=el.Length, 
+                                           PassMethod=el.PassMethod, NumIntSteps=el.NumIntSteps, 
+                                           k2=el.PolynomB[2], k2s=el.PolynomA[2])
             seq.append(sextupole)
-        elif element.__class__.__name__ == 'RFCavity':
-            rfcavity = elements.RFCavity(element.FamName.replace('.', '_').upper(), length=element.Length, 
-                                         volt=element.Voltage, freq=element.Frequency, PassMethod=element.PassMethod, 
-                                         energy=element.Energy)
+        elif el.__class__.__name__ == 'RFCavity':
+            rfcavity = elements.RFCavity(el.FamName.replace('.', '_').upper(), length=el.Length, 
+                                         volt=el.Voltage, freq=el.Frequency, PassMethod=el.PassMethod, 
+                                         energy=el.Energy)
             seq.append(rfcavity)
     fff_lattice = f3.Lattice(pyat_lattice.name, seq, key='line', energy=pyat_lattice.energy) 
     return fff_lattice
