@@ -93,14 +93,6 @@ class Lattice():
         elif reference == 'end': 
             return [element.pos+element.length/2. for element in self._sequence]
 
-
-    @property
-    def elements(self):
-        """
-        List of elements in model
-        """
-        return ElementList(self._sequence)
-
     
     @property
     def sequence(self):
@@ -252,26 +244,3 @@ class Lattice():
     def __repr__(self):
         args_str = [f"'{self.name}'", f"{self._sequence}", f"key='{self.key}'"] 
         return f"{self.__class__.__name__}({', '.join(args_str)})"
-
-
-
-
-class ElementList():
-
-    def __init__(self, sequence):
-        self._sequence = sequence
-        self.update_elements()
-
-    def update_elements(self):
-        for ele in self._sequence:
-            setattr(self, ele.name, ele)
-
-    def get_element_names(self):
-        return [element.name for element in self._sequence]
-
-    def __repr__(self):
-        return '[{}]'.format(', '.join(
-            self.get_element_names()))
-
-
-
