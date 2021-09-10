@@ -56,13 +56,13 @@ class Element:
 
 
     @property
-    def pos(self):
-        return self._position 
+    def position(self):
+        return self.pos 
 
 
-    @pos.setter
-    def pos(self, position):
-        self._position = position
+    @position.setter
+    def position(self, position):
+        self.pos = position
 
 
 class Drift(Element):
@@ -188,7 +188,24 @@ class Rbend(Element):
         return Sbend(self.name, **kwargs) 
 
 
-class Quadrupole(Element):
+class Multipole(Element):
+    """
+    Multipole element class
+    """
+    def __init__(self, name, **kwargs):
+        """
+        Setting multipole strengths. knl and ksl have precedence over k1, k2, k3
+        """
+        self.knl = np.array(kwargs.pop('knl', [kwargs.pop('k1', 0.0), 
+                                          kwargs.pop('k2', 0.0), 
+                                          kwargs.pop('k3', 0.0)]))
+        self.ksl = np.array(kwargs.pop('ksl', [kwargs.pop('k1s', 0.0), 
+                                          kwargs.pop('k2s', 0.0), 
+                                          kwargs.pop('k3s', 0.0)]))
+        super().__init__(name, **kwargs)
+
+
+class Quadrupole(Multipole):
     """
     Quadrupole element class
     """
@@ -235,15 +252,6 @@ class Solenoid(Element):
     Solenoid element class
     """
     def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class ThinMultipole(Element):
-    """
-    """
-    def __init__(self, name, order=1, **kwargs):
-        self.knl = kwargs.pop('knl', np.zeros(order))
-        self.ksl = kwargs.pop('ksl', np.zeros(order)) 
         super().__init__(name, **kwargs)
 
     
