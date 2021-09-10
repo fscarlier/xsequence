@@ -64,6 +64,45 @@ class Element:
     def position(self, position):
         self.pos = position
 
+    @classmethod
+    def from_cpymad(cls, element):
+        name = element.name.replace('.', '_').lower()
+        base_type = element.base_type.name
+
+        if name == base_type:
+            kwargs = dict(element.items())
+            kwargs['position'] = kwargs.pop('at')
+            kwargs['length'] = kwargs.pop('l')
+            return cls(name, **kwargs)
+        
+        kwargs_element = {k: v.value for k, v in element._data.items() if v.inform}
+        if element.parent.name != element.base_type.name:
+            kwargs = {k: v.value for k, v in element.parent._data.items() if v.inform}
+            kwargs.update(kwargs_element)
+        else:
+            kwargs = kwargs_element
+        
+        try: kwargs['position'] = kwargs.pop('at')
+        except KeyError: pass
+        try: kwargs['length'] = kwargs.pop('l')
+        except KeyError: pass
+        kwargs['parent'] = element.parent.name
+        return cls(name, **kwargs)
+
+
+    @classmethod
+    def from_pyat(cls, el):
+        attr_dict = {'length':'Length', 'PassMethod':'PassMethod', 
+                    'NumIntSteps':'NumIntSteps', 'knl':'PolynomB', 'ksl':'PolynomA',
+                    'angle':'BendingAngle', 'e1':'EntranceAngle', 'e2':'ExitAngle', 
+                    'volt':'Voltage', 'freq':'Frequency', 'energy':'Energy'}
+        kwargs = {}
+        for key in attr_dict.keys():
+            try: kwargs[key] = getattr(el, attr_dict[key])
+            except: AttributeError
+        return cls(el.FamName, **kwargs)
+
+
 
 class Drift(Element):
     """
@@ -196,12 +235,14 @@ class Multipole(Element):
         """
         Setting multipole strengths. knl and ksl have precedence over k1, k2, k3
         """
-        self.knl = np.array(kwargs.pop('knl', [kwargs.pop('k1', 0.0), 
-                                          kwargs.pop('k2', 0.0), 
-                                          kwargs.pop('k3', 0.0)]))
-        self.ksl = np.array(kwargs.pop('ksl', [kwargs.pop('k1s', 0.0), 
-                                          kwargs.pop('k2s', 0.0), 
-                                          kwargs.pop('k3s', 0.0)]))
+        self.knl = np.array(kwargs.pop('knl', [kwargs.pop('k0', 0.0), 
+                                               kwargs.pop('k1', 0.0), 
+                                               kwargs.pop('k2', 0.0), 
+                                               kwargs.pop('k3', 0.0)]))
+        self.ksl = np.array(kwargs.pop('ksl', [kwargs.pop('k0s', 0.0), 
+                                               kwargs.pop('k1s', 0.0), 
+                                               kwargs.pop('k2s', 0.0), 
+                                               kwargs.pop('k3s', 0.0)]))
         super().__init__(name, **kwargs)
 
 
@@ -213,7 +254,7 @@ class Quadrupole(Multipole):
         super().__init__(name, **kwargs)
 
 
-class Sextupole(Element):
+class Sextupole(Multipole):
     """
     Sextupole element class
     """
@@ -221,7 +262,7 @@ class Sextupole(Element):
         super().__init__(name, **kwargs)
 
 
-class Octupole(Element):
+class Octupole(Multipole):
     """
     Octupole element class
     """
