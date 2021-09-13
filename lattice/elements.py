@@ -1,5 +1,7 @@
 import copy
 import numpy as np
+import lattice.lattice_conversion_functions as lcf
+import lattice.element_conversion_functions as ecf
 
 
 class Element:
@@ -64,44 +66,39 @@ class Element:
     def position(self, position):
         self.pos = position
 
+
     @classmethod
     def from_cpymad(cls, element):
-        name = element.name.replace('.', '_').lower()
-        base_type = element.base_type.name
+        """ 
+        Create specific Element instance from cpymad element
+        """
+        return ecf.from_cpymad(cls, element)
 
-        if name == base_type:
-            kwargs = dict(element.items())
-            kwargs['position'] = kwargs.pop('at')
-            kwargs['length'] = kwargs.pop('l')
-            return cls(name, **kwargs)
-        
-        kwargs_element = {k: v.value for k, v in element._data.items() if v.inform}
-        if element.parent.name != element.base_type.name:
-            kwargs = {k: v.value for k, v in element.parent._data.items() if v.inform}
-            kwargs.update(kwargs_element)
-        else:
-            kwargs = kwargs_element
-        
-        try: kwargs['position'] = kwargs.pop('at')
-        except KeyError: pass
-        try: kwargs['length'] = kwargs.pop('l')
-        except KeyError: pass
-        kwargs['parent'] = element.parent.name
-        return cls(name, **kwargs)
+
+    def to_cpymad(self, madx):
+        """ 
+        Create cpymad element in madx instance from Element
+        """
+        return ecf.to_cpymad(self, madx)
 
 
     @classmethod
-    def from_pyat(cls, el):
-        attr_dict = {'length':'Length', 'PassMethod':'PassMethod', 
-                    'NumIntSteps':'NumIntSteps', 'knl':'PolynomB', 'ksl':'PolynomA',
-                    'angle':'BendingAngle', 'e1':'EntranceAngle', 'e2':'ExitAngle', 
-                    'volt':'Voltage', 'freq':'Frequency', 'energy':'Energy'}
-        kwargs = {}
-        for key in attr_dict.keys():
-            try: kwargs[key] = getattr(el, attr_dict[key])
-            except: AttributeError
-        return cls(el.FamName, **kwargs)
+    def from_pyat(cls, element):
+        """ 
+        Create specific Element instance from pyAT element
+        """
+        return ecf.from_pyat(cls, element)
 
+
+    def to_pyat(self):
+        """ 
+        Create pyAT Element instance from element
+        """
+        if self.__class__.__name__ == 'Rbend':
+            sbend = self.convert_to_sbend()
+            return ecf.to_pyat(sbend)
+        else:
+            return ecf.to_pyat(self)
 
 
 class Drift(Element):
