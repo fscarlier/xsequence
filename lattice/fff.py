@@ -1,9 +1,11 @@
 # Framework For FCC-ee (FFF) a.k.a. f3 , fcubed
 
 import os
+import scipy
 from lattice import elements
-import lattice.conversion_functions as cf
-import toolkit.pyat_functions as pf
+import lattice.lattice_conversion_functions as lcf
+import lattice.element_conversion_functions as ecf
+from toolkit import pyat_functions
 
 class Lattice():
     """
@@ -17,11 +19,11 @@ class Lattice():
                 name of lattice
             element_list: iterable
                 list of accelerator elements
+        
+        Key Args:
             key: string
                 'line' for element_list including explicit drifts
                 'sequence' for element_list without explicit drifts
-            energy : float
-                reference energy of lattice
         """
         self.name = name
         self.key = key
@@ -136,19 +138,64 @@ class Lattice():
         self._calc_s_positions()
         self._convert_line_to_sequence()
 
-    
-    def export(self, code='cpymad'):
+
+    @property
+    def total_length(self):
+        return self.line[-1].pos
+
+
+    def update_harmonic_number(self):
+        cavities = self.get_class('RFCavity')
+        for cav in cavities:
+            cav.harmonic_number = int(cav.freq/(scipy.constants.c/self.total_length))
+
+
+    @classmethod
+    def from_cpymad(cls, madx, seq_name):
         """
-        Export lattice to specific code
+        Import lattice from cpymad sequence
 
         Args:
-            code : string
-                desired export code: madx, pyat
+            madx: cpymad.madx Madx() instance
+            seq_name: string
+                name of madx sequence
         """
-        if code == 'cpymad':
-            return cf.export_cpymad_from_fff(self)
-        elif code == 'pyat':
-            return cf.export_pyat_from_fff(self)
+        global_elements = lcf.create_global_elements_from_cpymad(madx)
+        fff_lattices = []
+
+        madx.use(seq_name)
+        total_length = madx.sequence[seq_name].elements[-1].at
+        element_seq = list(map(ecf.convert_cpymad_element_to_fff, madx.sequence[seq_name].elements))
+        return cls(seq_name, element_seq, key='sequence', 
+                        energy=madx.sequence[seq_name].beam.energy, 
+                        global_elements=global_elements)
+
+
+    @classmethod
+    def from_pyat(cls, pyat_lattice):
+        """
+        Export lattice to pyat
+        """
+        total_length = pyat_lattice.get_s_pos([-1])
+        seq = []
+        for el in pyat_lattice:
+            new_element = ecf.convert_pyat_element_to_fff(el)
+            seq.append(new_element)
+        return cls(pyat_lattice.name, seq, key='line', energy=pyat_lattice.energy) 
+
+
+    def to_cpymad(self):
+        """
+        Export lattice to cpymad
+        """
+        return lcf.export_to_cpymad(self)
+
+
+    def to_pyat(self):
+        """
+        Export lattice to pyat
+        """
+        return lcf.export_to_pyat(self)
 
 
     def optics(self, engine='madx', drop_drifts=False):
@@ -165,15 +212,15 @@ class Lattice():
             Pandas DataFrame of calculated optics
         """
         if engine == 'madx':
-            cpymad_instance = cf.export_cpymad_from_fff(self)
+            cpymad_instance = self.to_cpymad()
             cpymad_instance.use(self.name)
             cpymad_instance.twiss(sequence=self.name)
             tw = cpymad_instance.table.twiss.dframe().copy()
             tw.name = [element[:-2] for element in tw.name]
         if engine == 'pyat':
-            pyat_instance = cf.export_pyat_from_fff(self)
-            lin = pf.calc_optics_pyat(pyat_instance)
-            tw = pf.pyat_optics_to_pandas_df(pyat_instance, lin)
+            pyat_instance = self.to_pyat()
+            lin = pyat_functions.calc_optics_pyat(pyat_instance)
+            tw = pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
         
         if drop_drifts:
             tw = tw.drop(tw[tw['keyword']=='drift'].index)
