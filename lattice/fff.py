@@ -2,10 +2,11 @@
 
 import os
 import scipy
+from cpymad.madx import Madx
 from lattice import elements
+from toolkit import pyat_functions
 import lattice.lattice_conversion_functions as lcf
 import lattice.element_conversion_functions as ecf
-from toolkit import pyat_functions
 
 class Lattice():
     """
@@ -150,6 +151,29 @@ class Lattice():
             cav.harmonic_number = int(cav.freq/(scipy.constants.c/self.total_length))
 
 
+    def from_madx_seqfile(self, seq_file, seq_name, energy, particle_type='electron'):
+        """
+        Import lattice from MAD-X sequence file
+
+        Args:
+            seqfile: string
+                path to madx sequence
+            seqname: string
+                name of madx sequence
+            energy: int
+                energy of beam in GeV
+        Key args:
+            particle_type: string
+                type of particle, 'electron' 'proton' ...
+        """
+        madx = Madx()
+        madx.option(echo=False, info=False, debug=False)
+        madx.call(file=seq_file)
+        madx.input('SET, FORMAT="25.20e";')
+        madx.command.beam(particle=particle_type, energy=energy)
+        return self.from_cpymad(madx, seq_name)
+
+
     @classmethod
     def from_cpymad(cls, madx, seq_name):
         """
@@ -284,7 +308,7 @@ class Lattice():
 
 
     def __str__(self):
-        args_str = [f"'{self.name}'", f"{self.elements}", f"key='{self.key}'"] 
+        args_str = [f"'{self.name}'", f"{self._sequence}", f"key='{self.key}'"] 
         return f"{self.__class__.__name__}({', '.join(args_str)})"
 
 
