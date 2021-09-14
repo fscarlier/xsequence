@@ -1,8 +1,8 @@
 import copy
 import at
 import numpy as np
-import lattice.lattice_conversion_functions as lcf
-import lattice.element_conversion_functions as ecf
+import fsf.lattice_conversion_functions as lcf
+import fsf.element_conversion_functions as ecf
 
 
 class Element:
