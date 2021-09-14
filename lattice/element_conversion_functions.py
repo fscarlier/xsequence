@@ -1,41 +1,16 @@
-import lattice.elements as lel
 import at 
 import copy
-
-
-CPYMAD_TO_FFF_MAP = {'marker': lel.Marker, 'drift':  lel.Drift, 'rbend':  lel.Rbend, 
-                     'sbend':  lel.Sbend, 'quadrupole': lel.Quadrupole, 'sextupole': lel.Sextupole, 
-                     'collimator': lel.Collimator, 'rfcavity': lel.RFCavity}
-
-
-FFF_TO_CPYMAD_MAP = {'Marker': 'marker', 'Drift': 'drift',  'Rbend': 'rbend',  
-                     'Sbend': 'sbend',  'Quadrupole': 'quadrupole', 'Sextupole': 'sextupole',  
-                     'Collimator': 'collimator', 'RFCavity': 'rfcavity'} 
-
-
-PYAT_TO_FFF_MAP = {'Marker': lel.Marker, 'Drift':  lel.Drift, 'Dipole':  lel.Sbend, 
-                   'Quadrupole': lel.Quadrupole, 'Sextupole': lel.Sextupole, 'Collimator': lel.Collimator, 
-                   'RFCavity': lel.RFCavity}
-
-
-FFF_TO_PYAT_MAP = {'Marker': at.lattice.elements.Marker, 'Drift': at.lattice.elements.Drift, 'Sbend': at.lattice.elements.Dipole,     
-                   'Quadrupole': at.lattice.elements.Quadrupole, 'Sextupole': at.lattice.elements.Sextupole, 
-                   'Collimator': at.lattice.elements.Collimator, 'RFCavity': at.lattice.elements.RFCavity}
-
-
-FFF_TO_XSUITE_MAP = {'Marker': '??BeamMonitor??', 'Drift': 'Drift',  'Rbend': '',  
-                     'Sbend': '',  'Quadrupole': 'Multipole', 'Sextupole': 'Multipole',  
-                     'Octupole': 'Multipole',  'Collimator': 'Drift', 'RFCavity': 'Cavity'} 
+import lattice.elements as lel
 
 
 def convert_cpymad_element_to_fff(element):
     base_type = element.base_type.name
-    return CPYMAD_TO_FFF_MAP[base_type].from_cpymad(element)
+    return lel.CPYMAD_TO_FFF_MAP[base_type].from_cpymad(element)
 
 
 def convert_pyat_element_to_fff(element):
     base_type = element.__class__.__name__
-    return PYAT_TO_FFF_MAP[base_type].from_pyat(element)
+    return lel.PYAT_TO_FFF_MAP[base_type].from_pyat(element)
 
 
 def from_cpymad(el_class, element):
@@ -75,7 +50,7 @@ def to_cpymad(element, madx):
     Returns:
         Updated Madx() instance
     """
-    element_type = FFF_TO_CPYMAD_MAP[element.__class__.__name__]
+    element_type = lel.FFF_TO_CPYMAD_MAP[element.__class__.__name__]
     kwargs = copy.copy(vars(element))
     kwargs['l'] = kwargs.pop('length')
     kwargs['at'] = kwargs.pop('pos')
@@ -163,10 +138,10 @@ def to_pyat(element):
     kwargs.update(aper_kwarg)
     
     if element.__class__.__name__ == 'Marker':
-        return FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, **kwargs)
+        return lel.FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, **kwargs)
     elif element.__class__.__name__ == 'RFCavity':
-        return FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, element.length, element.volt, 
+        return lel.FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, element.length, element.volt, 
                                                             element.freq, element.harmonic_number, 
                                                             element.energy)
     else:
-        return FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, element.length, **kwargs)
+        return lel.FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, element.length, **kwargs)
