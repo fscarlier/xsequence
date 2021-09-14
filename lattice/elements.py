@@ -1,4 +1,5 @@
 import copy
+import at
 import numpy as np
 import lattice.lattice_conversion_functions as lcf
 import lattice.element_conversion_functions as ecf
@@ -398,3 +399,26 @@ class ArbitraryMatrixElement(Element):
         super().__init__(name, **kwargs)
 
 
+CPYMAD_TO_FFF_MAP = {'marker': Marker, 'drift':  Drift, 'rbend':  Rbend, 
+                     'sbend':  Sbend, 'quadrupole': Quadrupole, 'sextupole': Sextupole, 
+                     'collimator': Collimator, 'rfcavity': RFCavity}
+
+
+FFF_TO_CPYMAD_MAP = {'Marker': 'marker', 'Drift': 'drift',  'Rbend': 'rbend',  
+                     'Sbend': 'sbend',  'Quadrupole': 'quadrupole', 'Sextupole': 'sextupole',  
+                     'Collimator': 'collimator', 'RFCavity': 'rfcavity'} 
+
+
+PYAT_TO_FFF_MAP = {'Marker': Marker, 'Drift':  Drift, 'Dipole':  Sbend, 
+                   'Quadrupole': Quadrupole, 'Sextupole': Sextupole, 'Collimator': Collimator, 
+                   'RFCavity': RFCavity}
+
+
+FFF_TO_PYAT_MAP = {'Marker': at.lattice.elements.Marker, 'Drift': at.lattice.elements.Drift, 'Sbend': at.lattice.elements.Dipole,     
+                   'Quadrupole': at.lattice.elements.Quadrupole, 'Sextupole': at.lattice.elements.Sextupole, 
+                   'Collimator': at.lattice.elements.Collimator, 'RFCavity': at.lattice.elements.RFCavity}
+
+
+# FFF_TO_XSUITE_MAP = {'Marker': '??BeamMonitor??', 'Drift': 'Drift',  'Rbend': '',  
+#                      'Sbend': '',  'Quadrupole': 'Multipole', 'Sextupole': 'Multipole',  
+#                      'Octupole': 'Multipole',  'Collimator': 'Drift', 'RFCavity': 'Cavity'} 
