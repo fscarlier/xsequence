@@ -118,8 +118,11 @@ def to_pyat(element):
 
     aper_kwarg = {}
     try:
-        if element.aperture[0] == 0 or element.aperture[1] == 0:
+        if len(element.aperture) == 1 and element.aperture[0] == 0: 
             aper_kwarg = {}
+        elif len(element.aperture) == 2:
+            if element.aperture[0] == 0 or element.aperture[1] == 0: 
+                aper_kwarg = {}
         else: 
             if element.apertype == 'circle':
                 aper_kwarg = {'EApertures':[element.aperture[0], element.aperture[0]]}
@@ -140,8 +143,8 @@ def to_pyat(element):
     if element.__class__.__name__ == 'Marker':
         return lel.FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, **kwargs)
     elif element.__class__.__name__ == 'RFCavity':
-        return lel.FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, element.length, element.volt, 
-                                                            element.freq, element.harmonic_number, 
-                                                            element.energy)
+        return lel.FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, element.length, element.volt*1e6, 
+                                                            element.freq*1e6, element.harmonic_number, 
+                                                            element.energy*1e9)
     else:
         return lel.FFF_TO_PYAT_MAP[element.__class__.__name__](element.name, element.length, **kwargs)

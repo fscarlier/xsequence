@@ -143,10 +143,16 @@ class Lattice():
         return self.line[-1].pos
 
 
+    def update_cavity_energy(self):
+        cavities = self.get_class('RFCavity')
+        for cav in cavities:
+            cav.energy = self.energy
+
+
     def update_harmonic_number(self):
         cavities = self.get_class('RFCavity')
         for cav in cavities:
-            cav.harmonic_number = int(cav.freq/(scipy.constants.c/self.total_length))
+            cav.harmonic_number = int(cav.freq*1e6/(scipy.constants.c/self.total_length))
 
 
     def from_madx_seqfile(self, seq_file, seq_name, energy, particle_type='electron'):
@@ -203,7 +209,7 @@ class Lattice():
         for el in pyat_lattice:
             new_element = ecf.convert_pyat_element_to_fsf(el)
             seq.append(new_element)
-        return cls(pyat_lattice.name, seq, key='line', energy=pyat_lattice.energy) 
+        return cls(pyat_lattice.name, seq, key='line', energy=pyat_lattice.energy*1e-9) 
 
 
     def to_cpymad(self):
@@ -217,6 +223,8 @@ class Lattice():
         """
         Export lattice to pyat
         """
+        self.update_cavity_energy()
+        self.update_harmonic_number()
         return lcf.export_to_pyat(self)
 
 

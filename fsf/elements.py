@@ -419,6 +419,3 @@ FFF_TO_PYAT_MAP = {'Marker': at.lattice.elements.Marker, 'Drift': at.lattice.ele
                    'Collimator': at.lattice.elements.Collimator, 'RFCavity': at.lattice.elements.RFCavity}
 
 
-# FFF_TO_XSUITE_MAP = {'Marker': '??BeamMonitor??', 'Drift': 'Drift',  'Rbend': '',  
-#                      'Sbend': '',  'Quadrupole': 'Multipole', 'Sextupole': 'Multipole',  
-#                      'Octupole': 'Multipole',  'Collimator': 'Drift', 'RFCavity': 'Cavity'} 

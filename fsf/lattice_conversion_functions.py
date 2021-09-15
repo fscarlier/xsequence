@@ -65,7 +65,6 @@ def export_to_cpymad(fsf_lattice):
 
 
 def export_to_pyat(fsf_lattice):
-    fsf_lattice.update_harmonic_number()
     elements = fsf_lattice.line
     seq = []
     for element in elements:
