@@ -53,7 +53,7 @@ def get_optics_pyat(ring, radiation=False, xy_step = 1.0e-10, dp_step = 1.0e-9):
         ring.radiation_on(quadrupole_pass='auto')
         ring.set_cavity_phase()
         ring.tapering(niter = 2, quadrupole=True, sextupole=True, XYStep=xy_step, DPStep=dp_step)
-        l0,q,l = linopt6(ring,refpts=idx,get_chrom=True,
+        l0,q,l = at.linopt6(ring,refpts=idx,get_chrom=True,
                             coupled=False, XYStep=xy_step, DPStep=dp_step)
     else: 
         ring.radiation_off()
