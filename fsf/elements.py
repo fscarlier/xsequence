@@ -3,6 +3,7 @@ import at
 import numpy as np
 import fsf.lattice_conversion_functions as lcf
 import fsf.element_conversion_functions as ecf
+from conversion_utils import pyat_conv
 
 
 class Element:
@@ -95,11 +96,7 @@ class Element:
         """ 
         Create pyAT Element instance from element
         """
-        if self.__class__.__name__ == 'Rbend':
-            sbend = self.convert_to_sbend()
-            return ecf.to_pyat(sbend)
-        else:
-            return ecf.to_pyat(self)
+        return pyat_conv.convert_element(self)
 
 
 class Drift(Element):

@@ -1,10 +1,10 @@
 import scipy
+import numpy as np
 from cpymad.madx import Madx
 from toolkit import pyat_functions
 import fsf.elements
 import fsf.lattice_conversion_functions as lcf
 import fsf.element_conversion_functions as ecf
-
 
 class Lattice():
     """
@@ -140,7 +140,26 @@ class Lattice():
 
     @property
     def total_length(self):
-        return self.line[-1].pos
+        return self.line[-1].pos + self.line[-1].length/2.
+
+
+    def get_element_names(self):
+        self.names = [el.name for el in self.line]
+    
+
+    def get_range_s(self, start_pos, end_pos):
+        seq_start = np.array(self.get_s_positions(reference='start'))
+        seq_end = np.array(self.get_s_positions(reference='end'))
+        idx = np.array( np.where((seq_end >= start_pos) & (seq_start <= end_pos))[0] )
+        return idx, self._sequence[idx[0]:idx[-1]+1]
+
+
+    def get_range_elements(self, start_element, end_element):
+        start_element = self.get_element(start_element)
+        end_element = self.get_element(end_element)
+        assert len(start_element) == 1, "Cannot find range: Multiple elements with same start name"
+        assert len(end_element) == 1, "Cannot find range: Multiple elements with same end name"
+        return self.get_range_s(start_element[0].pos, end_element[0].pos)
 
 
     def update_cavity_energy(self):
