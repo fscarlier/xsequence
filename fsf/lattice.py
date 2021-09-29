@@ -210,9 +210,13 @@ class Lattice():
             seq_name: string
                 name of madx sequence
         """
+        def convert_cpymad_element_to_fsf(element):
+            base_type = element.base_type.name
+            return fsf.elements.CPYMAD_TO_FSF_MAP[base_type].from_cpymad(element)
+        
         madx.use(seq_name)
         total_length = madx.sequence[seq_name].elements[-1].at
-        element_seq = list(map(cpymad_conv.convert_cpymad_element_to_fsf, 
+        element_seq = list(map(convert_cpymad_element_to_fsf, 
                                madx.sequence[seq_name].elements))
         return cls(seq_name, element_seq, key='sequence', 
                    energy=madx.sequence[seq_name].beam.energy) 
@@ -223,10 +227,14 @@ class Lattice():
         """
         Export lattice to pyat
         """
+        def convert_pyat_element_to_fsf(element):
+            base_type = element.__class__.__name__
+            return fsf.elements.PYAT_TO_FSF_MAP[base_type].from_pyat(element)
+
         total_length = pyat_lattice.get_s_pos([-1])
         seq = []
         for el in pyat_lattice:
-            new_element = pyat_conv.convert_pyat_element_to_fsf(el)
+            new_element = convert_pyat_element_to_fsf(el)
             seq.append(new_element)
         return cls(pyat_lattice.name, seq, energy=pyat_lattice.energy*1e-9) 
 

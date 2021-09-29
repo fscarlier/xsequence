@@ -1,7 +1,7 @@
 import copy
 import at
 import numpy as np
-from conversion_utils import pyat_conv, cpymad_conv
+from  conversion_utils import pyat_conv, cpymad_conv
 
 
 class Element:
@@ -488,3 +488,22 @@ class ArbitraryMatrixElement(Element):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
 
+
+CPYMAD_TO_FSF_MAP = {'marker': Marker, 
+                     'drift':  Drift, 
+                     'rbend':  Rbend, 
+                     'sbend':  Sbend, 
+                     'quadrupole': Quadrupole, 
+                     'sextupole': Sextupole, 
+                     'collimator': Collimator, 
+                     'rfcavity': RFCavity}
+
+
+PYAT_TO_FSF_MAP = {'Marker': Marker, 
+                   'Drift':  Drift, 
+                   'Dipole':  Sbend, 
+                   'Quadrupole': Quadrupole, 
+                   'Sextupole': Sextupole, 
+                   'Collimator': Collimator, 
+                   'RFCavity': RFCavity}
+                

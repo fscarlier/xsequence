@@ -13,21 +13,6 @@ Part I: Import functions
 """
 
 
-CPYMAD_TO_FSF_MAP = {'marker': fsf.elements.Marker, 
-                     'drift':  fsf.elements.Drift, 
-                     'rbend':  fsf.elements.Rbend, 
-                     'sbend':  fsf.elements.Sbend, 
-                     'quadrupole': fsf.elements.Quadrupole, 
-                     'sextupole': fsf.elements.Sextupole, 
-                     'collimator': fsf.elements.Collimator, 
-                     'rfcavity': fsf.elements.RFCavity}
-
-
-def convert_cpymad_element_to_fsf(element):
-    base_type = element.base_type.name
-    return CPYMAD_TO_FSF_MAP[base_type].from_cpymad(element)
-
-
 def get_element_kwargs_from_cpymad(cpymad_element, attr_dict):
     aper_dict = {'aper_type':'apertype', 'aperture':'aperture'}
     if cpymad_element.aperture != [0]:

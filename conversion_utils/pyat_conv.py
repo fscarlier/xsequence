@@ -18,20 +18,6 @@ Part I: Import functions
 """
 
 
-PYAT_TO_FSF_MAP = {'Marker': fsf.elements.Marker, 
-                   'Drift':  fsf.elements.Drift, 
-                   'Dipole':  fsf.elements.Sbend, 
-                   'Quadrupole': fsf.elements.Quadrupole, 
-                   'Sextupole': fsf.elements.Sextupole, 
-                   'Collimator': fsf.elements.Collimator, 
-                   'RFCavity': fsf.elements.RFCavity}
-
-
-def convert_pyat_element_to_fsf(element):
-    base_type = element.__class__.__name__
-    return PYAT_TO_FSF_MAP[base_type].from_pyat(element)
-
-
 def get_aperture_kwarg_from_pyat(pyat_element):
     aper_kwarg = {}
     try:
@@ -130,10 +116,6 @@ def rfcavity_from_pyat(el_class, pyat_element):
     return el_class(pyat_element.FamName, **kwargs)
 
 
-def convert_element_from_pyat(el_class, pyat_element):
-    return FROM_PYAT_CONV[pyat_element.__class__.__name__](el_class, pyat_element)
-
-
 FROM_PYAT_CONV = {'Marker' : marker_from_pyat,
                   'Drift' : drift_from_pyat,
                   'Dipole' : sbend_from_pyat,
@@ -142,6 +124,10 @@ FROM_PYAT_CONV = {'Marker' : marker_from_pyat,
                   'Octupole' : octupole_from_pyat, 
                   'Collimator' : collimator_from_pyat, 
                   'RFCavity' : rfcavity_from_pyat}
+
+
+def convert_element_from_pyat(el_class, pyat_element):
+    return FROM_PYAT_CONV[pyat_element.__class__.__name__](el_class, pyat_element)
 
 
 """
