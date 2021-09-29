@@ -1,10 +1,9 @@
-import scipy
+import scipy, copy, at
+import fsf.elements
 import numpy as np
 from cpymad.madx import Madx
 from toolkit import pyat_functions
-import fsf.elements
-import fsf.lattice_conversion_functions as lcf
-import fsf.element_conversion_functions as ecf
+from conversion_utils import pyat_conv, cpymad_conv
 
 class Lattice():
     """
@@ -27,6 +26,7 @@ class Lattice():
         self.name = name
         self.key = key
         self.energy = kwargs.pop('energy', 0.0)
+        self.global_elements = kwargs.pop('global_elements', None)
         if key == 'line':
             self.line = element_list
         elif key == 'sequence':
@@ -145,7 +145,8 @@ class Lattice():
 
     def get_element_names(self):
         self.names = [el.name for el in self.line]
-    
+        return self.names 
+
 
     def get_range_s(self, start_pos, end_pos):
         seq_start = np.array(self.get_s_positions(reference='start'))
@@ -171,10 +172,12 @@ class Lattice():
     def update_harmonic_number(self):
         cavities = self.get_class('RFCavity')
         for cav in cavities:
+            # Approximation for ultr-relativistic electrons
             cav.harmonic_number = int(cav.freq*1e6/(scipy.constants.c/self.total_length))
 
 
-    def from_madx_seqfile(self, seq_file, seq_name, energy, particle_type='electron'):
+    @classmethod
+    def from_madx_seqfile(cls, seq_file, seq_name, energy, particle_type='electron'):
         """
         Import lattice from MAD-X sequence file
 
@@ -194,7 +197,7 @@ class Lattice():
         madx.call(file=seq_file)
         madx.input('SET, FORMAT="25.20e";')
         madx.command.beam(particle=particle_type, energy=energy)
-        return self.from_cpymad(madx, seq_name)
+        return cls.from_cpymad(madx, seq_name)
 
 
     @classmethod
@@ -207,15 +210,12 @@ class Lattice():
             seq_name: string
                 name of madx sequence
         """
-        global_elements = lcf.create_global_elements_from_cpymad(madx)
-        fsf_lattices = []
-
         madx.use(seq_name)
         total_length = madx.sequence[seq_name].elements[-1].at
-        element_seq = list(map(ecf.convert_cpymad_element_to_fsf, madx.sequence[seq_name].elements))
+        element_seq = list(map(cpymad_conv.convert_cpymad_element_to_fsf, 
+                               madx.sequence[seq_name].elements))
         return cls(seq_name, element_seq, key='sequence', 
-                        energy=madx.sequence[seq_name].beam.energy, 
-                        global_elements=global_elements)
+                   energy=madx.sequence[seq_name].beam.energy) 
 
 
     @classmethod
@@ -226,16 +226,29 @@ class Lattice():
         total_length = pyat_lattice.get_s_pos([-1])
         seq = []
         for el in pyat_lattice:
-            new_element = ecf.convert_pyat_element_to_fsf(el)
+            new_element = pyat_conv.convert_pyat_element_to_fsf(el)
             seq.append(new_element)
-        return cls(pyat_lattice.name, seq, key='line', energy=pyat_lattice.energy*1e-9) 
+        return cls(pyat_lattice.name, seq, energy=pyat_lattice.energy*1e-9) 
 
 
     def to_cpymad(self):
         """
         Export lattice to cpymad
         """
-        return lcf.export_to_cpymad(self)
+        madx = Madx()
+        madx.option(echo=False, info=False, debug=False)
+        seq_command = ''
+        
+        elements = self.sequence
+        for element in elements[1:-1]:
+            element.to_cpymad(madx)
+            seq_command += f'{element.name}, at={element.pos}  ;\n'
+        
+        madx.input(f'{self.name}: sequence, refer=centre, l={self.sequence[-1].pos};')
+        madx.input(seq_command)
+        madx.input('endsequence;')
+        madx.command.beam(particle='electron', energy=self.energy)
+        return madx
 
 
     def to_pyat(self):
@@ -244,7 +257,13 @@ class Lattice():
         """
         self.update_cavity_energy()
         self.update_harmonic_number()
-        return lcf.export_to_pyat(self)
+        elements = self.line
+        seq = []
+        for element in elements:
+            pyat_el = element.to_pyat() 
+            seq.append(pyat_el)
+        pyat_lattice = at.Lattice(seq, name=self.name, key='ring', energy=self.energy*1e9)
+        return pyat_lattice
 
 
     def optics(self, engine='madx', drop_drifts=False):
@@ -270,7 +289,7 @@ class Lattice():
             pyat_instance = self.to_pyat()
             lin = pyat_functions.calc_optics_pyat(pyat_instance)
             tw = pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
-        
+        #TODO: cycle through elements to show at start or end of element for all engines
         if drop_drifts:
             tw = tw.drop(tw[tw['keyword']=='drift'].index)
         tw.set_index('name', inplace=True)
@@ -291,6 +310,20 @@ class Lattice():
         return [element for element in self._line if element.name == element_name]
 
 
+    def remove_elements(self, index=None, names=None):
+        if index:
+            mask = np.ones(len(self.sequence), dtype=bool)        
+            for idx in index:
+                mask[idx] = False
+            self.sequence = np.array(self.sequence)[mask] 
+        elif names:
+            mask = np.ones(len(self.sequence), dtype=bool)
+            for el_idx, element in enumerate(self.sequence):
+                if element.name in names:
+                    mask[el_idx] = False
+            self.sequence = np.array(self.sequence)[mask]
+
+
     def get_class(self, class_name):
         """
         Get list of elements matching given class 
@@ -303,6 +336,13 @@ class Lattice():
             List of elements matching given class
         """
         return [element for element in self._line if element.__class__.__name__ == class_name]
+
+
+    def convert_sbend_to_rbend(self):
+        """
+        Convert all rbends to sbends in sequence 
+        """
+        self.sequence = [element.convert_to_rbend() if element.__class__.__name__ == 'Sbend' else element for element in self.sequence]
 
 
     def convert_rbend_to_sbend(self):
