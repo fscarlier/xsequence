@@ -41,13 +41,13 @@ DEPENDENCIES = [
     "pandas>=1.0",
     "matplotlib>=3.3.2",
     "cpymad>=1.8.1", 
-]
+    "accelerator-toolbox",
+    ]
 
 # Extra dependencies
 EXTRA_DEPENDENCIES = {
     "test": ["pytest>=5.2", "pytest-cov>=2.9"],
     "doc": ["sphinx", "sphinx_rtd_theme"],
-    "at": ["at"], #https://github.com/atcollab/at
 }
 
 EXTRA_DEPENDENCIES.update({"all": [elem for list_ in EXTRA_DEPENDENCIES.values() for elem in list_]})
