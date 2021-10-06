@@ -1,3 +1,10 @@
+"""
+Setup file for fsf Package
+------------------
+fsf: Package to manage particle accelerator lattices and interface to different simulation codes
+"""
+
+
 import pathlib
 
 import setuptools
