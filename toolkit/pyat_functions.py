@@ -24,19 +24,13 @@ def pyat_optics_to_pandas_df(ring, lin):
     df['ct'] = lin['closed_orbit'][:,5]
     return df
 
-def calc_optics_pyat(ring, radiation=False, xy_step = 1.0e-10, dp_step = 1.0e-9):
 
-
-    dipoles = at.get_refpts(ring, at.lattice.elements.Dipole)
-    multipoles = at.get_refpts(ring, at.lattice.elements.Multipole)
-    at.set_value_refpts(ring, dipoles, 'NumIntStep',40)
-    at.set_value_refpts(ring, multipoles, 'NumIntStep',40)
-
-
+def calc_optics_pyat(ring, radiation=False, tapering=False, xy_step = 1.0e-10, dp_step = 1.0e-9):
     if radiation:
         ring.radiation_on(quadrupole_pass='auto')
         ring.set_cavity_phase()
-        ring.tapering(niter = 2, quadrupole=True, sextupole=True, XYStep=xy_step, DPStep=dp_step)
+        if tapering:
+            ring.tapering(niter = 2, quadrupole=True, sextupole=True, XYStep=xy_step, DPStep=dp_step)
         l0,q,l = at.linopt6(ring,refpts=range(len(ring)),get_chrom=True,
                             coupled=False, XYStep=xy_step, DPStep=dp_step)
     else: 
