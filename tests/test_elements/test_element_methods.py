@@ -1,3 +1,10 @@
+"""
+Module tests.test_elements.test_element_methods
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a test module to test element methods.
+"""
+
 from fsf.elements import *
 from pytest import mark
 

@@ -1,3 +1,10 @@
+"""
+Module conversion_utils.conv_utils
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a Python3 module containing accelerator dependent utility functions.
+"""
+
 from cpymad.madx import Madx
 import at
 

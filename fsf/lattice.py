@@ -1,3 +1,10 @@
+"""
+Module fsf.lattice
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a Python3 module containing base Lattice class to manipulate accelerator sequences.
+"""
+
 import scipy, copy, at
 import fsf.elements
 import numpy as np
@@ -5,7 +12,7 @@ from cpymad.madx import Madx
 from toolkit import pyat_functions
 from conversion_utils import pyat_conv, cpymad_conv
 
-class Lattice():
+class Lattice:
     """
     A class used to represent an accelerator lattice 
     """

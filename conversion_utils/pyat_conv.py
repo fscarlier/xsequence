@@ -1,5 +1,8 @@
 """
-Functions for importing and exporting elements from and to pyat
+Module conversion_utils.pyat_conv
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a Python3 module with functions for importing and exporting elements from and to pyat
 
 Part I: Import functions
 

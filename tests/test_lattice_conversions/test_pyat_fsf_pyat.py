@@ -1,3 +1,10 @@
+"""
+Module tests.test_lattice_conversions/test_pyat_fsf_pyat
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a test module to test consistency for converting back and forth from pyat.
+"""
+
 import fsf.lattice as lat
 from toolkit.pyat_functions import get_optics_pyat
 from conversion_utils import conv_utils

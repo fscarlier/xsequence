@@ -1,9 +1,14 @@
+"""
+Module tests.test_elements.test_element_cpymad
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a test module to test correct element imports from cpymad.
+"""
+
 import pytest
 import fsf.elements as el
 from pytest import mark
 from cpymad.madx import Madx
-import numpy as np
-
 
 """
 Quadrupole tests

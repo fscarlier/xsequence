@@ -1,3 +1,10 @@
+"""
+Module tests.test_lattice_conversions.test_cpymad_fsf_cpymad
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a test module to test consistency for converting back and forth from cpymad.
+"""
+
 import fsf.lattice as lat
 from toolkit.pyat_functions import get_optics_pyat
 import pytest

@@ -1,8 +1,12 @@
-import copy
-from os import fstatvfs
-import at
+"""
+Module fsf.elements
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a Python3 module containing base element classes for accelerator sequence definitions.
+"""
+
+import copy, at
 import numpy as np
-from numpy.lib.function_base import trim_zeros
 import fsf.lattice as lat
 from  conversion_utils import pyat_conv, cpymad_conv
 

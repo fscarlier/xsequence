@@ -1,3 +1,10 @@
+"""
+Module tests.test_elements.test_slicing_elements
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a test module to test correct slicing of elements.
+"""
+
 from fsf.lattice import Lattice
 from fsf.elements import *
 from pytest import mark

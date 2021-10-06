@@ -1,5 +1,8 @@
 """
-Functions for importing and exporting elements from and to cpymad
+Module conversion_utils.cpymad_conv
+------------------
+:author: Felix Carlier (fcarlier@cern.ch)
+This is a Python3 module with functions for importing and exporting elements from and to cpymad
 
 Part I: Import functions
 
