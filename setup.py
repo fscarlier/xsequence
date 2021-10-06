@@ -29,7 +29,7 @@ def about_package(init_posixpath: pathlib.Path) -> dict:
     }
 
 
-ABOUT_TFS = about_package(ABOUT_FILE)
+ABOUT_FSF = about_package(ABOUT_FILE)
 
 with README.open("r") as docs:
     long_description = docs.read()
@@ -53,18 +53,18 @@ EXTRA_DEPENDENCIES = {
 EXTRA_DEPENDENCIES.update({"all": [elem for list_ in EXTRA_DEPENDENCIES.values() for elem in list_]})
 
 setuptools.setup(
-    name=ABOUT_TFS["__title__"],
-    version=ABOUT_TFS["__version__"],
-    description=ABOUT_TFS["__description__"],
+    name=ABOUT_FSF["__title__"],
+    version=ABOUT_FSF["__version__"],
+    description=ABOUT_FSF["__description__"],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author=ABOUT_TFS["__author__"],
-    author_email=ABOUT_TFS["__author_email__"],
-    url=ABOUT_TFS["__url__"],
+    author=ABOUT_FSF["__author__"],
+    author_email=ABOUT_FSF["__author_email__"],
+    url=ABOUT_FSF["__url__"],
     packages=setuptools.find_packages(include=(MODULE_NAME,)),
     include_package_data=True,
     python_requires=">=3.6",
-    license=ABOUT_TFS["__license__"],
+    license=ABOUT_FSF["__license__"],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
