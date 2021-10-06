@@ -1,6 +1,9 @@
 import copy
+from os import fstatvfs
 import at
 import numpy as np
+from numpy.lib.function_base import trim_zeros
+import fsf.lattice as lat
 from  conversion_utils import pyat_conv, cpymad_conv
 
 
@@ -41,6 +44,27 @@ class Element:
         return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
 
 
+    def __eq__(self, second_element):
+        """Return equality of two dicts including numpy arrays"""
+        first = dict(self.items())
+        second = dict(second_element.items())
+        
+        if first.keys() != second.keys():
+            return False
+        
+        for key in first:
+            if type(first[key]).__module__ == np.__name__:
+                if len(first[key]) != len(second[key]):
+                    return False
+                arr_eq = np.isclose(first[key], second[key])
+                if False in arr_eq:
+                    return False
+            else:
+                if first[key] != second[key]:
+                    return False
+        return True
+
+
     def update(self, **kwargs):
         for (key, value) in kwargs.items():
             setattr(self, key, value)
@@ -51,12 +75,7 @@ class Element:
         # Get attributes
         for k, v in vars(self).items():
             yield k, v
-        # Get slots and properties
-        for k, v in getmembers(self.__class__, isdatadescriptor):
-            if not k.startswith('_'):
-                yield k, getattr(self, k)
-
-
+    
     @property
     def position(self):
         return self.pos 
@@ -107,6 +126,14 @@ class Element:
         self._int_steps = int_steps 
 
 
+    def teapot_slicing(self, num_slices):
+        delta = self.length*(1/(2*num_slices + 2))
+        distance = self.length*(num_slices/(num_slices**2 - 1))
+        start = getattr(self, 'position', 0) - self.length/2.            
+        end = getattr(self, 'position', 0) + self.length/2.            
+        return start, delta, distance, end 
+
+
 class Drift(Element):
     """
     Drift element class
@@ -124,6 +151,18 @@ class Marker(Element):
         super().__init__(name, **kwargs)
         assert self.length == 0.0, f"Marker {name} has non-zero length"
 
+    def slice_element(self, **kwargs):
+        return [self]
+
+
+class DipEdge(Element):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
+        self.h = kwargs.pop('h', 0)
+        self.e1 = kwargs.pop('e1', 0)
+        self.side = kwargs.pop('side', 'entrance')
+        assert self.side in ('entrance', 'exit'), f"Invalid side Attribute for {self.name} DipEdge"
+
 
 class Sbend(Element):   
     """
@@ -139,6 +178,8 @@ class Sbend(Element):
             length: float
                 arclength of element [m]
         """
+        self.e1 = kwargs.pop('e1', 0)
+        self.e2 = kwargs.pop('e2', 0)
         super().__init__(name, **kwargs)
         self.chord_length = kwargs.pop('chord_length', self._calc_chordlength())
 
@@ -179,6 +220,33 @@ class Sbend(Element):
             kwargs['e2'] = kwargs.pop('e2')-self.angle/2.
         kwargs.pop('name')
         return Rbend(self.name, **kwargs) 
+    
+    def slice_element(self, num_slices=1, method='teapot', output='list'):
+        try: num_slices = self.int_steps
+        except: AttributeError
+
+        if self.length == 0:
+            return [self]
+
+        if method == 'teapot' and num_slices > 1:
+            start_pos, delta, distance, end_pos = self.teapot_slicing(num_slices)
+            angle_sliced = self.angle/num_slices
+            h = self.angle/self.length
+            seq = []
+            seq.append(ThinMultipole(f'{self.name}_0', position=start_pos+delta, knl=[angle_sliced]))
+            for i in range(num_slices-1):
+                seq.append(ThinMultipole(f'{self.name}_{i+1}', position=seq[-1].position + distance, knl=[angle_sliced]))
+            
+            seq.insert(0, DipEdge(f'{self.name}_edge_entrance', side='entrance', h=h, e1=self.e1, position=start_pos))
+            seq.append(DipEdge(f'{self.name}_edge_exit', h=h, side='exit', e1=self.e2, position=end_pos))
+
+            if output == 'lattice': 
+                seq.insert(0, Marker(f'{self.name}_start', position=start_pos))
+                seq.append(Marker(f'{self.name}_start', position=end_pos))
+                sequence = lat.Lattice(self.name, seq, key='sequence') 
+            else:
+                sequence = seq
+            return sequence 
 
 
 class Rbend(Element):   
@@ -244,10 +312,43 @@ class Multipole(Element):
                                              kwargs.pop('k2', 0.0), kwargs.pop('k3', 0.0)]))
         self.ks = np.array(kwargs.pop('ks', [kwargs.pop('k0s', 0.0), kwargs.pop('k1s', 0.0), 
                                              kwargs.pop('k2s', 0.0), kwargs.pop('k3s', 0.0)]))
+        
+        self.kn = np.trim_zeros(self.kn, trim='b')
+        self.ks = np.trim_zeros(self.ks, trim='b')
+        if len(self.kn) == 0: self.kn = np.zeros(1)
+        if len(self.ks) == 0: self.ks = np.zeros(1)
+        self.order = max(len(self.kn), len(self.ks))
+        self.kn = np.pad(self.kn, (0, self.order-len(self.kn)))
+        self.ks = np.pad(self.ks, (0, self.order-len(self.ks)))
+        
         self.knl = np.array(kwargs.pop('knl', self.kn*self.length)) 
         self.ksl = np.array(kwargs.pop('ksl', self.ks*self.length))
-        self.order = max(len(self.knl), len(self.ksl))
         super().__init__(name, **kwargs)
+
+
+    def slice_element(self, num_slices=1, method='teapot', output='list'):
+        try: num_slices = self.int_steps
+        except: AttributeError
+
+        if self.length == 0:
+            return [self]
+
+        if method == 'teapot' and num_slices > 1:
+            start_pos, delta, distance, end_pos = self.teapot_slicing(num_slices)
+            knl_sliced = self.knl/num_slices
+            ksl_sliced = self.ksl/num_slices
+            seq = []
+            seq.append(ThinMultipole(f'{self.name}_0', position=start_pos+delta, knl=knl_sliced, ksl=ksl_sliced))
+            for i in range(num_slices-1):
+                seq.append(ThinMultipole(f'{self.name}_{i+1}', position=seq[-1].position + distance, knl=knl_sliced, ksl=ksl_sliced))
+
+            if output == 'lattice': 
+                seq.insert(0, Marker(f'{self.name}_start', position=start_pos))
+                seq.append(Marker(f'{self.name}_start', position=end_pos))
+                sequence = lat.Lattice(self.name, seq, key='sequence') 
+            else:
+                sequence = seq
+            return sequence 
 
 
 class Quadrupole(Multipole):
@@ -264,6 +365,7 @@ class Quadrupole(Multipole):
     @k1.setter
     def k1(self, k):
         self.kn[1] = k
+        self.knl = self.kn*self.length
 
     @property
     def k1s(self):
@@ -272,6 +374,7 @@ class Quadrupole(Multipole):
     @k1s.setter
     def k1s(self, ks):
         self.ks[1] = ks
+        self.ksl = self.ks*self.length
 
 
 class Sextupole(Multipole):
@@ -327,8 +430,14 @@ class ThinMultipole(Element):
     Multipole element class
     """
     def __init__(self, name, **kwargs):
-        self.knl = np.array(kwargs.pop('knl'))
-        self.ksl = np.array(kwargs.pop('ksl'))
+        self.knl = np.array(kwargs.pop('knl', [0.0]))
+        self.ksl = np.array(kwargs.pop('ksl', [0.0]))
+        self.knl = np.trim_zeros(self.knl, trim='b')
+        self.ksl = np.trim_zeros(self.ksl, trim='b')
+        self.order = max(len(self.knl), len(self.ksl))
+        self.knl = np.pad(self.knl, (0, self.order-len(self.knl)))
+        self.ksl = np.pad(self.ksl, (0, self.order-len(self.ksl)))
+        
         super().__init__(name, **kwargs)
         assert self.length == 0, "Thin{} ({}) defined with length > 0. Use {} instead"\
                                  .format(self.__class__.__name__, name, self.__class__.__name__)

@@ -26,7 +26,6 @@ class Lattice():
         self.name = name
         self.key = key
         self.energy = kwargs.pop('energy', 0.0)
-        self.global_elements = kwargs.pop('global_elements', None)
         if key == 'line':
             self.line = element_list
         elif key == 'sequence':
@@ -37,7 +36,8 @@ class Lattice():
         """
         Convert line representation to sequence representation
         """
-        elements_only = [ele for ele in self._line or self.__class__.__name__ != 'Drift']
+
+        elements_only = [ele for ele in self._line if ele.__class__.__name__ != 'Drift' ]
         self._sequence = elements_only
 
 
@@ -45,15 +45,21 @@ class Lattice():
         """
         Convert sequence representation to line representation including drifts
         """
-        previous_end = 0.0
+        assert self.sequence[0].__class__.__name__ == 'Marker', "Start element of sequence should be Marker element"
+        assert self.sequence[-1].__class__.__name__ == 'Marker', "Last element of sequence should be Marker element"
+
+        previous_end = self.sequence[0].position
         drift_count = 0
-        sequence_w_drifts = []
-        for element in self._sequence:
-            element_start = element.pos-element.length/2.
+        line_w_drifts = [self.sequence[0]]
+        for element in self.sequence[1:]:
+            if element.__class__.__name__ == 'Rbend':
+                element_start = element.pos-element.arc_length/2.
+            else:
+                element_start = element.pos-element.length/2.
             if element_start > previous_end:
                 drift_length = element_start-previous_end
                 drift_pos = previous_end + drift_length/2.
-                sequence_w_drifts.append(fsf.elements.Drift(f'drift_{drift_count}', 
+                line_w_drifts.append(fsf.elements.Drift(f'drift_{drift_count}', 
                                 length=drift_length, pos=drift_pos))
                 drift_count += 1
             elif element_start < previous_end-1e-9: # Tolerance for rounding
@@ -61,9 +67,9 @@ class Lattice():
                 print(previous_end)
                 raise ValueError(f'Negative drift at element {element.name}')
 
-            sequence_w_drifts.append(element)
+            line_w_drifts.append(element)
             previous_end = element.pos + element.length/2.
-        self._line = sequence_w_drifts
+        self._line = line_w_drifts
 
 
     def _calc_s_positions(self):
@@ -271,10 +277,12 @@ class Lattice():
             pyat_el = element.to_pyat() 
             seq.append(pyat_el)
         pyat_lattice = at.Lattice(seq, name=self.name, key='ring', energy=self.energy*1e9)
+        for cav in at.get_elements(pyat_lattice, at.RFCavity):
+            cav.Frequency = cav.HarmNumber*scipy.constants.c/pyat_lattice.circumference 
         return pyat_lattice
 
 
-    def optics(self, engine='madx', drop_drifts=False):
+    def optics(self, engine='madx', radiation=False, tapering=False, drop_drifts=False):
         """
         Calculate optics 
 
@@ -293,14 +301,18 @@ class Lattice():
             cpymad_instance.twiss(sequence=self.name)
             tw = cpymad_instance.table.twiss.dframe().copy()
             tw.name = [element[:-2] for element in tw.name]
+            tw.set_index('name', inplace=True)
         if engine == 'pyat':
             pyat_instance = self.to_pyat()
-            lin = pyat_functions.calc_optics_pyat(pyat_instance)
+            lin = pyat_functions.calc_optics_pyat(pyat_instance, radiation=radiation, tapering=tapering)
             tw = pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
+            tw.set_index('name', inplace=True)
+            tw.index = np.roll(tw.index, 1)
+            tw.keyword = np.roll(tw.keyword, 1)
+
         #TODO: cycle through elements to show at start or end of element for all engines
         if drop_drifts:
             tw = tw.drop(tw[tw['keyword']=='drift'].index)
-        tw.set_index('name', inplace=True)
         return tw 
 
     
@@ -332,18 +344,18 @@ class Lattice():
             self.sequence = np.array(self.sequence)[mask]
 
 
-    def get_class(self, class_name):
+    def get_class(self, class_names):
         """
         Get list of elements matching given class 
 
         Args:
-            class_name : string
-                Name of desired class
+            class_name : array of strings
+                Names of desired classes
         
         Returns:
             List of elements matching given class
         """
-        return [element for element in self._line if element.__class__.__name__ == class_name]
+        return [element for element in self._line if element.__class__.__name__ in class_names]
 
 
     def convert_sbend_to_rbend(self):
@@ -358,6 +370,21 @@ class Lattice():
         Convert all rbends to sbends in sequence 
         """
         self.sequence = [element.convert_to_sbend() if element.__class__.__name__ == 'Rbend' else element for element in self.sequence]
+
+
+    def slice_lattice(self):
+        thin_list = [el.slice_element() for el in self.sequence]
+        self._thin_sequence = [item for sublist in thin_list for item in sublist]
+        return self._thin_sequence
+
+
+    @property
+    def sliced(self):
+        try: 
+            return Lattice(self.name, self._thin_sequence, key='sequence')
+        except AttributeError:
+            self.slice_lattice()
+            return Lattice(self.name, self._thin_sequence, key='sequence')
 
 
     def save(self):
