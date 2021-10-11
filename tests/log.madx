@@ -1,5 +1,5 @@
 option, echo=false, info=false, debug=false;
-call, file="./test_sequences/collimators.seq";
+call, file="/home/fcarlier/git-projects/fsf/tests/test_lattice_conversions/test_sequences/collimators.seq";
 SET, FORMAT="25.20e";
 beam, particle=electron, energy=180;
 use, sequence=ring;

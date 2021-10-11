@@ -1,0 +1,10 @@
+README.md
+setup.py
+fsf/__init__.py
+fsf/elements.py
+fsf/lattice.py
+fsf.egg-info/PKG-INFO
+fsf.egg-info/SOURCES.txt
+fsf.egg-info/dependency_links.txt
+fsf.egg-info/requires.txt
+fsf.egg-info/top_level.txt
