@@ -12,7 +12,6 @@ Part II: Export functions
 import at
 import numpy as np
 from scipy.special import factorial
-import fsf.elements
 
 FACTORIAL = factorial(np.arange(21), exact=True)
 

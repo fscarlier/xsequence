@@ -22,7 +22,7 @@ import math
                   ('el2_5', 5,  3.4, 3.4*1/12, 3.4*5/24)])
 def test_teapot_slice_distances(name, nslices, length, delta, distance):
     el = Element(name, length=length)
-    st, dl, dis, end = el.teapot_slicing(nslices)
+    dl, dis = el.teapot_slicing(nslices)
     errors = []
     if not math.isclose(delta, dl, abs_tol=1e-15):
         errors.append(f"Error: TEAPOT delta not correct, should be {delta}")

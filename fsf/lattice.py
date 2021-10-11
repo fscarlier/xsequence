@@ -55,14 +55,14 @@ class Lattice:
         assert self.sequence[0].__class__.__name__ == 'Marker', "Start element of sequence should be Marker element"
         assert self.sequence[-1].__class__.__name__ == 'Marker', "Last element of sequence should be Marker element"
 
-        previous_end = self.sequence[0].position
+        previous_end = self.sequence[0].end
         drift_count = 0
         line_w_drifts = [self.sequence[0]]
         for element in self.sequence[1:]:
             if element.__class__.__name__ == 'Rbend':
-                element_start = element.pos-element.arc_length/2.
+                element_start = element.position-element.arc_length/2.
             else:
-                element_start = element.pos-element.length/2.
+                element_start = element.start
             if element_start > previous_end:
                 drift_length = element_start-previous_end
                 drift_pos = previous_end + drift_length/2.
@@ -75,7 +75,7 @@ class Lattice:
                 raise ValueError(f'Negative drift at element {element.name}')
 
             line_w_drifts.append(element)
-            previous_end = element.pos + element.length/2.
+            previous_end = element.end
         self._line = line_w_drifts
 
 
@@ -101,11 +101,11 @@ class Lattice:
             List of longitudinal positions of each element excluding drifts
         """
         if reference == 'center': 
-            return [element.pos for element in self._sequence]
+            return [element.position for element in self._sequence]
         elif reference == 'start': 
-            return [element.pos-element.length/2. for element in self._sequence]
+            return [element.start for element in self._sequence]
         elif reference == 'end': 
-            return [element.pos+element.length/2. for element in self._sequence]
+            return [element.end for element in self._sequence]
 
     
     @property
@@ -263,9 +263,9 @@ class Lattice:
         elements = self.sequence
         for element in elements[1:-1]:
             element.to_cpymad(madx)
-            seq_command += f'{element.name}, at={element.pos}  ;\n'
+            seq_command += f'{element.name}, at={element.position}  ;\n'
         
-        madx.input(f'{self.name}: sequence, refer=centre, l={self.sequence[-1].pos};')
+        madx.input(f'{self.name}: sequence, refer=centre, l={self.sequence[-1].end};')
         madx.input(seq_command)
         madx.input('endsequence;')
         madx.command.beam(particle='electron', energy=self.energy)
@@ -380,6 +380,10 @@ class Lattice:
 
 
     def slice_lattice(self):
+        for el in self.sequence:
+            print(el)
+            print(el.slice_element())
+        
         thin_list = [el.slice_element() for el in self.sequence]
         self._thin_sequence = [item for sublist in thin_list for item in sublist]
         return self._thin_sequence

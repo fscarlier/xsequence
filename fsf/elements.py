@@ -7,7 +7,7 @@ This is a Python3 module containing base element classes for accelerator sequenc
 
 import copy, at
 import numpy as np
-import fsf.lattice as lat
+import fsf.lattice 
 from  conversion_utils import pyat_conv, cpymad_conv
 
 
@@ -28,6 +28,7 @@ class Element:
         """
         self.name = name
         self.length = kwargs.pop('length', 0.0)
+        self.position = kwargs.pop('position', 0.0)
         self.parent = kwargs.pop('parent', self.__class__.__name__)
         self.update(**kwargs)
 
@@ -79,16 +80,28 @@ class Element:
         # Get attributes
         for k, v in vars(self).items():
             yield k, v
-    
+
+
     @property
     def position(self):
-        return self.pos 
+        return self.pos['centre']
+
+
+    @property
+    def start(self):
+        return self.pos['start']
+
+
+    @property
+    def end(self):
+        return self.pos['end']
 
 
     @position.setter
-    def position(self, position):
-        self.pos = position
-
+    def position(self, position, loc='centre'):
+        self.pos = {'centre':position, 
+                    'start':position - self.length/2.,
+                    'end':position + self.length/2.}
 
     @classmethod
     def from_cpymad(cls, cpymad_element):
@@ -133,9 +146,7 @@ class Element:
     def teapot_slicing(self, num_slices):
         delta = self.length*(1/(2*num_slices + 2))
         distance = self.length*(num_slices/(num_slices**2 - 1))
-        start = getattr(self, 'position', 0) - self.length/2.            
-        end = getattr(self, 'position', 0) + self.length/2.            
-        return start, delta, distance, end 
+        return delta, distance 
 
 
 class Drift(Element):
@@ -232,22 +243,30 @@ class Sbend(Element):
         if self.length == 0:
             return [self]
 
+        if num_slices == 1:
+            h = self.angle/self.length
+            start = getattr(self, 'position', 0) - self.length/2.            
+            end = getattr(self, 'position', 0) + self.length/2.            
+            seq = [ThinMultipole(self.name, position=getattr(self, 'position', 0), knl=[self.angle])]
+            seq.insert(0, DipEdge(f'{self.name}_edge_entrance', side='entrance', h=h, e1=self.e1, position=start))
+            seq.append(DipEdge(f'{self.name}_edge_exit', h=h, side='exit', e1=self.e2, position=end))
+            return seq
         if method == 'teapot' and num_slices > 1:
-            start_pos, delta, distance, end_pos = self.teapot_slicing(num_slices)
+            delta, distance = self.teapot_slicing(num_slices)
             angle_sliced = self.angle/num_slices
             h = self.angle/self.length
             seq = []
-            seq.append(ThinMultipole(f'{self.name}_0', position=start_pos+delta, knl=[angle_sliced]))
+            seq.append(ThinMultipole(f'{self.name}_0', position=self.start+delta, knl=[angle_sliced]))
             for i in range(num_slices-1):
                 seq.append(ThinMultipole(f'{self.name}_{i+1}', position=seq[-1].position + distance, knl=[angle_sliced]))
             
-            seq.insert(0, DipEdge(f'{self.name}_edge_entrance', side='entrance', h=h, e1=self.e1, position=start_pos))
-            seq.append(DipEdge(f'{self.name}_edge_exit', h=h, side='exit', e1=self.e2, position=end_pos))
+            seq.insert(0, DipEdge(f'{self.name}_edge_entrance', side='entrance', h=h, e1=self.e1, position=self.start))
+            seq.append(DipEdge(f'{self.name}_edge_exit', h=h, side='exit', e1=self.e2, position=self.end))
 
             if output == 'lattice': 
-                seq.insert(0, Marker(f'{self.name}_start', position=start_pos))
-                seq.append(Marker(f'{self.name}_start', position=end_pos))
-                sequence = lat.Lattice(self.name, seq, key='sequence') 
+                seq.insert(0, Marker(f'{self.name}_start', position=self.start))
+                seq.append(Marker(f'{self.name}_start', position=self.end))
+                sequence = fsf.lattice.Lattice(self.name, seq, key='sequence') 
             else:
                 sequence = seq
             return sequence 
@@ -300,6 +319,11 @@ class Rbend(Element):
         kwargs.pop('name')
         return Sbend(self.name, **kwargs) 
 
+    
+    def slice_element(self, num_slices=1, method='teapot', output='list'):
+        sbend = self.convert_to_sbend()
+        return sbend.slice_element(num_slices=num_slices, method='teapot', output='list')
+
 
 class Multipole(Element):
     """
@@ -337,19 +361,21 @@ class Multipole(Element):
         if self.length == 0:
             return [self]
 
-        if method == 'teapot' and num_slices > 1:
-            start_pos, delta, distance, end_pos = self.teapot_slicing(num_slices)
+        if num_slices == 1:
+            return [ThinMultipole(self.name, position=getattr(self, 'position', 0), knl=self.knl, ksl=self.ksl)]
+        elif method == 'teapot' and num_slices > 1:
+            delta, distance = self.teapot_slicing(num_slices)
             knl_sliced = self.knl/num_slices
             ksl_sliced = self.ksl/num_slices
             seq = []
-            seq.append(ThinMultipole(f'{self.name}_0', position=start_pos+delta, knl=knl_sliced, ksl=ksl_sliced))
+            seq.append(ThinMultipole(f'{self.name}_0', position=self.start+delta, knl=knl_sliced, ksl=ksl_sliced))
             for i in range(num_slices-1):
                 seq.append(ThinMultipole(f'{self.name}_{i+1}', position=seq[-1].position + distance, knl=knl_sliced, ksl=ksl_sliced))
 
             if output == 'lattice': 
-                seq.insert(0, Marker(f'{self.name}_start', position=start_pos))
-                seq.append(Marker(f'{self.name}_start', position=end_pos))
-                sequence = lat.Lattice(self.name, seq, key='sequence') 
+                seq.insert(0, Marker(f'{self.name}_start', position=self.start))
+                seq.append(Marker(f'{self.name}_start', position=self.end))
+                sequence = fsf.lattice.Lattice(self.name, seq, key='sequence') 
             else:
                 sequence = seq
             return sequence 
@@ -478,7 +504,12 @@ class RFCavity(Element):
     def __init__(self, name, **kwargs):
         self.volt = kwargs.pop('volt', 0.0)
         self.freq = kwargs.pop('freq', 0.0)
+        self.lag = kwargs.pop('lag', 0.0)
         super().__init__(name, **kwargs)
+
+    def slice_element(self):
+        if self.length == 0:
+            return [self]
 
 
 class Collimator(Drift):

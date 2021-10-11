@@ -9,7 +9,6 @@ Part I: Import functions
 Part II: Export functions
 """
 
-import fsf.elements 
 
 """
 Part I: Import functions

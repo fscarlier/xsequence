@@ -5,7 +5,7 @@ Module tests.test_lattice_conversions.test_cpymad_fsf_cpymad
 This is a test module to test consistency for converting back and forth from cpymad.
 """
 
-import fsf.lattice as lat
+from fsf.lattice import Lattice
 from toolkit.pyat_functions import get_optics_pyat
 import pytest
 from conversion_utils import conv_utils
@@ -19,7 +19,7 @@ def example_cpymad_fsf_cpymad():
         Old and new twiss tables from cpymad
     """
     madx_lattice = conv_utils.create_cpymad_from_file('./test_sequences/lattice.seq', 120)
-    fsf_lattice = lat.Lattice.from_cpymad(madx_lattice, 'l000013')
+    fsf_lattice = Lattice.from_cpymad(madx_lattice, 'l000013')
     madx_lattice_new = fsf_lattice.to_cpymad()
     madx_lattice.use('l000013')
     madx_lattice_new.use('l000013')
@@ -67,7 +67,7 @@ def example_cpymad_fsf_cpymad_coll():
         Old and new twiss tables from cpymad
     """
     madx_lattice = conv_utils.create_cpymad_from_file('./test_sequences/collimators.seq', 180)
-    fsf_lattice = lat.Lattice.from_cpymad(madx_lattice, 'ring')
+    fsf_lattice = Lattice.from_cpymad(madx_lattice, 'ring')
     madx_lattice_new = fsf_lattice.to_cpymad()
     madx_lattice.use('ring')
     madx_lattice_new.use('ring')
