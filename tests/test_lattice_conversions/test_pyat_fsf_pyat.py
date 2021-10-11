@@ -9,7 +9,9 @@ import fsf.lattice as lat
 from toolkit.pyat_functions import get_optics_pyat
 from conversion_utils import conv_utils
 import pytest
+from pathlib import Path
 
+TEST_SEQ_DIR = Path(__file__).parent / "test_sequences"
 
 @pytest.fixture(scope="module")
 def example_pyat_fsf_pyat():
@@ -20,7 +22,7 @@ def example_pyat_fsf_pyat():
         Old and new twiss data arrays
         Old and new s position arrays
     """
-    pyat_lattice = conv_utils.create_pyat_from_file('./test_sequences/fcch_norad.mat')
+    pyat_lattice = conv_utils.create_pyat_from_file(TEST_SEQ_DIR / "fcch_norad.mat")
     fsf_lattice = lat.Lattice.from_pyat(pyat_lattice)
     pyat_lattice_new = fsf_lattice.to_pyat()
     lin, s = get_optics_pyat(pyat_lattice, radiation=False)
