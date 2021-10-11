@@ -5,6 +5,8 @@ defaults:
   run:
     shell: bash
 
+on: push
+
 jobs:
   basic_tests:  # Runs the basic tests, aka all tests not marked with "extended", on all push events
     name: basic / ${{ matrix.os }} / ${{ matrix.python-version }}
