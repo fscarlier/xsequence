@@ -76,7 +76,7 @@ def collimator_from_cpymad(el_class, cpymad_element):
 
 
 def rfcavity_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'length':'l', 'position':'at', 'freq':'freq', 'volt':'volt'}
+    attr_dict = {'length':'l', 'position':'at', 'freq':'freq', 'volt':'volt', 'lag':'lag'}
     kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
     return el_class(cpymad_element.name, **kwargs)
 
@@ -163,7 +163,7 @@ def collimator_to_cpymad(fsf_element, madx):
 
 
 def rfcavity_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'length', 'at':'position', 'freq':'freq', 'volt':'volt'}
+    attr_dict = {'l':'length', 'at':'position', 'freq':'freq', 'volt':'volt', 'lag':'lag'}
     kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
     madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
 

@@ -8,7 +8,7 @@ This is a Python3 module containing base element classes for accelerator sequenc
 import copy, at
 import numpy as np
 import fsf.lattice 
-from  conversion_utils import pyat_conv, cpymad_conv
+from  conversion_utils import xline_conv, pyat_conv, cpymad_conv
 
 
 class Element:
@@ -131,6 +131,13 @@ class Element:
         Create pyAT Element instance from element
         """
         return pyat_conv.convert_element_to_pyat(self)
+
+
+    def to_xline(self):
+        """ 
+        Create pyAT Element instance from element
+        """
+        return xline_conv.convert_element_to_xline(self)
 
 
     @property

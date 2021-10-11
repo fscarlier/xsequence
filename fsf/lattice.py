@@ -11,6 +11,8 @@ import numpy as np
 from cpymad.madx import Madx
 from toolkit import pyat_functions
 from conversion_utils import pyat_conv, cpymad_conv
+import xline as xl
+
 
 class Lattice:
     """
@@ -278,15 +280,28 @@ class Lattice:
         """
         self.update_cavity_energy()
         self.update_harmonic_number()
-        elements = self.line
-        seq = []
-        for element in elements:
-            pyat_el = element.to_pyat() 
-            seq.append(pyat_el)
+        seq = [element.to_pyat() for element in self.line]
         pyat_lattice = at.Lattice(seq, name=self.name, key='ring', energy=self.energy*1e9)
         for cav in at.get_elements(pyat_lattice, at.RFCavity):
             cav.Frequency = cav.HarmNumber*scipy.constants.c/pyat_lattice.circumference 
         return pyat_lattice
+
+
+    def to_xline(self):
+        """
+        Export lattice to pyat
+        """
+        seq = []
+        names = []
+        for element in self.sliced.line:
+            xl_el = element.to_xline()
+            #Filter out None
+            if xl_el:
+                seq.append(xl_el)
+                names.append(element.name)
+
+        xline_lattice = xl.Line(elements=seq, element_names=names)
+        return seq, names, xline_lattice
 
 
     def optics(self, engine='madx', radiation=False, tapering=False, drop_drifts=False):
@@ -380,10 +395,6 @@ class Lattice:
 
 
     def slice_lattice(self):
-        for el in self.sequence:
-            print(el)
-            print(el.slice_element())
-        
         thin_list = [el.slice_element() for el in self.sequence]
         self._thin_sequence = [item for sublist in thin_list for item in sublist]
         return self._thin_sequence
