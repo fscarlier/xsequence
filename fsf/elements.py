@@ -243,7 +243,7 @@ class Sbend(Element):
         kwargs.pop('name')
         return Rbend(self.name, **kwargs) 
     
-    def slice_element(self, num_slices=1, method='teapot', output='list'):
+    def slice_element(self, num_slices=1, method='teapot'):
         try: num_slices = self.int_steps
         except: AttributeError
 
@@ -270,13 +270,7 @@ class Sbend(Element):
             seq.insert(0, DipEdge(f'{self.name}_edge_entrance', side='entrance', h=h, e1=self.e1, position=self.start))
             seq.append(DipEdge(f'{self.name}_edge_exit', h=h, side='exit', e1=self.e2, position=self.end))
 
-            if output == 'lattice': 
-                seq.insert(0, Marker(f'{self.name}_start', position=self.start))
-                seq.append(Marker(f'{self.name}_start', position=self.end))
-                sequence = fsf.lattice.Lattice(self.name, seq, key='sequence') 
-            else:
-                sequence = seq
-            return sequence 
+            return seq 
 
 
 class Rbend(Element):   
@@ -327,9 +321,9 @@ class Rbend(Element):
         return Sbend(self.name, **kwargs) 
 
     
-    def slice_element(self, num_slices=1, method='teapot', output='list'):
+    def slice_element(self, num_slices=1, method='teapot'):
         sbend = self.convert_to_sbend()
-        return sbend.slice_element(num_slices=num_slices, method='teapot', output='list')
+        return sbend.slice_element(num_slices=num_slices, method='teapot')
 
 
 class Multipole(Element):
@@ -361,7 +355,7 @@ class Multipole(Element):
         super().__init__(name, **kwargs)
 
 
-    def slice_element(self, num_slices=1, method='teapot', output='list'):
+    def slice_element(self, num_slices=1, method='teapot'):
         try: num_slices = self.int_steps
         except: AttributeError
 
@@ -379,13 +373,7 @@ class Multipole(Element):
             for i in range(num_slices-1):
                 seq.append(ThinMultipole(f'{self.name}_{i+1}', position=seq[-1].position + distance, knl=knl_sliced, ksl=ksl_sliced))
 
-            if output == 'lattice': 
-                seq.insert(0, Marker(f'{self.name}_start', position=self.start))
-                seq.append(Marker(f'{self.name}_start', position=self.end))
-                sequence = fsf.lattice.Lattice(self.name, seq, key='sequence') 
-            else:
-                sequence = seq
-            return sequence 
+            return seq 
 
 
 class Quadrupole(Multipole):
@@ -532,6 +520,37 @@ class Solenoid(Element):
     Solenoid element class
     """
     def __init__(self, name, **kwargs):
+        self.ks = kwargs.pop('ks', 0.0)
+        super().__init__(name, **kwargs)
+        self.ksi = self.ks*self.length
+
+    def slice_element(self, num_slices=1, method='teapot'):
+        try: num_slices = self.int_steps
+        except: AttributeError
+
+        if self.length == 0:
+            return [self]
+
+        if num_slices == 1:
+            return [ThinSolenoid(self.name, position=getattr(self, 'position', 0), ksi=self.ksi)]
+        elif method == 'teapot' and num_slices > 1:
+            delta, distance = self.teapot_slicing(num_slices)
+            ksi_sliced = self.ksi/num_slices
+            seq = []
+            rad_length = self.length/num_slices
+            seq.append(ThinSolenoid(f'{self.name}_0', position=self.start+delta, ksi=ksi_sliced, rad_length=rad_length))
+            for i in range(num_slices-1):
+                seq.append(ThinSolenoid(f'{self.name}_{i+1}', position=seq[-1].position + distance, ksi=ksi_sliced, rad_length=rad_length))
+            return seq 
+
+
+class ThinSolenoid(Element):
+    """
+    ThinSolenoid element class
+    """
+    def __init__(self, name, **kwargs):
+        self.ksi = kwargs.pop('ksi', 0.0)
+        self.ks = kwargs.pop('ks', 0.0)
         super().__init__(name, **kwargs)
 
     
