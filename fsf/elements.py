@@ -34,10 +34,6 @@ class Element:
         self.update(**kwargs)
 
 
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
-
-
     def __str__(self):
         args_dict = vars(self).items()
         args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
