@@ -28,7 +28,7 @@ class Element:
         """
         self.name = name
         self.length = kwargs.pop('length', 0.0)
-        self.position = kwargs.pop('position', 0.0)
+        self.set_position(kwargs.pop('position', 0.0), loc='centre', reference=kwargs.pop('reference', None))
         self.parent = kwargs.pop('parent', self.__class__.__name__)
         self.update(**kwargs)
 
@@ -84,24 +84,38 @@ class Element:
 
     @property
     def position(self):
-        return self.pos['centre']
+        return self._position['centre']
 
 
     @property
     def start(self):
-        return self.pos['start']
+        return self._position['start']
 
 
     @property
     def end(self):
-        return self.pos['end']
+        return self._position['end']
 
 
     @position.setter
-    def position(self, position, loc='centre'):
-        self.pos = {'centre':position, 
-                    'start':position - self.length/2.,
-                    'end':position + self.length/2.}
+    def position(self, position):
+        self.set_position(position)
+
+
+    def set_position(self, position, loc='centre', reference=None):
+        pos = position
+        if reference:
+            self._relative_position = position
+            if isinstance(reference, (float, int)):
+                self.reference = reference 
+                pos = self._relative_position + self.reference
+            elif isinstance(reference, Element):
+                self.reference = reference.position 
+                pos = self._relative_position + self.reference
+        self._position = {'centre':pos, 
+                          'start':pos - self.length/2.,
+                          'end':pos + self.length/2.}
+
 
     @classmethod
     def from_cpymad(cls, cpymad_element):

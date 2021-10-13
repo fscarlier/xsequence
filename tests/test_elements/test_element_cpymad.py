@@ -59,7 +59,10 @@ Element by element tests cpymad back to cpymad (FCC-ee lattice)
 
 @pytest.fixture(scope="module")
 def example_madx_lattice():
-    madx_lattice = conv_utils.create_cpymad_from_file(str(TEST_SEQ_DIR / "lattice.seq"), 120)
+    madx_lattice = Madx()
+    madx_lattice.call(str(TEST_SEQ_DIR / "lhc.seq"))
+    madx_lattice.call(str(TEST_SEQ_DIR / "optics.madx"))
+    # madx_lattice = conv_utils.create_cpymad_from_file(str(TEST_SEQ_DIR / "lattice.seq"), 120)
     return madx_lattice    
 
 

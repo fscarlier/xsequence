@@ -5,13 +5,13 @@ Module fsf.lattice
 This is a Python3 module containing base Lattice class to manipulate accelerator sequences.
 """
 
-import scipy, copy, at
+import scipy, at
 import fsf.elements
 import numpy as np
 from cpymad.madx import Madx
 from toolkit import pyat_functions
-from conversion_utils import pyat_conv, cpymad_conv
 import xline as xl
+from collections import defaultdict
 
 
 class Lattice:
@@ -72,27 +72,22 @@ class Lattice:
                                 length=drift_length, pos=drift_pos))
                 drift_count += 1
             elif element_start < previous_end-1e-9: # Tolerance for rounding
-                print(element.name, element.pos, element.pos-element.length/2.)
-                print(previous_end)
                 raise ValueError(f'Negative drift at element {element.name}')
 
             line_w_drifts.append(element)
             previous_end = element.end
         self._line = line_w_drifts
 
-
     def _calc_s_positions(self):
         """
         Calculate longitudinal positions of elements from line representation
         """
         previous_end = 0.0
-        positions = []
         for element in self._line:
-            pos = previous_end + element.length/2.
-            element.pos = pos
+            element.position = previous_end + element.length/2.
             previous_end += element.length
 
-    
+
     def get_s_positions(self, reference='center'):
         """
         Key args:
@@ -155,7 +150,7 @@ class Lattice:
 
     @property
     def total_length(self):
-        return self.line[-1].pos + self.line[-1].length/2.
+        return self.line[-1].end
 
 
     def get_element_names(self):
@@ -175,7 +170,7 @@ class Lattice:
         end_element = self.get_element(end_element)
         assert len(start_element) == 1, "Cannot find range: Multiple elements with same start name"
         assert len(end_element) == 1, "Cannot find range: Multiple elements with same end name"
-        return self.get_range_s(start_element[0].pos, end_element[0].pos)
+        return self.get_range_s(start_element[0].position, end_element[0].position)
 
 
     def update_cavity_energy(self):
@@ -233,8 +228,13 @@ class Lattice:
         total_length = madx.sequence[seq_name].elements[-1].at
         element_seq = list(map(convert_cpymad_element_to_fsf, 
                                madx.sequence[seq_name].elements))
+        
+        variables=defaultdict(lambda :0)
+        for name,par in madx.globals.cmdpar.items():
+            variables[name]=par.value
+        
         return cls(seq_name, element_seq, key='sequence', 
-                   energy=madx.sequence[seq_name].beam.energy) 
+                   energy=madx.sequence[seq_name].beam.energy, global_variables=variables) 
 
 
     @classmethod
@@ -407,26 +407,6 @@ class Lattice:
         except AttributeError:
             self.slice_lattice()
             return Lattice(self.name, self._thin_sequence, key='sequence')
-
-
-    def save(self):
-        return
-
-    
-    def copy(self):
-        return
-
-    
-    def clone(self):
-        return
-
-
-    def invert(self):
-        return
-
-
-    def extract(self):
-        return
 
 
     def __str__(self):
