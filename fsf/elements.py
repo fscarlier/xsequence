@@ -7,6 +7,7 @@ This is a Python3 module containing base element classes for accelerator sequenc
 
 import copy, at
 import numpy as np
+import math
 import fsf.lattice 
 from  conversion_utils import xline_conv, pyat_conv, cpymad_conv
 
@@ -213,7 +214,7 @@ class Sbend(Element):
         Returns:
             Float with arclength
         """
-        return (self.angle*self.chord_length)/(2*np.sin(self.angle/2.))
+        return (self.angle*self.chord_length)/(2*math.sin(self.angle/2.))
 
 
     def _calc_chordlength(self) :
@@ -223,7 +224,7 @@ class Sbend(Element):
         Returns:
             Float with chordlength 
         """
-        return self.length*(2*np.sin(self.angle/2.))/self.angle
+        return self.length*(2*math.sin(self.angle/2.))/self.angle
 
 
     def convert_to_rbend(self):
@@ -290,7 +291,7 @@ class Rbend(Element):
         Returns:
             Float with arclength
         """
-        return (self.angle*self.length)/(2*np.sin(self.angle/2.))
+        return (self.angle*self.length)/(2*math.sin(self.angle/2.))
 
 
     def _calc_chordlength(self) :
@@ -300,7 +301,7 @@ class Rbend(Element):
         Returns:
             Float with chordlength 
         """
-        return self.arc_length*(2*np.sin(self.angle/2.))/self.angle
+        return self.arc_length*(2*math.sin(self.angle/2.))/self.angle
 
 
     def convert_to_sbend(self):
