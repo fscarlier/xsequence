@@ -1,0 +1,20 @@
+# consider also creating a personal gitignore for files specific to your machine https://stackoverflow.com/questions/5724455/can-i-make-a-user-specific-gitignore-file 
+*~
+*.eps
+*.ps
+*.log
+*.pyc
+*.gz
+*.swp
+*.tmp
+*.bak
+*.orig
+\#*\#
+.hypothesis*
+.pydevproject
+.vscode
+.idea/
+.project
+.cache
+/doc/_build/*
+*pycache*

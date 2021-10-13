@@ -39,7 +39,7 @@ def test_eq_method(el1, el2):
                   (Sbend('el_11', length=2.0, angle=0.3, e1=0.01, e2=0.012), Sbend('el_11', length=2.0, angle=0.3, e1=0.01, e2=0.011)   ),
                   (Sbend('el_12', length=2.0, angle=0.3, e1=0.02, e2=0.011), Sbend('el_12', length=2.0, angle=0.3, e1=0.01, e2=0.011)   ),
                  ])
-def test_eq_method(el1, el2):
+def test_neq_method(el1, el2):
     assert el1 != el2
 
 
