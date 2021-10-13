@@ -229,7 +229,7 @@ def collimator_to_pyat(fsf_element):
 
 
 def rfcavity_to_pyat(fsf_element):
-    attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps', 'PolynomB':'knl', 'PolynomA':'ksl'}
+    attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps'}
     kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
     return at.elements.RFCavity(fsf_element.name, fsf_element.length, fsf_element.volt*1e6, fsf_element.freq*1e6, 
                                 fsf_element.harmonic_number, fsf_element.energy*1e9, **kwargs)

@@ -72,8 +72,6 @@ class Lattice:
                                 length=drift_length, pos=drift_pos))
                 drift_count += 1
             elif element_start < previous_end-1e-9: # Tolerance for rounding
-                print(element.name, element.pos, element.pos-element.length/2.)
-                print(previous_end)
                 raise ValueError(f'Negative drift at element {element.name}')
 
             line_w_drifts.append(element)
@@ -86,10 +84,8 @@ class Lattice:
         Calculate longitudinal positions of elements from line representation
         """
         previous_end = 0.0
-        positions = []
         for element in self._line:
-            pos = previous_end + element.length/2.
-            element.pos = pos
+            element.position  = previous_end + element.length/2.
             previous_end += element.length
 
     
@@ -175,7 +171,7 @@ class Lattice:
         end_element = self.get_element(end_element)
         assert len(start_element) == 1, "Cannot find range: Multiple elements with same start name"
         assert len(end_element) == 1, "Cannot find range: Multiple elements with same end name"
-        return self.get_range_s(start_element[0].pos, end_element[0].pos)
+        return self.get_range_s(start_element[0].position, end_element[0].position)
 
 
     def update_cavity_energy(self):
