@@ -155,7 +155,7 @@ class Lattice:
 
     @property
     def total_length(self):
-        return self.line[-1].pos + self.line[-1].length/2.
+        return self.line[-1].end
 
 
     def get_element_names(self):
