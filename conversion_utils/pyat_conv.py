@@ -199,11 +199,6 @@ def sbend_to_pyat(fsf_element):
     return at.elements.Dipole(fsf_element.name, fsf_element.length, **kwargs)
  
  
-def rbend_to_pyat(fsf_element):
-    sbend = fsf_element.convert_to_sbend()
-    return sbend_to_pyat(sbend)
-
-
 def quadrupole_to_pyat(fsf_element):
     attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps', 'PolynomB':'kn', 'PolynomA':'ks'}
     kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
@@ -242,7 +237,7 @@ def convert_element_to_pyat(fsf_element):
 TO_PYAT_CONV = {'Marker': marker_to_pyat, 
                 'Drift':  drift_to_pyat, 
                 'Sbend':  sbend_to_pyat, 
-                'Rbend':  rbend_to_pyat, 
+                'Rbend':  sbend_to_pyat, 
                 'Quadrupole': quadrupole_to_pyat, 
                 'Sextupole': sextupole_to_pyat, 
                 'Collimator': collimator_to_pyat, 

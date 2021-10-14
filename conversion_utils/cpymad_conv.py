@@ -133,7 +133,7 @@ def sbend_to_cpymad(fsf_element, madx):
 
 
 def rbend_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'length', 'at':'position', 'angle':'angle', 'e1':'e1', 'e2':'e2'}
+    attr_dict = {'l':'_chord_length', 'at':'position', 'angle':'angle', 'e1':'_rbend_e1', 'e2':'_rbend_e2'}
     kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
     madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
 

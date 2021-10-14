@@ -5,13 +5,13 @@ Module fsf.lattice
 This is a Python3 module containing base Lattice class to manipulate accelerator sequences.
 """
 
-import scipy, copy, at
+import scipy, at
 import fsf.elements
 import numpy as np
 from cpymad.madx import Madx
 from toolkit import pyat_functions
-from conversion_utils import pyat_conv, cpymad_conv
 import xline as xl
+from collections import defaultdict
 
 
 class Lattice:
@@ -61,10 +61,7 @@ class Lattice:
         drift_count = 0
         line_w_drifts = [self.sequence[0]]
         for element in self.sequence[1:]:
-            if element.__class__.__name__ == 'Rbend':
-                element_start = element.position-element.arc_length/2.
-            else:
-                element_start = element.start
+            element_start = element.start
             if element_start > previous_end:
                 drift_length = element_start-previous_end
                 drift_pos = previous_end + drift_length/2.
@@ -78,17 +75,16 @@ class Lattice:
             previous_end = element.end
         self._line = line_w_drifts
 
-
     def _calc_s_positions(self):
         """
         Calculate longitudinal positions of elements from line representation
         """
         previous_end = 0.0
         for element in self._line:
-            element.position  = previous_end + element.length/2.
+            element.position = previous_end + element.length/2.
             previous_end += element.length
 
-    
+
     def get_s_positions(self, reference='center'):
         """
         Key args:
@@ -193,15 +189,11 @@ class Lattice:
         Import lattice from MAD-X sequence file
 
         Args:
-            seqfile: string
-                path to madx sequence
-            seqname: string
-                name of madx sequence
-            energy: int
-                energy of beam in GeV
+            seqfile: string, path to madx sequence
+            seqname: string, name of madx sequence
+            energy: int, energy of beam in GeV
         Key args:
-            particle_type: string
-                type of particle, 'electron' 'proton' ...
+            particle_type: string, type of particle, 'electron' 'proton' ...
         """
         madx = Madx()
         madx.option(echo=False, info=False, debug=False)
@@ -218,8 +210,7 @@ class Lattice:
 
         Args:
             madx: cpymad.madx Madx() instance
-            seq_name: string
-                name of madx sequence
+            seq_name: string, name of madx sequence
         """
         def convert_cpymad_element_to_fsf(element):
             base_type = element.base_type.name
@@ -229,14 +220,19 @@ class Lattice:
         total_length = madx.sequence[seq_name].elements[-1].at
         element_seq = list(map(convert_cpymad_element_to_fsf, 
                                madx.sequence[seq_name].elements))
+        
+        variables=defaultdict(lambda :0)
+        for name,par in madx.globals.cmdpar.items():
+            variables[name]=par.value
+        
         return cls(seq_name, element_seq, key='sequence', 
-                   energy=madx.sequence[seq_name].beam.energy) 
+                   energy=madx.sequence[seq_name].beam.energy, global_variables=variables) 
 
 
     @classmethod
     def from_pyat(cls, pyat_lattice):
         """
-        Export lattice to pyat
+        Import lattice from pyat
         """
         def convert_pyat_element_to_fsf(element):
             base_type = element.__class__.__name__
@@ -290,26 +286,20 @@ class Lattice:
         seq = []
         names = []
         for element in self.sliced.line:
-            xl_el = element.to_xline()
-            #Filter out None
-            if xl_el:
-                seq.append(xl_el)
-                names.append(element.name)
+            seq.append(element.to_xline())
+            names.append(element.name)
 
         xline_lattice = xl.Line(elements=seq, element_names=names)
-        return seq, names, xline_lattice
+        return xline_lattice
 
 
-    def optics(self, engine='madx', radiation=False, tapering=False, drop_drifts=False):
+    def optics(self, engine='madx', drop_drifts=False):
         """
         Calculate optics 
 
         Key Args:
-            engine : string
-                desired engine: madx, pyat
-            drop_drifts : Boolean
-                return output with (TRUE) or without (FALSE) drifts
-        
+            engine : string, desired engine: madx, pyat
+            drop_drifts : Boolean, return output with (TRUE) or without (FALSE) drifts
         Returns:
             Pandas DataFrame of calculated optics
         """
@@ -322,13 +312,12 @@ class Lattice:
             tw.set_index('name', inplace=True)
         if engine == 'pyat':
             pyat_instance = self.to_pyat()
-            lin = pyat_functions.calc_optics_pyat(pyat_instance, radiation=radiation, tapering=tapering)
+            lin = pyat_functions.calc_optics_pyat(pyat_instance)
             tw = pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
             tw.set_index('name', inplace=True)
             tw.index = np.roll(tw.index, 1)
             tw.keyword = np.roll(tw.keyword, 1)
 
-        #TODO: cycle through elements to show at start or end of element for all engines
         if drop_drifts:
             tw = tw.drop(tw[tw['keyword']=='drift'].index)
         return tw 
@@ -403,26 +392,6 @@ class Lattice:
         except AttributeError:
             self.slice_lattice()
             return Lattice(self.name, self._thin_sequence, key='sequence')
-
-
-    def save(self):
-        return
-
-    
-    def copy(self):
-        return
-
-    
-    def clone(self):
-        return
-
-
-    def invert(self):
-        return
-
-
-    def extract(self):
-        return
 
 
     def __str__(self):
