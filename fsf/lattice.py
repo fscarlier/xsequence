@@ -189,15 +189,11 @@ class Lattice:
         Import lattice from MAD-X sequence file
 
         Args:
-            seqfile: string
-                path to madx sequence
-            seqname: string
-                name of madx sequence
-            energy: int
-                energy of beam in GeV
+            seqfile: string, path to madx sequence
+            seqname: string, name of madx sequence
+            energy: int, energy of beam in GeV
         Key args:
-            particle_type: string
-                type of particle, 'electron' 'proton' ...
+            particle_type: string, type of particle, 'electron' 'proton' ...
         """
         madx = Madx()
         madx.option(echo=False, info=False, debug=False)
@@ -214,8 +210,7 @@ class Lattice:
 
         Args:
             madx: cpymad.madx Madx() instance
-            seq_name: string
-                name of madx sequence
+            seq_name: string, name of madx sequence
         """
         def convert_cpymad_element_to_fsf(element):
             base_type = element.base_type.name
@@ -237,7 +232,7 @@ class Lattice:
     @classmethod
     def from_pyat(cls, pyat_lattice):
         """
-        Export lattice to pyat
+        Import lattice from pyat
         """
         def convert_pyat_element_to_fsf(element):
             base_type = element.__class__.__name__
@@ -291,26 +286,20 @@ class Lattice:
         seq = []
         names = []
         for element in self.sliced.line:
-            xl_el = element.to_xline()
-            #Filter out None
-            if xl_el:
-                seq.append(xl_el)
-                names.append(element.name)
+            seq.append(element.to_xline())
+            names.append(element.name)
 
         xline_lattice = xl.Line(elements=seq, element_names=names)
-        return seq, names, xline_lattice
+        return xline_lattice
 
 
-    def optics(self, engine='madx', radiation=False, tapering=False, drop_drifts=False):
+    def optics(self, engine='madx', drop_drifts=False):
         """
         Calculate optics 
 
         Key Args:
-            engine : string
-                desired engine: madx, pyat
-            drop_drifts : Boolean
-                return output with (TRUE) or without (FALSE) drifts
-        
+            engine : string, desired engine: madx, pyat
+            drop_drifts : Boolean, return output with (TRUE) or without (FALSE) drifts
         Returns:
             Pandas DataFrame of calculated optics
         """
@@ -323,13 +312,12 @@ class Lattice:
             tw.set_index('name', inplace=True)
         if engine == 'pyat':
             pyat_instance = self.to_pyat()
-            lin = pyat_functions.calc_optics_pyat(pyat_instance, radiation=radiation, tapering=tapering)
+            lin = pyat_functions.calc_optics_pyat(pyat_instance)
             tw = pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
             tw.set_index('name', inplace=True)
             tw.index = np.roll(tw.index, 1)
             tw.keyword = np.roll(tw.keyword, 1)
 
-        #TODO: cycle through elements to show at start or end of element for all engines
         if drop_drifts:
             tw = tw.drop(tw[tw['keyword']=='drift'].index)
         return tw 

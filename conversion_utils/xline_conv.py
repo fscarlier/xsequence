@@ -9,8 +9,8 @@ import xline as xl
 
 
 def marker_to_xline(element):
-    pass
-    # return xl.BeamMonitor()
+    kwargs = {'length':0} 
+    return xl.Drift(**kwargs)
 
 
 def drift_to_xline(element):
