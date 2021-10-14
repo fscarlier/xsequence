@@ -5,25 +5,20 @@ Module fsf.elements
 This is a Python3 module containing base element classes for accelerator sequence definitions.
 """
 
-import copy
+import copy, math
 import numpy as np
 from  conversion_utils import xline_conv, pyat_conv, cpymad_conv
 
-
-class Element:
+class BaseElement:
     """
     Base element class  
     """
-
     def __init__(self, name, **kwargs):
         """
         Args:
-            name : string
-                name of element
-        
+            name : string, name of element
         Key Args:
-            length: float
-                length of element [m]
+            length: float, length of element [m]
         """
         self.name = name
         self.length = kwargs.pop('length', 0.0)
@@ -31,22 +26,15 @@ class Element:
         self.parent = kwargs.pop('parent', self.__class__.__name__)
         self.update(**kwargs)
 
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
-
-
     def __str__(self):
         args_dict = vars(self).items()
         args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
         return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
 
-
     def __repr__(self):
         args_dict = vars(self).items()
         args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
         return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
-
 
     def __eq__(self, second_element):
         """Return equality of two dicts including numpy arrays"""
@@ -68,11 +56,9 @@ class Element:
                     return False
         return True
 
-
     def update(self, **kwargs):
         for (key, value) in kwargs.items():
             setattr(self, key, value)
-
 
     def items(self):
         """Iterates through the data members including slots and properties"""
@@ -80,26 +66,21 @@ class Element:
         for k, v in vars(self).items():
             yield k, v
 
-
     @property
     def position(self):
         return self._position['centre']
-
 
     @property
     def start(self):
         return self._position['start']
 
-
     @property
     def end(self):
         return self._position['end']
 
-
     @position.setter
     def position(self, position):
         self.set_position(position)
-
 
     def set_position(self, position, loc='centre', reference=None):
         pos = position
@@ -115,7 +96,6 @@ class Element:
                           'start':pos - self.length/2.,
                           'end':pos + self.length/2.}
 
-
     @classmethod
     def from_cpymad(cls, cpymad_element):
         """ 
@@ -123,13 +103,11 @@ class Element:
         """
         return cpymad_conv.convert_element_from_cpymad(cls, cpymad_element)
 
-
     def to_cpymad(self, madx):
         """ 
         Create cpymad element in madx instance from Element
         """
         return cpymad_conv.convert_element_to_cpymad(self, madx)
-
 
     @classmethod
     def from_pyat(cls, pyat_element):
@@ -138,13 +116,11 @@ class Element:
         """
         return pyat_conv.convert_element_from_pyat(cls, pyat_element)
 
-
     def to_pyat(self):
         """ 
         Create pyAT Element instance from element
         """
         return pyat_conv.convert_element_to_pyat(self)
-
 
     def to_xline(self):
         """ 
@@ -153,20 +129,29 @@ class Element:
         return xline_conv.convert_element_to_xline(self)
 
 
+class Element(BaseElement):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
+    
     @property
     def int_steps(self):
         return self._int_steps 
-
 
     @int_steps.setter
     def int_steps(self, int_steps):
         self._int_steps = int_steps 
 
-
     def teapot_slicing(self, num_slices):
         delta = self.length*(1/(2*num_slices + 2))
         distance = self.length*(num_slices/(num_slices**2 - 1))
         return delta, distance 
+
+    def slice_element(self, num_slices=1, method='teapot'):
+        try: num_slices = self.int_steps
+        except: AttributeError
+
+        if self.length == 0:
+            return [self]
 
 
 class Drift(Element):
@@ -205,56 +190,20 @@ class Sbend(Element):
     """
     def __init__(self, name, **kwargs):
         """
-        Args:
-            name : string
-                name of element
-        
         Key Args:
-            length: float
-                arclength of element [m]
+            angle: float, bending angle of element
+            length: float, arclength of element [m]
         """
+        self.angle = kwargs.pop('angle')
         self.e1 = kwargs.pop('e1', 0)
         self.e2 = kwargs.pop('e2', 0)
         super().__init__(name, **kwargs)
-        self.chord_length = kwargs.pop('chord_length', self._calc_chordlength())
-
     
-    def _calc_arclength(self) :
-        """
-        Calculate arclength from angle and chordlength
-        
-        Returns:
-            Float with arclength
-        """
-        return (self.angle*self.chord_length)/(2*np.sin(self.angle/2.))
+    def _calc_length(self, angle, chord_length):
+        return (angle*chord_length)/(2*math.sin(angle/2.))
 
-
-    def _calc_chordlength(self) :
-        """
-        Calculate chordlength from angle and arclength
-        
-        Returns:
-            Float with chordlength 
-        """
-        return self.length*(2*np.sin(self.angle/2.))/self.angle
-
-
-    def convert_to_rbend(self):
-        """
-        Convert Sbend element to Rbend element
-        
-        Returns:
-            Rbend instance of element 
-        """
-        kwargs = copy.copy(vars(self))
-        kwargs['arc_length'] = kwargs.pop('length')
-        kwargs['length'] = kwargs.pop('chord_length')
-        if 'e1' in kwargs:
-            kwargs['e1'] = kwargs.pop('e1')-self.angle/2.
-        if 'e2' in kwargs:
-            kwargs['e2'] = kwargs.pop('e2')-self.angle/2.
-        kwargs.pop('name')
-        return Rbend(self.name, **kwargs) 
+    def _calc_chordlength(self, angle, length) :
+        return length*(2*math.sin(angle/2.))/angle
     
     def slice_element(self, num_slices=1, method='teapot'):
         try: num_slices = self.int_steps
@@ -282,61 +231,22 @@ class Sbend(Element):
             
             seq.insert(0, DipEdge(f'{self.name}_edge_entrance', side='entrance', h=h, e1=self.e1, position=self.start))
             seq.append(DipEdge(f'{self.name}_edge_exit', h=h, side='exit', e1=self.e2, position=self.end))
-
             return seq 
 
 
-class Rbend(Element):   
+class Rbend(Sbend):   
     """
     Rbend element class
     """
     def __init__(self, name, **kwargs):
+        self._chord_length = kwargs.pop('length', 0)
+        self._rbend_e1 = kwargs.pop('e1', 0)
+        self._rbend_e2 = kwargs.pop('e2', 0)
+        kwargs['length'] = self._calc_length(kwargs['angle'], self._chord_length)
+        kwargs['e1'] = self._rbend_e1+abs(kwargs['angle'])/2.
+        kwargs['e2'] = self._rbend_e2+abs(kwargs['angle'])/2.
         super().__init__(name, **kwargs)
-        self.arc_length = kwargs.pop('arc_length', self._calc_arclength())
-        assert np.isclose(self.length, self._calc_chordlength(), rtol=1e-8)
-
-     
-    def _calc_arclength(self) :
-        """
-        Calculate arclength from angle and chordlength
-        
-        Returns:
-            Float with arclength
-        """
-        return (self.angle*self.length)/(2*np.sin(self.angle/2.))
-
-
-    def _calc_chordlength(self) :
-        """
-        Calculate chordlength from angle and arclength
-        
-        Returns:
-            Float with chordlength 
-        """
-        return self.arc_length*(2*np.sin(self.angle/2.))/self.angle
-
-
-    def convert_to_sbend(self):
-        """
-        Convert Rbend element to Sbend element
-        
-        Returns:
-            Sbend instance of element 
-        """
-        kwargs = copy.copy(vars(self))
-        kwargs['chord_length'] = kwargs.pop('length')
-        kwargs['length'] = kwargs.pop('arc_length')
-        if 'e1' in kwargs:
-            kwargs['e1'] = kwargs.pop('e1')+abs(self.angle)/2.
-        if 'e2' in kwargs:
-            kwargs['e2'] = kwargs.pop('e2')+abs(self.angle)/2.
-        kwargs.pop('name')
-        return Sbend(self.name, **kwargs) 
-
-    
-    def slice_element(self, num_slices=1, method='teapot'):
-        sbend = self.convert_to_sbend()
-        return sbend.slice_element(num_slices=num_slices, method='teapot')
+        assert np.isclose(self._chord_length, self._calc_chordlength(self.angle, self.length), atol=1e-14)
 
 
 class Multipole(Element):

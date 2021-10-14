@@ -61,10 +61,7 @@ class Lattice:
         drift_count = 0
         line_w_drifts = [self.sequence[0]]
         for element in self.sequence[1:]:
-            if element.__class__.__name__ == 'Rbend':
-                element_start = element.position-element.arc_length/2.
-            else:
-                element_start = element.start
+            element_start = element.start
             if element_start > previous_end:
                 drift_length = element_start-previous_end
                 drift_pos = previous_end + drift_length/2.
