@@ -22,39 +22,9 @@ class BaseElement:
         """
         self.name = name
         self.length = kwargs.pop('length', 0.0)
-        self.set_position(kwargs.pop('position', 0.0), loc='centre', reference=kwargs.pop('reference', None))
+        self.set_position(kwargs.pop('position', 0.0), reference=kwargs.pop('reference', None))
         self.parent = kwargs.pop('parent', self.__class__.__name__)
         self.update(**kwargs)
-
-    def __str__(self):
-        args_dict = vars(self).items()
-        args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
-        return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
-
-    def __repr__(self):
-        args_dict = vars(self).items()
-        args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
-        return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
-
-    def __eq__(self, second_element):
-        """Return equality of two dicts including numpy arrays"""
-        first = dict(self.items())
-        second = dict(second_element.items())
-        
-        if first.keys() != second.keys():
-            return False
-        
-        for key in first:
-            if type(first[key]).__module__ == np.__name__:
-                if len(first[key]) != len(second[key]):
-                    return False
-                arr_eq = np.isclose(first[key], second[key])
-                if False in arr_eq:
-                    return False
-            else:
-                if first[key] != second[key]:
-                    return False
-        return True
 
     def update(self, **kwargs):
         for (key, value) in kwargs.items():
@@ -82,7 +52,7 @@ class BaseElement:
     def position(self, position):
         self.set_position(position)
 
-    def set_position(self, position, loc='centre', reference=None):
+    def set_position(self, position, reference=None):
         pos = position
         if reference:
             self._relative_position = position
@@ -128,6 +98,36 @@ class BaseElement:
         """
         return xline_conv.convert_element_to_xline(self)
 
+    def __str__(self):
+        args_dict = vars(self).items()
+        args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
+        return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
+
+    def __repr__(self):
+        args_dict = vars(self).items()
+        args_str = [f'{k}={v}' for k,v in args_dict if k!= 'name']
+        return f"{self.__class__.__name__}('{self.name}', {', '.join(args_str)})"
+
+    def __eq__(self, second_element):
+        """Return equality of two dicts including numpy arrays"""
+        first = dict(self.items())
+        second = dict(second_element.items())
+        
+        if first.keys() != second.keys():
+            return False
+        
+        for key in first:
+            if type(first[key]).__module__ == np.__name__:
+                if len(first[key]) != len(second[key]):
+                    return False
+                arr_eq = np.isclose(first[key], second[key])
+                if False in arr_eq:
+                    return False
+            else:
+                if first[key] != second[key]:
+                    return False
+        return True
+
 
 class Element(BaseElement):
     def __init__(self, name, **kwargs):
@@ -144,7 +144,10 @@ class Element(BaseElement):
     def teapot_slicing(self, num_slices):
         delta = self.length*(1/(2*num_slices + 2))
         distance = self.length*(num_slices/(num_slices**2 - 1))
-        return delta, distance 
+        thin_positions =  [self.start+delta]
+        for i in range(num_slices-1):
+            thin_positions.append(thin_positions[-1] + distance)
+        return thin_positions 
 
     def slice_element(self, num_slices=1, method='teapot'):
         try: num_slices = self.int_steps
@@ -152,6 +155,55 @@ class Element(BaseElement):
 
         if self.length == 0:
             return [self]
+
+        def _make_slices_multipoles(self, num_slices, knl_sliced=[0], ksl_sliced=[0]):
+            thin_positions = self.teapot_slicing(num_slices)
+            rad_length = self.length/num_slices
+            seq = []
+            for idx, thin_pos in enumerate(thin_positions):
+                seq.append(ThinMultipole(f'{self.name}_{idx}', position=thin_pos, 
+                                                                 rad_length=rad_length, 
+                                                                 knl=knl_sliced, 
+                                                                 ksl=ksl_sliced))
+            return seq
+
+        def _make_slices_solenoid(self, num_slices, ksi_sliced):
+            thin_positions = self.teapot_slicing(num_slices)
+            rad_length = self.length/num_slices
+            seq = []
+            for idx, thin_pos in enumerate(thin_positions):
+                seq.append(ThinSolenoid(f'{self.name}_{idx}', position=thin_pos, 
+                                                              ksi=ksi_sliced, 
+                                                              rad_length=rad_length))
+            return seq
+
+        if isinstance(self, Sbend):
+            if num_slices == 1:
+                seq = [ThinMultipole(self.name, position=getattr(self, 'position', 0), knl=[self.angle])]
+            if method == 'teapot' and num_slices > 1:
+                knl_sliced = [self.angle/num_slices]
+                seq = _make_slices_multipoles(self, num_slices, knl_sliced=knl_sliced)
+            
+            h = self.angle/self.length
+            seq.insert(0, DipoleEdge(f'{self.name}_edge_entrance', side='entrance', h=h, e1=self.e1, position=self.start))
+            seq.append(DipoleEdge(f'{self.name}_edge_exit', h=h, side='exit', e1=self.e2, position=self.end))
+            return seq
+            
+        if isinstance(self, Multipole):
+            if num_slices == 1:
+                return [ThinMultipole(self.name, position=getattr(self, 'position', 0), knl=self.knl, ksl=self.ksl)]
+            elif method == 'teapot' and num_slices > 1:
+                knl_sliced = self.knl/num_slices
+                ksl_sliced = self.ksl/num_slices
+                return _make_slices_multipoles(self, num_slices, knl_sliced=knl_sliced, ksl_sliced=ksl_sliced)
+                 
+        if isinstance(self, Solenoid):
+            if num_slices == 1:
+                return [ThinSolenoid(self.name, position=getattr(self, 'position', 0), ksi=self.ksi)]
+            elif method == 'teapot' and num_slices > 1:
+                delta, distance = self.teapot_slicing(num_slices)
+                ksi_sliced = self.ksi/num_slices
+                return _make_slices_solenoid(self, num_slices, ksi_sliced)
 
 
 class Drift(Element):
@@ -171,17 +223,14 @@ class Marker(Element):
         super().__init__(name, **kwargs)
         assert self.length == 0.0, f"Marker {name} has non-zero length"
 
-    def slice_element(self, **kwargs):
-        return [self]
 
-
-class DipEdge(Element):
+class DipoleEdge(Element):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
         self.h = kwargs.pop('h', 0)
         self.e1 = kwargs.pop('e1', 0)
         self.side = kwargs.pop('side', 'entrance')
-        assert self.side in ('entrance', 'exit'), f"Invalid side Attribute for {self.name} DipEdge"
+        assert self.side in ('entrance', 'exit'), f"Invalid side Attribute for {self.name} DipoleEdge"
 
 
 class Sbend(Element):   
@@ -204,34 +253,6 @@ class Sbend(Element):
 
     def _calc_chordlength(self, angle, length) :
         return length*(2*math.sin(angle/2.))/angle
-    
-    def slice_element(self, num_slices=1, method='teapot'):
-        try: num_slices = self.int_steps
-        except: AttributeError
-
-        if self.length == 0:
-            return [self]
-
-        if num_slices == 1:
-            h = self.angle/self.length
-            start = getattr(self, 'position', 0) - self.length/2.            
-            end = getattr(self, 'position', 0) + self.length/2.            
-            seq = [ThinMultipole(self.name, position=getattr(self, 'position', 0), knl=[self.angle])]
-            seq.insert(0, DipEdge(f'{self.name}_edge_entrance', side='entrance', h=h, e1=self.e1, position=start))
-            seq.append(DipEdge(f'{self.name}_edge_exit', h=h, side='exit', e1=self.e2, position=end))
-            return seq
-        if method == 'teapot' and num_slices > 1:
-            delta, distance = self.teapot_slicing(num_slices)
-            angle_sliced = self.angle/num_slices
-            h = self.angle/self.length
-            seq = []
-            seq.append(ThinMultipole(f'{self.name}_0', position=self.start+delta, knl=[angle_sliced]))
-            for i in range(num_slices-1):
-                seq.append(ThinMultipole(f'{self.name}_{i+1}', position=seq[-1].position + distance, knl=[angle_sliced]))
-            
-            seq.insert(0, DipEdge(f'{self.name}_edge_entrance', side='entrance', h=h, e1=self.e1, position=self.start))
-            seq.append(DipEdge(f'{self.name}_edge_exit', h=h, side='exit', e1=self.e2, position=self.end))
-            return seq 
 
 
 class Rbend(Sbend):   
@@ -278,27 +299,6 @@ class Multipole(Element):
         super().__init__(name, **kwargs)
 
 
-    def slice_element(self, num_slices=1, method='teapot'):
-        try: num_slices = self.int_steps
-        except: AttributeError
-
-        if self.length == 0:
-            return [self]
-
-        if num_slices == 1:
-            return [ThinMultipole(self.name, position=getattr(self, 'position', 0), knl=self.knl, ksl=self.ksl)]
-        elif method == 'teapot' and num_slices > 1:
-            delta, distance = self.teapot_slicing(num_slices)
-            knl_sliced = self.knl/num_slices
-            ksl_sliced = self.ksl/num_slices
-            seq = []
-            seq.append(ThinMultipole(f'{self.name}_0', position=self.start+delta, knl=knl_sliced, ksl=ksl_sliced))
-            for i in range(num_slices-1):
-                seq.append(ThinMultipole(f'{self.name}_{i+1}', position=seq[-1].position + distance, knl=knl_sliced, ksl=ksl_sliced))
-
-            return seq 
-
-
 class Quadrupole(Multipole):
     """
     Quadrupole element class
@@ -339,6 +339,7 @@ class Sextupole(Multipole):
     @k2.setter
     def k2(self, k):
         self.kn[2] = k
+        self.knl = self.kn*self.length
 
     @property
     def k2s(self):
@@ -347,6 +348,7 @@ class Sextupole(Multipole):
     @k2s.setter
     def k2s(self, ks):
         self.ks[2] = ks
+        self.ksl = self.ks*self.length
 
 
 class Octupole(Multipole):
@@ -363,6 +365,7 @@ class Octupole(Multipole):
     @k3.setter
     def k3(self, k):
         self.kn[3] = k
+        self.knl = self.kn*self.length
 
     @property
     def k3s(self):
@@ -371,6 +374,7 @@ class Octupole(Multipole):
     @k3s.setter
     def k3s(self, ks):
         self.ks[3] = ks
+        self.ksl = self.ks*self.length
 
 
 class ThinMultipole(Element):
@@ -391,30 +395,6 @@ class ThinMultipole(Element):
                                  .format(self.__class__.__name__, name, self.__class__.__name__)
 
 
-class ThinQuadrupole(ThinMultipole):
-    """
-    Thin Quadrupole class
-    """
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class ThinSextupole(ThinMultipole):
-    """
-    Thin Sextupole class
-    """
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class ThinOctupole(ThinMultipole):
-    """
-    Thin Octupole class
-    """
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
 class RFCavity(Element):
     """
     RFCavity element class
@@ -424,10 +404,6 @@ class RFCavity(Element):
         self.freq = kwargs.pop('freq', 0.0)
         self.lag = kwargs.pop('lag', 0.0)
         super().__init__(name, **kwargs)
-
-    def slice_element(self):
-        if self.length == 0:
-            return [self]
 
 
 class Collimator(Drift):
@@ -447,25 +423,6 @@ class Solenoid(Element):
         super().__init__(name, **kwargs)
         self.ksi = self.ks*self.length
 
-    def slice_element(self, num_slices=1, method='teapot'):
-        try: num_slices = self.int_steps
-        except: AttributeError
-
-        if self.length == 0:
-            return [self]
-
-        if num_slices == 1:
-            return [ThinSolenoid(self.name, position=getattr(self, 'position', 0), ksi=self.ksi)]
-        elif method == 'teapot' and num_slices > 1:
-            delta, distance = self.teapot_slicing(num_slices)
-            ksi_sliced = self.ksi/num_slices
-            seq = []
-            rad_length = self.length/num_slices
-            seq.append(ThinSolenoid(f'{self.name}_0', position=self.start+delta, ksi=ksi_sliced, rad_length=rad_length))
-            for i in range(num_slices-1):
-                seq.append(ThinSolenoid(f'{self.name}_{i+1}', position=seq[-1].position + distance, ksi=ksi_sliced, rad_length=rad_length))
-            return seq 
-
 
 class ThinSolenoid(Element):
     """
@@ -481,18 +438,12 @@ class BeamBeam(Element):
     """
     Beam-beam element class
     
-    charge : int
-        charge of particles in the opposite beam
-    sigx : float
-        horizontal beam size of opposite beam
-    sigy : float
-        vertical beam size of opposite beam
-    dx : float
-        horizontal orbit offset of opposite beam
-    dy : float
-        vertical orbit offset of opposite beam
-    shape : str
-        radial density shape of the opposite beam, default='gaussian'
+    charge : int, charge of particles in the opposite beam
+    sigx : float, horizontal beam size of opposite beam
+    sigy : float, vertical beam size of opposite beam
+    dx : float, horizontal orbit offset of opposite beam
+    dy : float, vertical orbit offset of opposite beam
+    shape : str, radial density shape of the opposite beam, default='gaussian'
     """
     def __init__(self, name, **kwargs):
         self.charge = kwargs.pop('charge', 1)
@@ -501,34 +452,6 @@ class BeamBeam(Element):
         self.dx = kwargs.pop('dx', 0)
         self.dy = kwargs.pop('dy', 0)
         self.shape = kwargs.pop('shape', 'gaussian')
-        super().__init__(name, **kwargs)
-
-
-class DipoleEdge(Element):
-    """
-    """
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class ClosedOrbitCorrector(Element):
-    """
-    """
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class TransverseKicker(Element):
-    """
-    """
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class TravellingWaveCavity(Element):
-    """
-    """
-    def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
 
 
@@ -553,31 +476,10 @@ class ACDipole(Element):
         super().__init__(name, **kwargs)
 
 
-class ElectrostaticSeparator(Element):
+class BeamPositionMonitor(Marker):
     """
+    BPM base class
     """
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class BeamPositionMonitor(Element):
-    """
-    """
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class Instrument(Element):
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class Placeholder(Element):
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
-
-class ArbitraryMatrixElement(Element):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
 

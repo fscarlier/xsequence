@@ -31,7 +31,7 @@ def rfcavity_to_xline(element):
     return xl.Cavity(**kwargs)
 
 
-def dipedge_to_xline(element):
+def dipole_edge_to_xline(element):
     kwargs = {'h':element.h, 
               'e1':element.e1} 
     return xl.DipoleEdge(**kwargs)
@@ -45,6 +45,6 @@ TO_XLINE_CONV = {'Marker':  marker_to_xline,
                  'Drift':  drift_to_xline, 
                  'ThinMultipole':  thin_multipole_to_xline, 
                  'RFCavity': rfcavity_to_xline,
-                 'DipEdge': dipedge_to_xline} 
+                 'DipoleEdge': dipole_edge_to_xline} 
 
 

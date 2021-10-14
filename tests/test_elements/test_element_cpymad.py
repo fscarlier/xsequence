@@ -70,7 +70,7 @@ def test_quadrupoles(example_madx_lattice):
     madx_lattice = example_madx_lattice
     md = Madx()
     results = []
-    for idx in range(44,len(madx_lattice.elements)):
+    for idx in range(292,len(madx_lattice.elements)):
         el = madx_lattice.elements[idx]
         if el.base_type.name == 'quadrupole':
             fsf.elements.Quadrupole.from_cpymad(el).to_cpymad(md)
@@ -83,7 +83,7 @@ def test_sextupoles(example_madx_lattice):
     madx_lattice = example_madx_lattice
     md = Madx()
     results = []
-    for idx in range(44,len(madx_lattice.elements)):
+    for idx in range(292,len(madx_lattice.elements)):
         el = madx_lattice.elements[idx]
         if el.base_type.name == 'sextupole':
             fsf.elements.Sextupole.from_cpymad(el).to_cpymad(md)
@@ -96,7 +96,7 @@ def test_marker(example_madx_lattice):
     madx_lattice = example_madx_lattice
     md = Madx()
     results = []
-    for idx in range(44,len(madx_lattice.elements)):
+    for idx in range(292,len(madx_lattice.elements)):
         el = madx_lattice.elements[idx]
         if el.base_type.name == 'marker':
             fsf.elements.Marker.from_cpymad(el).to_cpymad(md)
@@ -109,7 +109,7 @@ def test_rbend(example_madx_lattice):
     madx_lattice = example_madx_lattice
     md = Madx()
     results = []
-    for idx in range(44,len(madx_lattice.elements)):
+    for idx in range(292,len(madx_lattice.elements)):
         el = madx_lattice.elements[idx]
         if el.base_type.name == 'rbend':
             fsf.elements.Rbend.from_cpymad(el).to_cpymad(md)
