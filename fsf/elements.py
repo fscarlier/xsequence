@@ -5,9 +5,8 @@ Module fsf.elements
 This is a Python3 module containing base element classes for accelerator sequence definitions.
 """
 
-import copy, at
+import copy
 import numpy as np
-import fsf.lattice 
 from  conversion_utils import xline_conv, pyat_conv, cpymad_conv
 
 
