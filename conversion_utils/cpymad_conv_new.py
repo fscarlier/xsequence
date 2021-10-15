@@ -5,7 +5,7 @@ Module conversion_utils.cpymad_conv
 This is a Python3 module with functions for importing and exporting elements from and to cpymad
 """
 
-MARKER_ATTR     = ['position']
+MARKER_ATTR     = ['position', 'aperture_type', 'aperture_size']
 DRIFT_ATTR      = ['length', 'position', 'aperture_type', 'aperture_size']
 COLLIMATOR_ATTR = ['length', 'position', 'aperture_type', 'aperture_size']
 SBEND_ATTR      = ['length', 'position', 'angle', 'e1', 'e2', 'aperture_type', 'aperture_size']
@@ -17,7 +17,7 @@ MULTIPOLE_ATTR  = ['length', 'position', 'knl', 'ksl', 'aperture_type', 'apertur
 RFCAVITY_ATTR   = ['length', 'position', 'frequency', 'voltage', 'lag', 'aperture_type', 'aperture_size']
 
 
-CPYMAD_MARKER_ATTR     = ['at']
+CPYMAD_MARKER_ATTR     = ['at', 'aper_type', 'aperture']
 CPYMAD_DRIFT_ATTR      = ['l', 'at', 'aper_type', 'aperture']
 CPYMAD_COLLIMATOR_ATTR = ['l', 'at', 'aper_type', 'aperture']
 CPYMAD_SBEND_ATTR      = ['l', 'at', 'angle', 'e1', 'e2', 'aper_type', 'aperture']
@@ -133,42 +133,45 @@ class AttributeMappingToCpymad:
         except: AttributeError
 
 
-class ConvertElementFromCpymad(AttributeMappingFromCpymad):
-    def __init__(self, xs_cls, cpymad_element):
-        super().__init__(cpymad_element)
-        self.element = cpymad_element
-        self.xs_cls = xs_cls
-        attribute_list = CPYMAD_ELEMENT_DICT[self.element.base_type.name]
-        converted_element = self.convert_element_from_cpymad(attribute_list)
-        ## Space here to adjust element or call new methods
-        return converted_element
-    
-    def convert_element_from_cpymad(self, attribute_list):
-        if self.aperture_size == [0]:
-            attribute_list.pop('aperture_type', 'aperture_size')
-        kwargs = {}
-        for key in attribute_list:
-            try: kwargs[key] = self.key
-            except: AttributeError
-        return self.xs_cls(self.element.name, **kwargs)
+def from_cpymad(xs_cls, cpymad_element):
+    mapped_attr = AttributeMappingFromCpymad(cpymad_element)
+    attribute_list = CPYMAD_ELEMENT_DICT[cpymad_element.base_type.name]
+    return convert_element_from_cpymad(xs_cls, cpymad_element.name, mapped_attr, attribute_list)
 
 
-class ConvertElementToCpymad(AttributeMappingToCpymad):
-    def __init__(self, element, madx):
-        super().__init__(element)
-        self.element = element
-        self.madx = madx
-        self.base_type = self.element.__class__.__name__
-        attribute_list = ELEMENT_DICT[self.base_type]
-        converted_element = self.convert_element_to_cpymad(attribute_list)
-        ## Space here to adjust element or call new methods
-        return converted_element
+def convert_element_from_cpymad(xs_cls, name, mapped_attr, attribute_list):
+    attribute_list = attribute_list.copy()
+    if mapped_attr.aperture_size == [0]:
+        attribute_list.remove('aperture_type')
+        attribute_list.remove('aperture_size')
+    kwargs = {}
+    for key in attribute_list:
+        try: kwargs[key] = getattr(mapped_attr, key)
+        except: AttributeError
+    return xs_cls(name, **kwargs)
+
+
+def to_cpymad(element, madx):
+    mapped_attr = AttributeMappingToCpymad(element)
+    base_type = element.__class__.__name__
+    if base_type == 'Rbend':
+        mapped_attr.l =element._chord_length
+        mapped_attr.e1 = element._rbend_e1
+        mapped_attr.e2 = element._rbend_e2
     
-    def convert_element_to_cpymad(self, attribute_list):
-        if self.aperture == [0]:
-            attribute_list.pop('aper_type', 'aperture')
-        kwargs = {}
-        for key in attribute_list:
-            try: kwargs[key] = self.key
-            except: AttributeError
-        self.madx.command[self.base_type.lower()].clone(self.element.name, **kwargs)
+    attribute_list = ELEMENT_DICT[base_type]
+    return convert_element_to_cpymad(base_type, madx, element.name, mapped_attr, attribute_list)
+
+
+def convert_element_to_cpymad(base_type, madx, name, mapped_attr, attribute_list):
+    attribute_list = attribute_list.copy()
+    if not hasattr(mapped_attr, 'aperture_size'):
+        attribute_list.remove('aper_type')
+        attribute_list.remove('aperture')
+    kwargs = {}
+    for key in attribute_list:
+        try: kwargs[key] = getattr(mapped_attr, key)
+        except: AttributeError
+    madx.command[base_type.lower()].clone(name, **kwargs)
+
+

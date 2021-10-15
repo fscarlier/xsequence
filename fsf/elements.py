@@ -72,14 +72,14 @@ class BaseElement:
         Create specific Element instance from cpymad element
         """
         # return cpymad_conv.convert_element_from_cpymad(cls, cpymad_element)
-        return cpymad_conv_new.ConvertElementFromCpymad(cls, cpymad_element)
+        return cpymad_conv_new.from_cpymad(cls, cpymad_element)
 
     def to_cpymad(self, madx):
         """ 
         Create cpymad element in madx instance from Element
         """
         # return cpymad_conv.convert_element_to_cpymad(self, madx)
-        return cpymad_conv_new.ConvertElementToCpymad(self, madx)
+        return cpymad_conv_new.to_cpymad(self, madx)
 
     @classmethod
     def from_pyat(cls, pyat_element):
