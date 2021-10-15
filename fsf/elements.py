@@ -7,7 +7,7 @@ This is a Python3 module containing base element classes for accelerator sequenc
 
 import copy, math
 import numpy as np
-from  conversion_utils import xline_conv, pyat_conv, cpymad_conv
+from  conversion_utils import xline_conv, pyat_conv, cpymad_conv, cpymad_conv_new
 
 class BaseElement:
     """
@@ -71,13 +71,15 @@ class BaseElement:
         """ 
         Create specific Element instance from cpymad element
         """
-        return cpymad_conv.convert_element_from_cpymad(cls, cpymad_element)
+        # return cpymad_conv.convert_element_from_cpymad(cls, cpymad_element)
+        return cpymad_conv_new.ConvertElementFromCpymad(cls, cpymad_element)
 
     def to_cpymad(self, madx):
         """ 
         Create cpymad element in madx instance from Element
         """
-        return cpymad_conv.convert_element_to_cpymad(self, madx)
+        # return cpymad_conv.convert_element_to_cpymad(self, madx)
+        return cpymad_conv_new.ConvertElementToCpymad(self, madx)
 
     @classmethod
     def from_pyat(cls, pyat_element):
