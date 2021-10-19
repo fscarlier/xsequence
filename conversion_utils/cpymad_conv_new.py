@@ -5,32 +5,66 @@ Module conversion_utils.cpymad_conv
 This is a Python3 module with functions for importing and exporting elements from and to cpymad
 """
 
-MARKER_ATTR     = ['position', 'aperture_type', 'aperture_size']
-DRIFT_ATTR      = ['length', 'position', 'aperture_type', 'aperture_size']
-COLLIMATOR_ATTR = ['length', 'position', 'aperture_type', 'aperture_size']
-SBEND_ATTR      = ['length', 'position', 'angle', 'e1', 'e2', 'aperture_type', 'aperture_size']
-RBEND_ATTR      = ['length', 'position', 'angle', 'e1', 'e2', 'aperture_type', 'aperture_size']
-QUADRUPOLE_ATTR = ['length', 'position', 'k1', 'k1s', 'aperture_type', 'aperture_size']
-SEXTUPOLE_ATTR  = ['length', 'position', 'k2', 'k2s', 'aperture_type', 'aperture_size']
-OCTUPOLE_ATTR   = ['length', 'position', 'k3', 'k3s', 'aperture_type', 'aperture_size']
-MULTIPOLE_ATTR  = ['length', 'position', 'knl', 'ksl', 'aperture_type', 'aperture_size']
-RFCAVITY_ATTR   = ['length', 'position', 'frequency', 'voltage', 'lag', 'aperture_type', 'aperture_size']
+ATTRIBUTE_MAP = {
+                'length': 'l', 
+                'position': 'at', 
+                'reference': 'from', 
+                'angle': 'angle',
+                'tilt': 'tilt', 
+                'k0': 'k0', 
+                'e1': 'e1', 
+                'e2': 'e2', 
+                'polarity': 'polarity', 
+                'ks': 'ks', 
+                'k1': 'k1', 
+                'k1s': 'k1s', 
+                'k2': 'k2', 
+                'k2s': 'k2s', 
+                'k3': 'k3', 
+                'k3s': 'k3s', 
+                'knl': 'knl', 
+                'ksl': 'ksl', 
+                'voltage': 'volt', 
+                'frequency': 'freq', 
+                'lag': 'lag', 
+                'hkick': 'hkick', 
+                'vkick': 'vkick', 
+                'kick': 'kick', 
+                'mech_sep': 'mech_sep', 
+                'slot_id': 'slot_id', 
+                'assembly': 'assembly_id', 
+                'kmax': 'kmax', 
+                'kmin': 'kmin', 
+                'calibration': 'calib',
+                'aperture_size':'aperture',
+                'aperture_type':'aper_type',
+                }
+
+INVERT_ATTRIBUTE_MAP = {v: k for k, v in ATTRIBUTE_MAP.items()}
 
 
-CPYMAD_MARKER_ATTR     = ['at', 'aper_type', 'aperture']
-CPYMAD_DRIFT_ATTR      = ['l', 'at', 'aper_type', 'aperture']
-CPYMAD_COLLIMATOR_ATTR = ['l', 'at', 'aper_type', 'aperture']
-CPYMAD_SBEND_ATTR      = ['l', 'at', 'angle', 'e1', 'e2', 'aper_type', 'aperture']
-CPYMAD_RBEND_ATTR      = ['l', 'at', 'angle', 'e1', 'e2', 'aper_type', 'aperture']
-CPYMAD_QUADRUPOLE_ATTR = ['l', 'at', 'k1', 'k1s', 'aper_type', 'aperture']
-CPYMAD_SEXTUPOLE_ATTR  = ['l', 'at', 'k2', 'k2s', 'aper_type', 'aperture']
-CPYMAD_OCTUPOLE_ATTR   = ['l', 'at', 'k3', 'k3s', 'aper_type', 'aperture']
-CPYMAD_MULTIPOLE_ATTR  = ['l', 'at', 'knl', 'ksl', 'aper_type', 'aperture']
-CPYMAD_RFCAVITY_ATTR   = ['l', 'at', 'freq', 'volt', 'lag', 'aper_type', 'aperture']
+MARKER_ATTR      = ['length', 'position', 'reference', 'slot_id', 'assembly', 'mech_sep']
+RBEND_ATTR       = ['length', 'position', 'reference', 'polarity', 'angle', 'e1', 'e2', 'k0', 'mech_sep', 'slot_id', 'kmax', 'kmin', 'calibration', 'assembly']
+SBEND_ATTR       = ['length', 'position', 'reference', 'polarity', 'angle', 'e1', 'e2', 'k0', 'mech_sep', 'slot_id', 'assembly']
+SOLENOID_ATTR    = ['length', 'position', 'reference', 'ks', 'slot_id', 'mech_sep', 'assembly']
+DRIFT_ATTR       = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
+COLLIMATOR_ATTR  = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
+PLACEHOLDER_ATTR = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
+INSTRUMENT_ATTR  = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
+MONITOR_ATTR     = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
+QUADRUPOLE_ATTR  = ['length', 'position', 'reference', 'polarity', 'k1', 'k1s', 'mech_sep', 'slot_id', 'assembly', 'kmax', 'kmin', 'calibration']
+SEXTUPOLE_ATTR   = ['length', 'position', 'reference', 'polarity', 'k2', 'k2s', 'mech_sep', 'slot_id', 'assembly', 'kmax', 'kmin', 'calibration']
+OCTUPOLE_ATTR    = ['length', 'position', 'reference', 'polarity', 'k3', 'k3s', 'mech_sep', 'slot_id', 'assembly', 'kmax', 'kmin', 'calibration']
+MULTIPOLE_ATTR   = ['length', 'position', 'reference', 'polarity', 'knl', 'slot_id', 'assembly', 'mech_sep', 'ksl']
+HKICKER_ATTR     = ['length', 'position', 'reference', 'polarity', 'kick', 'slot_id', 'assembly', 'mech_sep', 'kmax', 'kmin', 'calibration', 'tilt']
+VKICKER_ATTR     = ['length', 'position', 'reference', 'polarity', 'kick', 'slot_id', 'assembly', 'mech_sep', 'kmax', 'kmin', 'calibration', 'tilt']
+TKICKER_ATTR     = ['length', 'position', 'reference', 'polarity', 'hkick', 'vkick', 'slot_id', 'assembly', 'mech_sep']
+RFCAVITY_ATTR    = ['length', 'position', 'reference', 'voltage', 'lag', 'mech_sep', 'slot_id', 'assembly']
 
 
 CPYMAD_ELEMENT_DICT = {'marker': MARKER_ATTR         ,     
                        'drift': DRIFT_ATTR           ,   
+                       'monitor': DRIFT_ATTR           ,   
                        'sbend': SBEND_ATTR           ,   
                        'rbend': RBEND_ATTR           ,   
                        'quadrupole': QUADRUPOLE_ATTR ,      
@@ -41,109 +75,67 @@ CPYMAD_ELEMENT_DICT = {'marker': MARKER_ATTR         ,
                        'multipole': MULTIPOLE_ATTR}
 
 
-ELEMENT_DICT = {'Marker': CPYMAD_MARKER_ATTR         ,     
-                'Drift': CPYMAD_DRIFT_ATTR           ,   
-                'Sbend': CPYMAD_SBEND_ATTR           ,   
-                'Rbend': CPYMAD_RBEND_ATTR           ,   
-                'Quadrupole': CPYMAD_QUADRUPOLE_ATTR ,      
-                'Sextupole': CPYMAD_SEXTUPOLE_ATTR   ,  
-                'Octupole': CPYMAD_OCTUPOLE_ATTR     ,
-                'Collimator': CPYMAD_COLLIMATOR_ATTR ,    
-                'RFCavity': CPYMAD_RFCAVITY_ATTR     ,
-                'Multipole': CPYMAD_MULTIPOLE_ATTR}
+ELEMENT_DICT = {
+                'Marker'     : [ATTRIBUTE_MAP[k] for k in MARKER_ATTR     ],   
+                'Rbend'      : [ATTRIBUTE_MAP[k] for k in RBEND_ATTR      ],  
+                'Sbend'      : [ATTRIBUTE_MAP[k] for k in SBEND_ATTR      ],  
+                'Solenoid'   : [ATTRIBUTE_MAP[k] for k in SOLENOID_ATTR   ],  
+                'Drift'      : [ATTRIBUTE_MAP[k] for k in DRIFT_ATTR      ],  
+                'Collimator' : [ATTRIBUTE_MAP[k] for k in COLLIMATOR_ATTR ],  
+                'Placeholder': [ATTRIBUTE_MAP[k] for k in PLACEHOLDER_ATTR],  
+                'Instrument' : [ATTRIBUTE_MAP[k] for k in INSTRUMENT_ATTR ],  
+                'Monitor'    : [ATTRIBUTE_MAP[k] for k in MONITOR_ATTR    ],  
+                'Quadrupole' : [ATTRIBUTE_MAP[k] for k in QUADRUPOLE_ATTR ],  
+                'Sextupole'  : [ATTRIBUTE_MAP[k] for k in SEXTUPOLE_ATTR  ],  
+                'Octupole'   : [ATTRIBUTE_MAP[k] for k in OCTUPOLE_ATTR   ],  
+                'Multipole'  : [ATTRIBUTE_MAP[k] for k in MULTIPOLE_ATTR  ],  
+                'Hkicker'    : [ATTRIBUTE_MAP[k] for k in HKICKER_ATTR    ],  
+                'Vkicker'    : [ATTRIBUTE_MAP[k] for k in VKICKER_ATTR    ],  
+                'Tkicker'    : [ATTRIBUTE_MAP[k] for k in TKICKER_ATTR    ],  
+                'Rfcavity'   : [ATTRIBUTE_MAP[k] for k in RFCAVITY_ATTR   ],  
+                }
 
 
 class AttributeMappingFromCpymad:
-    def __init__(self, cpymad_element):
-        try: self.length = cpymad_element.l 
+    def __init__(self, cpymad_element, attr_dict):
+        for key in attr_dict:
+            try: setattr(self, key, cpymad_element[ATTRIBUTE_MAP[key]]) 
+            except: AttributeError
+        
+        try: self.frequency *= 1e6
         except: AttributeError
-        try: self.position = cpymad_element.at 
-        except: AttributeError
-        try: self.angle = cpymad_element.angle 
-        except: AttributeError
-        try: self.e1 = cpymad_element.e1 
-        except: AttributeError
-        try: self.e2 = cpymad_element.e2 
-        except: AttributeError
-        try: self.k1 = cpymad_element.k1 
-        except: AttributeError
-        try: self.k1s = cpymad_element.k1s 
-        except: AttributeError
-        try: self.k2 = cpymad_element.k2 
-        except: AttributeError
-        try: self.k2s = cpymad_element.k2s 
-        except: AttributeError
-        try: self.k3 = cpymad_element.k3 
-        except: AttributeError
-        try: self.k3s = cpymad_element.k3s 
-        except: AttributeError
-        try: self.knl = cpymad_element.knl 
-        except: AttributeError
-        try: self.ksl = cpymad_element.ksl 
-        except: AttributeError
-        try: self.frequency = cpymad_element.freq * 1e6
-        except: AttributeError
-        try: self.voltage = cpymad_element.volt * 1e6
-        except: AttributeError
-        try: self.lag = cpymad_element.lag
-        except: AttributeError
-        try: self.aperture_type = cpymad_element.apertype 
-        except: AttributeError
-        try: self.aperture_size = cpymad_element.aperture
+        try: self.voltage *= 1e6
         except: AttributeError
 
 
 class AttributeMappingToCpymad:
-    def __init__(self, element):
-        try: self.l = element.length 
+    def __init__(self, element, attr_dict):
+        for key in attr_dict:
+            try: setattr(self, key, element[INVERT_ATTRIBUTE_MAP[key]]) 
+            except: AttributeError
+        
+        try: self.frequency /= 1e6
         except: AttributeError
-        try: self.at = element.position 
-        except: AttributeError
-        try: self.angle = element.angle 
-        except: AttributeError
-        try: self.e1 = element.e1 
-        except: AttributeError
-        try: self.e2 = element.e2 
-        except: AttributeError
-        try: self.k1 = element.k1 
-        except: AttributeError
-        try: self.k1s = element.k1s 
-        except: AttributeError
-        try: self.k2 = element.k2 
-        except: AttributeError
-        try: self.k2s = element.k2s 
-        except: AttributeError
-        try: self.k3 = element.k3 
-        except: AttributeError
-        try: self.k3s = element.k3s 
-        except: AttributeError
-        try: self.knl = element.knl 
-        except: AttributeError
-        try: self.ksl = element.ksl 
-        except: AttributeError
-        try: self.freq = element.frequency / 1e6
-        except: AttributeError
-        try: self.volt = element.voltage / 1e6
-        except: AttributeError
-        try: self.lag = element.lag
-        except: AttributeError
-        try: self.apertype = element.aperture_type 
-        except: AttributeError
-        try: self.aperture = element.aperture_size
+        try: self.voltage /= 1e6
         except: AttributeError
 
 
-def from_cpymad(xs_cls, cpymad_element):
-    mapped_attr = AttributeMappingFromCpymad(cpymad_element)
-    attribute_list = CPYMAD_ELEMENT_DICT[cpymad_element.base_type.name]
-    return convert_element_from_cpymad(xs_cls, cpymad_element.name, mapped_attr, attribute_list)
+def from_cpymad(xs_cls, cpymad_element, name=None, aperture=False):
+    if not isinstance(cpymad_element, dict):
+        name = cpymad_element.name
+        elemdata={'base_type':cpymad_element.base_type.name}
+        for parname, par in cpymad_element.cmdpar.items():
+            elemdata[parname]=par.value
+        cpymad_element = elemdata
+    attribute_list = CPYMAD_ELEMENT_DICT[cpymad_element['base_type']]
+    if aperture:
+        attribute_list.extend(['aperture_type', 'aperture_size'])
+    mapped_attr = AttributeMappingFromCpymad(cpymad_element, attribute_list)
+    return convert_element_from_cpymad(xs_cls, name, mapped_attr, attribute_list)
 
 
 def convert_element_from_cpymad(xs_cls, name, mapped_attr, attribute_list):
     attribute_list = attribute_list.copy()
-    if mapped_attr.aperture_size == [0]:
-        attribute_list.remove('aperture_type')
-        attribute_list.remove('aperture_size')
     kwargs = {}
     for key in attribute_list:
         try: kwargs[key] = getattr(mapped_attr, key)
@@ -152,14 +144,14 @@ def convert_element_from_cpymad(xs_cls, name, mapped_attr, attribute_list):
 
 
 def to_cpymad(element, madx):
-    mapped_attr = AttributeMappingToCpymad(element)
+    attribute_list = ELEMENT_DICT[base_type]
+    mapped_attr = AttributeMappingToCpymad(element, attr_dict)
     base_type = element.__class__.__name__
     if base_type == 'Rbend':
-        mapped_attr.l =element._chord_length
-        mapped_attr.e1 = element._rbend_e1
-        mapped_attr.e2 = element._rbend_e2
+        mapped_attr.params['l'] =element._chord_length
+        mapped_attr.params['e1'] = element._rbend_e1
+        mapped_attr.params['e2'] = element._rbend_e2
     
-    attribute_list = ELEMENT_DICT[base_type]
     return convert_element_to_cpymad(base_type, madx, element.name, mapped_attr, attribute_list)
 
 
@@ -170,7 +162,7 @@ def convert_element_to_cpymad(base_type, madx, name, mapped_attr, attribute_list
         attribute_list.remove('aperture')
     kwargs = {}
     for key in attribute_list:
-        try: kwargs[key] = getattr(mapped_attr, key)
+        try: kwargs[key] = mapped_attr[key]
         except: AttributeError
     madx.command[base_type.lower()].clone(name, **kwargs)
 

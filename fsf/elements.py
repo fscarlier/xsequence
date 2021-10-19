@@ -71,15 +71,13 @@ class BaseElement:
         """ 
         Create specific Element instance from cpymad element
         """
-        # return cpymad_conv.convert_element_from_cpymad(cls, cpymad_element)
-        return cpymad_conv_new.from_cpymad(cls, cpymad_element)
+        return cpymad_conv.convert_element_from_cpymad(cls, cpymad_element)
 
     def to_cpymad(self, madx):
         """ 
         Create cpymad element in madx instance from Element
         """
-        # return cpymad_conv.convert_element_to_cpymad(self, madx)
-        return cpymad_conv_new.to_cpymad(self, madx)
+        return cpymad_conv.convert_element_to_cpymad(self, madx)
 
     @classmethod
     def from_pyat(cls, pyat_element):
@@ -458,30 +456,36 @@ class BeamBeam(Element):
 
 
 class ThinRFMultipole(Element):
-    """
-    """
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
 
 
-class CrabCavity(Element):
-    """
-    """
+class Monitor(Drift):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
 
 
-class ACDipole(Element):
-    """
-    """
+class HKicker(Element):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
 
 
-class BeamPositionMonitor(Marker):
-    """
-    BPM base class
-    """
+class VKicker(Element):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
+
+
+class TKicker(Element):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
+
+
+class Placeholder(Drift):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
+
+
+class Instrument(Drift):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
 

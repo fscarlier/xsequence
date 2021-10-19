@@ -3,3 +3,5 @@ call, file="/home/fcarlier/git-projects/fsf/tests/test_lattice_conversions/test_
 SET, FORMAT="25.20e";
 beam, particle=electron, energy=180;
 use, sequence=ring;
+use, sequence=ring;
+twiss, sequence=ring;
