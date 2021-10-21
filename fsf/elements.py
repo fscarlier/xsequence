@@ -6,23 +6,29 @@ This is a Python3 module containing base element classes element property datacl
 """
 
 import math
-import elements_dataclasses as xed
+import fsf.elements_dataclasses as xed
 
 class BaseElement():
     """Class containing base element properties and methods"""
     def __init__(self, name: str, bend_class=None, strength_class=None, rf_class=None, **kwargs):
+        self.repr_attributes = ['element_id', 'position', 'aperture']
+
         self.name = name
-        if kwargs is not None:
+        if kwargs is None:
             kwargs = {'temp':0}
-        self.element_id = ed.ElementID(**{k:kwargs[k] for k in ed.ElementID.INIT_PROPERTIES if k in kwargs})
-        self.position = ed.ElementPosition(**{k:kwargs[k] for k in ed.ElementPosition.INIT_PROPERTIES if k in kwargs})
-        self.aperture = ed.Aperture()
+        self.element_id = xed.ElementID(**{k:kwargs[k] for k in xed.ElementID.INIT_PROPERTIES if k in kwargs})
+        self.position = xed.ElementPosition(**{k:kwargs[k] for k in xed.ElementPosition.INIT_PROPERTIES if k in kwargs})
+        self.aperture = xed.Aperture()
+
         if bend_class:
             self.bend = bend_class(**{k:kwargs[k] for k in bend_class.INIT_PROPERTIES if k in kwargs})
+            self.repr_attributes.append('bend')
         if strength_class:
             self.strength = strength_class(**{k:kwargs[k] for k in strength_class.INIT_PROPERTIES if k in kwargs})
+            self.repr_attributes.append('strength')
         if rf_class:
             self.rf_params = rf_class(**{k:kwargs[k] for k in rf_class.INIT_PROPERTIES if k in kwargs})
+            self.repr_attributes.append('rf_params')
 
     @property
     def length(self):
@@ -32,11 +38,16 @@ class BaseElement():
     def length(self, length: float):
         self.position.length = length
 
-    def _get_repr(self) -> str:
-        return f'{self.name}, element_id={self.element_id}, position={self.position}, aperture={self.aperture}' 
+    def __eq__(self, other):
+        compare_list = ['name'] + self.repr_attributes
+        for k in compare_list:
+            if getattr(self, k) != getattr(other, k):
+                return False
+        return True
 
     def __repr__(self) -> str:
-        return f'{self.name}, element_id={self.element_id}, position={self.position}, aperture={self.aperture}' 
+        content = ''.join([f', {x}={getattr(self, x)}' for x in self.repr_attributes])
+        return f'{self.__class__.__name__}(' + f'{self.name}' + content + ')'
 
 
 class Marker(BaseElement):
@@ -77,10 +88,7 @@ class Instrument(Drift):
 class SectorBend(BaseElement):
     """ Sbend element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, bend_class=ed.BendData, **kwargs)
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(' + super().__repr__() + f', bend={self.bend})'
+        super().__init__(name, bend_class=xed.BendData, **kwargs)
 
     def _calc_length(self, angle: float, chord_length: float):
         return (angle*chord_length)/(2*math.sin(angle/2.))
@@ -99,10 +107,7 @@ class Rectangularbend(BaseElement):
         kwargs['e1'] = self._rbend_e1+abs(kwargs['angle'])/2.
         kwargs['e2'] = self._rbend_e2+abs(kwargs['angle'])/2.
         
-        super().__init__(name, bend_class=ed.BendData, **kwargs)
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(' + super().__repr__() + f', bend={self.bend})'
+        super().__init__(name, bend_class=xed.BendData, **kwargs)
 
 
 class DipoleEdge(BaseElement):
@@ -110,18 +115,12 @@ class DipoleEdge(BaseElement):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, strength_class=DipoleEdge, **kwargs)
 
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(' + super().__repr__() + f', strength={self.strength})'
-
 
 class Solenoid(BaseElement):
     """ Solenoid element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=ed.SolenoidData, **kwargs)
+        super().__init__(name, strength_class=xed.SolenoidData, **kwargs)
 
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(' + super().__repr__() + f', strength={self.strength})'
-         
     @property
     def ks(self):
         return self.strength.ks
@@ -141,11 +140,8 @@ class Solenoid(BaseElement):
 
 class Multipole(BaseElement):
     """ Multipole element class """
-    def __init__(self, name: str, strength_class=ed.MultipoleStrengthData, **kwargs):
+    def __init__(self, name: str, strength_class=xed.MultipoleStrengthData, **kwargs):
         super().__init__(name, strength_class=strength_class, **kwargs)
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(' + super().__repr__() + f', strength={self.strength})'
 
     @property
     def knl(self):
@@ -159,7 +155,7 @@ class Multipole(BaseElement):
 class Quadrupole(Multipole):
     """ Quadrupole element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=ed.QuadrupoleData, **kwargs)
+        super().__init__(name, strength_class=xed.QuadrupoleData, **kwargs)
 
     @property
     def k1(self):
@@ -181,7 +177,7 @@ class Quadrupole(Multipole):
 class Sextupole(Multipole):
     """ Sextupole element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=ed.SextupoleData, **kwargs)
+        super().__init__(name, strength_class=xed.SextupoleData, **kwargs)
 
     @property
     def k2(self):
@@ -203,7 +199,7 @@ class Sextupole(Multipole):
 class Octupole(Multipole):
     """ Octupole element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=ed.OctupoleData, **kwargs)
+        super().__init__(name, strength_class=xed.OctupoleData, **kwargs)
 
     @property
     def k3(self):
@@ -225,11 +221,8 @@ class Octupole(Multipole):
 class RFCavity(BaseElement):
     """ RFCavity element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, rf_class=ed.RFCavityData, **kwargs)
+        super().__init__(name, rf_class=xed.RFCavityData, **kwargs)
 
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(' + super().__repr__() + f', rf_params={self.rf_params})'
-    
 
 class HKicker(BaseElement):
     def __init__(self, name: str, **kwargs):
@@ -249,7 +242,7 @@ class TKicker(BaseElement):
 class ThinMultipole(BaseElement):
     """ Thin multipole element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=ed.ThinMultipoleStrengthData, **kwargs)
+        super().__init__(name, strength_class=xed.ThinMultipoleStrengthData, **kwargs)
         self.length_radiation = kwargs.pop('length_radiation', 0)
         assert self.length == 0
 

@@ -98,7 +98,7 @@ class Aperture:
 @dataclass
 class CircularAperture(Aperture):
     INIT_PROPERTIES = ['aperture_size', 'aperture_type', 'aperture_offset']
-    aperture_size: List
+    aperture_size: float = 0.0
     aperture_type: Optional[str] = 'circular'
     aperture_offset: Optional[float] = 0.0
 
@@ -152,6 +152,18 @@ class MultipoleStrengthData:
         self.kn = np.pad(kn, (0, self.order-len(kn)))
         self.ks = np.pad(ks, (0, self.order-len(ks)))
 
+    def __eq__(self, other):
+        if getattr(self, 'polarity') != getattr(other, 'polarity'):
+            return False
+        
+        for key in ['kn', 'ks']:
+            if len(getattr(self, key)) != len(getattr(other, key)):
+                return False
+            arr_eq = np.isclose(getattr(self, key), getattr(other, key), rtol=1e-8)
+            if False in arr_eq:
+                return False
+        return True
+
 
 @dataclass
 class ThinMultipoleStrengthData:
@@ -172,8 +184,20 @@ class ThinMultipoleStrengthData:
         self.knl = np.pad(knl, (0, self.order-len(knl)))
         self.ksl = np.pad(ksl, (0, self.order-len(ksl)))
 
+    def __eq__(self, other):
+        if getattr(self, 'polarity') != getattr(other, 'polarity'):
+            return False
+        
+        for key in ['knl', 'ksl']:
+            if len(getattr(self, key)) != len(getattr(other, key)):
+                return False
+            arr_eq = np.isclose(getattr(self, key), getattr(other, key), rtol=1e-8)
+            if False in arr_eq:
+                return False
+        return True
 
-@dataclass
+
+@dataclass(eq=False)
 class QuadrupoleData(MultipoleStrengthData):
     INIT_PROPERTIES = ['k1', 'k1s', 'kmax', 'kmin']
     k1: float = 0.0
@@ -193,9 +217,18 @@ class QuadrupoleData(MultipoleStrengthData):
     @k1.setter
     def k1(self, k1: float):
         self.kn[1] = k1
+    
+    @property
+    def k1s(self):
+        return self.ks[1]
 
+    @k1s.setter
+    def k1s(self, k1s: float):
+        self.ks[1] = k1s
+    
+    
 
-@dataclass
+@dataclass(eq=False)
 class SextupoleData(MultipoleStrengthData):
     INIT_PROPERTIES = ['k2', 'k2s', 'kmax', 'kmin']
     k2: float = 0.0
@@ -215,9 +248,17 @@ class SextupoleData(MultipoleStrengthData):
     @k2.setter
     def k2(self, k2: float):
         self.kn[2] = k2
+    
+    @property
+    def k2s(self):
+        return self.ks[2]
+
+    @k2s.setter
+    def k2s(self, k2s: float):
+        self.ks[2] = k2s
 
 
-@dataclass
+@dataclass(eq=False)
 class OctupoleData(MultipoleStrengthData):
     INIT_PROPERTIES = ['k3', 'k3s', 'kmax', 'kmin']
     k3: float = 0.0
@@ -237,6 +278,14 @@ class OctupoleData(MultipoleStrengthData):
     @k3.setter
     def k3(self, k3: float):
         self.kn[3] = k3
+    
+    @property
+    def k3s(self):
+        return self.ks[3]
+
+    @k3s.setter
+    def k3s(self, k3s: float):
+        self.ks[3] = k3s
 
 
 @dataclass

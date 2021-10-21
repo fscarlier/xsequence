@@ -1,6 +1,6 @@
 from typing import List
-import elements_dataclasses as xed
-import elements as xe
+import fsf.elements_dataclasses as xed
+import fsf.elements as xe
 
 
 def teapot_slicing(position: xed.ElementPosition, num_slices: int) -> List:
