@@ -118,7 +118,13 @@ class SolenoidData:
     """ Solenoid strength dataclass """
     INIT_PROPERTIES = ['ks']
     ks: float = 0.0
-    ksi: float = None
+
+
+@dataclass
+class ThinSolenoidData:
+    """ Solenoid strength dataclass """
+    INIT_PROPERTIES = ['ksi']
+    ksi: float = 0.0
 
 
 @dataclass

@@ -7,28 +7,22 @@ This is a Python3 module containing base element classes element property datacl
 
 import math
 import fsf.elements_dataclasses as xed
+import fsf.elements_functions as xef
 
 class BaseElement():
     """Class containing base element properties and methods"""
-    def __init__(self, name: str, bend_class=None, strength_class=None, rf_class=None, **kwargs):
-        self.repr_attributes = ['element_id', 'position', 'aperture']
+    def __init__(self, name: str, **kwargs):
+        self.repr_attributes = ['id_data', 'position_data', 'aperture_data']
 
         self.name = name
         if kwargs is None:
             kwargs = {'temp':0}
-        self.element_id = xed.ElementID(**{k:kwargs[k] for k in xed.ElementID.INIT_PROPERTIES if k in kwargs})
-        self.position = xed.ElementPosition(**{k:kwargs[k] for k in xed.ElementPosition.INIT_PROPERTIES if k in kwargs})
-        self.aperture = xed.Aperture()
-
-        if bend_class:
-            self.bend = bend_class(**{k:kwargs[k] for k in bend_class.INIT_PROPERTIES if k in kwargs})
-            self.repr_attributes.append('bend')
-        if strength_class:
-            self.strength = strength_class(**{k:kwargs[k] for k in strength_class.INIT_PROPERTIES if k in kwargs})
-            self.repr_attributes.append('strength')
-        if rf_class:
-            self.rf_params = rf_class(**{k:kwargs[k] for k in rf_class.INIT_PROPERTIES if k in kwargs})
-            self.repr_attributes.append('rf_params')
+        self.id_data = kwargs.pop('id_data', 
+                                xed.ElementID(**{k:kwargs[k] for k in xed.ElementID.INIT_PROPERTIES if k in kwargs}))
+        self.position_data = kwargs.pop('position_data', 
+                                xed.ElementPosition(**{k:kwargs[k] for k in xed.ElementPosition.INIT_PROPERTIES if k in kwargs}))
+        self.aperture_data = kwargs.pop('aperture_data', 
+                                xed.Aperture())
 
     @property
     def length(self):
@@ -37,6 +31,16 @@ class BaseElement():
     @length.setter
     def length(self, length: float):
         self.position.length = length
+
+    def _get_slice_positions(self, num_slices=1):
+        return xef.get_teapot_slicing_positions(self.position, num_slices)
+    
+    def _get_sliced_element(self, num_slices=1, thin_class=None, **kwargs):
+        thin_positions, rad_length = self._get_slice_positions(num_slices=num_slices)
+        seq = []
+        for idx, thin_pos in enumerate(thin_positions):
+            seq.append(thin_class(f'{self.name}_{idx}', radiation_length=rad_length, distance=thin_pos, **kwargs) )
+        return seq
 
     def __eq__(self, other):
         compare_list = ['name'] + self.repr_attributes
@@ -48,6 +52,14 @@ class BaseElement():
     def __repr__(self) -> str:
         content = ''.join([f', {x}={getattr(self, x)}' for x in self.repr_attributes])
         return f'{self.__class__.__name__}(' + f'{self.name}' + content + ')'
+
+
+class ThinBaseElement(BaseElement):
+    """ Thin base element class """
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+        assert self.length == 0.0, f"ThinBaseElement {name} has non-zero length"
+
 
 
 class Marker(BaseElement):
@@ -88,7 +100,28 @@ class Instrument(Drift):
 class SectorBend(BaseElement):
     """ Sbend element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, bend_class=xed.BendData, **kwargs)
+        super().__init__(name, **kwargs)
+        
+        self.bend_data = kwargs.pop('bend_data', 
+                            xed.BendData(**{k:kwargs[k] for k in xed.BendData.INIT_PROPERTIES if k in kwargs})
+                         )
+        self.repr_attributes.append('bend_data')
+
+    def _get_sliced_strength(self, num_slices=1):
+        return xef.get_sliced_bend_strength(self.bend, num_slices)
+
+    def _get_DipoleEdge(self, side):
+        assert side in ['start', 'end']
+        h = self.angle/self.length
+        return DipoleEdge(f'{self.name}_edge_{side}', side=side, h=h, e1=self.e1, position=self.start)
+
+    def slice_element(self, num_slices=1):
+        strength_data = self._get_sliced_strength(num_slices=num_slices)
+        sliced_bend =  self._get_sliced_element(num_slices=num_slices, thin_class=ThinSolenoid, strength_data=strength_data) 
+        sliced_bend.insert(0, self._get_DipoleEdge('start'))
+        sliced_bend.append(self._get_DipoleEdge('end'))
+        return sliced_bend
+
 
     def _calc_length(self, angle: float, chord_length: float):
         return (angle*chord_length)/(2*math.sin(angle/2.))
@@ -108,6 +141,14 @@ class Rectangularbend(BaseElement):
         kwargs['e2'] = self._rbend_e2+abs(kwargs['angle'])/2.
         
         super().__init__(name, bend_class=xed.BendData, **kwargs)
+        
+        self.bend_data = kwargs.pop('bend_data', 
+                            xed.BendData(**{k:kwargs[k] for k in xed.BendData.INIT_PROPERTIES if k in kwargs})
+                         )
+        self.repr_attributes.append('bend_data')
+
+    def _get_sliced_strength(self, num_slices=1):
+        return xef.get_sliced_bend_strength(self.bend, num_slices)
 
 
 class DipoleEdge(BaseElement):
@@ -119,8 +160,20 @@ class DipoleEdge(BaseElement):
 class Solenoid(BaseElement):
     """ Solenoid element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=xed.SolenoidData, **kwargs)
+        super().__init__(name, **kwargs)
 
+        self.solenoid_data = kwargs.pop('solenoid_data', 
+                                xed.SolenoidData(**{k:kwargs[k] for k in xed.SolenoidData.INIT_PROPERTIES if k in kwargs})
+                             )
+        self.repr_attributes.append('solenoid_data')
+
+    def _get_sliced_strength(self, num_slices=1):
+        return xef.get_sliced_solenoid_strength(self.solenoid_strength, num_slices)
+
+    def slice_element(self, num_slices=1):
+        solenoid_data = self._get_sliced_strength(num_slices=num_slices)
+        return self._get_sliced_element(num_slices=num_slices, thin_class=ThinSolenoid, solenoid_data=solenoid_data) 
+    
     @property
     def ks(self):
         return self.strength.ks
@@ -133,15 +186,27 @@ class Solenoid(BaseElement):
     def ksi(self):
         return self.strength.ks*self.length
     
-    @ks.setter
-    def ks(self, ksi: float):
+    @ksi.setter
+    def ksi(self, ksi: float):
         self.strength.ks = ksi/self.length
 
 
 class Multipole(BaseElement):
     """ Multipole element class """
-    def __init__(self, name: str, strength_class=xed.MultipoleStrengthData, **kwargs):
-        super().__init__(name, strength_class=strength_class, **kwargs)
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+
+        self.strength_data = kwargs.pop('strength_data', 
+                                xed.MultipoleStrengthData(**{k:kwargs[k] for k in xed.MultipoleStrengthData.INIT_PROPERTIES if k in kwargs})
+                             )
+        self.repr_attributes.append('strength_data')
+        
+    def _get_sliced_strength(self, num_slices=1):
+        return xef.get_sliced_multipole_strength(self.strength, num_slices)
+
+    def slice_element(self, num_slices=1):
+        strength_data = self._get_sliced_strength(num_slices=num_slices)
+        return self._get_sliced_element(num_slices=num_slices, thin_class=ThinMultipole, strength_data=strength_data) 
 
     @property
     def knl(self):
@@ -221,7 +286,13 @@ class Octupole(Multipole):
 class RFCavity(BaseElement):
     """ RFCavity element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, rf_class=xed.RFCavityData, **kwargs)
+        super().__init__(name, **kwargs)
+        
+        self.rf_data = kwargs.pop('rf_data', 
+                            xed.RFCavityData(**{k:kwargs[k] for k in xed.RFCavityData.INIT_PROPERTIES if k in kwargs})
+                       )
+        self.repr_attributes.append('rf_data')
+        
 
 
 class HKicker(BaseElement):
@@ -243,21 +314,35 @@ class ThinMultipole(BaseElement):
     """ Thin multipole element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, strength_class=xed.ThinMultipoleStrengthData, **kwargs)
-        self.length_radiation = kwargs.pop('length_radiation', 0)
+        self.radiation_length = kwargs.pop('radiation_length', 0)
         assert self.length == 0
 
 
-class ThinSolenoid(Solenoid):
+class ThinSolenoid(BaseElement):
     """ ThinSolenoid element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        self.length_radiation = kwargs.pop('length_radiation', 0)
+        
+        self.solenoid_data = kwargs.pop('solenoid_data', 
+                                xed.ThinSolenoidData(**{k:kwargs[k] for k in xed.ThinSolenoidData.INIT_PROPERTIES if k in kwargs})
+                             )
+        self.repr_attributes.append('solenoid_data')
+        
+        self.radiation_length = kwargs.pop('radiation_length', 0)
         assert self.length == 0
+
+    @property
+    def ksi(self):
+        return self.strength.ks*self.length
+    
+    @ksi.setter
+    def ksi(self, ksi: float):
+        self.strength.ks = ksi/self.length
 
 
 class ThinRFMultipole(RFCavity):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        self.length_radiation = kwargs.pop('length_radiation', 0)
+        self.radiation_length = kwargs.pop('radiation_length', 0)
         assert self.length == 0
 
