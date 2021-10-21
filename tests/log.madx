@@ -1,2 +1,0 @@
-option, echo=false, info=false, debug=false;
-call, file="/home/fcarlier/git-projects/fsf/tests/test_lattice_conversions/test_sequences/lattice.seq";
