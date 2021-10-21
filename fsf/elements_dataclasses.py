@@ -19,6 +19,7 @@ class ElementID:
 
 @dataclass
 class ElementPosition:
+    """ Dataclass containing all relevant information about element position in [m] """
     INIT_PROPERTIES = ['length', 'distance', 'reference', 'tilt', 'mech_sep']
     length: float = 0.0
     _length: float = field(init=False, repr=False, default=0.0)

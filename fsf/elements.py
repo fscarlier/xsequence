@@ -6,7 +6,7 @@ This is a Python3 module containing base element classes element property datacl
 """
 
 import math
-import element_dataclasses as ed
+import elements_dataclasses as xed
 
 class BaseElement():
     """Class containing base element properties and methods"""
