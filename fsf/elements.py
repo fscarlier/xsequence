@@ -26,20 +26,20 @@ class BaseElement():
 
     @property
     def length(self):
-        return self.position.length
+        return self.position_data.length
     
     @length.setter
     def length(self, length: float):
-        self.position.length = length
+        self.position_data.length = length
 
     def _get_slice_positions(self, num_slices=1):
-        return xef.get_teapot_slicing_positions(self.position, num_slices)
+        return xef.get_teapot_slicing_positions(self.position_data, num_slices)
     
     def _get_sliced_element(self, num_slices=1, thin_class=None, **kwargs):
         thin_positions, rad_length = self._get_slice_positions(num_slices=num_slices)
         seq = []
         for idx, thin_pos in enumerate(thin_positions):
-            seq.append(thin_class(f'{self.name}_{idx}', radiation_length=rad_length, distance=thin_pos, **kwargs) )
+            seq.append(thin_class(f'{self.name}_{idx}', radiation_length=rad_length, location=thin_pos, **kwargs) )
         return seq
 
     def __eq__(self, other):
@@ -108,12 +108,15 @@ class SectorBend(BaseElement):
         self.repr_attributes.append('bend_data')
 
     def _get_sliced_strength(self, num_slices=1):
-        return xef.get_sliced_bend_strength(self.bend, num_slices)
+        return xef.get_sliced_bend_strength(self.bend_data, num_slices)
 
     def _get_DipoleEdge(self, side):
         assert side in ['start', 'end']
-        h = self.angle/self.length
-        return DipoleEdge(f'{self.name}_edge_{side}', side=side, h=h, e1=self.e1, position=self.start)
+        h = self.bend_data.angle/self.length
+        if side == 'start':
+            return DipoleEdge(f'{self.name}_edge_{side}', side=side, h=h, e1=self.bend_data.e1, location=self.position_data.start)
+        elif side == 'end':
+            return DipoleEdge(f'{self.name}_edge_{side}', side=side, h=h, e1=self.bend_data.e2, location=self.position_data.end)
 
     def slice_element(self, num_slices=1):
         strength_data = self._get_sliced_strength(num_slices=num_slices)
@@ -148,7 +151,7 @@ class Rectangularbend(BaseElement):
         self.repr_attributes.append('bend_data')
 
     def _get_sliced_strength(self, num_slices=1):
-        return xef.get_sliced_bend_strength(self.bend, num_slices)
+        return xef.get_sliced_bend_strength(self.bend_data, num_slices)
 
 
 class DipoleEdge(BaseElement):
@@ -168,7 +171,7 @@ class Solenoid(BaseElement):
         self.repr_attributes.append('solenoid_data')
 
     def _get_sliced_strength(self, num_slices=1):
-        return xef.get_sliced_solenoid_strength(self.solenoid_strength, num_slices)
+        return xef.get_sliced_solenoid_strength(self.solenoid_data, num_slices)
 
     def slice_element(self, num_slices=1):
         solenoid_data = self._get_sliced_strength(num_slices=num_slices)
@@ -202,7 +205,7 @@ class Multipole(BaseElement):
         self.repr_attributes.append('strength_data')
         
     def _get_sliced_strength(self, num_slices=1):
-        return xef.get_sliced_multipole_strength(self.strength, num_slices)
+        return xef.get_sliced_multipole_strength(self.strength_data, num_slices)
 
     def slice_element(self, num_slices=1):
         strength_data = self._get_sliced_strength(num_slices=num_slices)

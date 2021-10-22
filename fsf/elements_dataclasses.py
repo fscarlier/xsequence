@@ -20,11 +20,11 @@ class ElementID:
 @dataclass
 class ElementPosition:
     """ Dataclass containing all relevant information about element position in [m] """
-    INIT_PROPERTIES = ['length', 'distance', 'reference', 'tilt', 'mech_sep']
+    INIT_PROPERTIES = ['length', 'location', 'reference', 'tilt', 'mech_sep']
     length: float = 0.0
     _length: float = field(init=False, repr=False, default=0.0)
-    distance: float = 0.0
-    _distance: float = field(init=False, repr=False, default=0.0)
+    location: float = 0.0
+    _location: float = field(init=False, repr=False, default=0.0)
     reference: float = 0.0
     _reference: float = field(init=False, repr=False, default=0.0)
     tilt: float = 0.0
@@ -33,8 +33,8 @@ class ElementPosition:
     def __post_init__(self):
         if isinstance(self.length, property):
             self.length = 0.0
-        if isinstance(self.distance, property):
-            self.distance = 0.0
+        if isinstance(self.location, property):
+            self.location = 0.0
         if isinstance(self.reference, property):
             self.reference = 0.0
     
@@ -48,12 +48,12 @@ class ElementPosition:
         self.calc_position()
 
     @property
-    def distance(self) -> float:
-        return self._distance
+    def location(self) -> float:
+        return self._location
 
-    @distance.setter
-    def distance(self, distance: float):
-        self._distance = distance
+    @location.setter
+    def location(self, location: float):
+        self._location = location
         self.calc_position()
 
     @property
@@ -66,8 +66,16 @@ class ElementPosition:
         self.calc_position()
     
     @property
+    def start(self) -> float:
+        return self.get_position(loc='start')
+    
+    @property
     def position(self) -> float:
         return self.get_position(loc='centre')
+    
+    @property
+    def end(self) -> float:
+        return self.get_position(loc='end')
 
     def get_position(self, loc: str ='centre'):
         assert loc in ['centre', 'start', 'end']
@@ -75,14 +83,14 @@ class ElementPosition:
             self.calc_position()
         return self._position[loc]
 
-    def set_position(self, distance: float = 0.0, reference: float = 0.0):
+    def set_position(self, location: float = 0.0, reference: float = 0.0):
         self._reference = reference
-        self._distance = distance
+        self._location = location
         self.calc_position()
 
     def calc_position(self):
         try:
-            pos = self.distance + self.reference
+            pos = self.location + self.reference
             self._position = {'centre':pos, 
                             'start':pos - self.length/2.,
                             'end':pos + self.length/2.}
