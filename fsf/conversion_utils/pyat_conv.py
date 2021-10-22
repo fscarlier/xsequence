@@ -226,7 +226,7 @@ def collimator_to_pyat(fsf_element):
 def rfcavity_to_pyat(fsf_element):
     attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps'}
     kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
-    return at.elements.RFCavity(fsf_element.name, fsf_element.length, fsf_element.volt*1e6, fsf_element.freq*1e6, 
+    return at.elements.RFCavity(fsf_element.name, fsf_element.length, fsf_element.rf_data.voltage, fsf_element.rf_data.frequency, 
                                 fsf_element.harmonic_number, fsf_element.energy*1e9, **kwargs)
 
 
@@ -236,8 +236,8 @@ def convert_element_to_pyat(fsf_element):
 
 TO_PYAT_CONV = {'Marker': marker_to_pyat, 
                 'Drift':  drift_to_pyat, 
-                'Sbend':  sbend_to_pyat, 
-                'Rbend':  sbend_to_pyat, 
+                'SectorBend':  sbend_to_pyat, 
+                'RectangularBend':  sbend_to_pyat, 
                 'Quadrupole': quadrupole_to_pyat, 
                 'Sextupole': sextupole_to_pyat, 
                 'Collimator': collimator_to_pyat, 

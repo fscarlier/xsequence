@@ -169,7 +169,7 @@ class Lattice:
         cavities = self.get_class('RFCavity')
         for cav in cavities:
             # Approximation for ultr-relativistic electrons
-            cav.harmonic_number = int(cav.freq*1e6/(scipy.constants.c/self.total_length))
+            cav.harmonic_number = int(cav.rf_data.frequency/(scipy.constants.c/self.total_length))
 
     @classmethod
     def from_madx_seqfile(cls, seq_file, seq_name, energy, particle_type='electron'):
@@ -236,7 +236,7 @@ class Lattice:
             element.to_cpymad(madx)
             seq_command += f'{element.name}, at={element.position_data.position}  ;\n'
         
-        madx.input(f'{self.name}: sequence, refer=centre, l={self.sequence[-1].end};')
+        madx.input(f'{self.name}: sequence, refer=centre, l={self.sequence[-1].position_data.end};')
         madx.input(seq_command)
         madx.input('endsequence;')
         madx.command.beam(particle='electron', energy=self.params['energy'])

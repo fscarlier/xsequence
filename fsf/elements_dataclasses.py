@@ -9,25 +9,35 @@ from typing import List, Optional
 from dataclasses import dataclass, field
 import numpy as np
 
+ 
+class ElementBaseProperties: 
+    def __iter__(self):
+        for key in self.INIT_PROPERTIES:
+            yield key, getattr(self, key)
+
 
 @dataclass
-class ElementID:
-    INIT_PROPERTIES = ['slot_id', 'assembly']
+class ElementID(ElementBaseProperties):
+    INIT_PROPERTIES = ['slot_id', 'assembly_id']
     slot_id: Optional[int] = None
-    assembly: Optional[int] = None
+    assembly_id: Optional[int] = None
 
+    def __post_init__(self):
+        if self.slot_id == 0.0: self.slot_id = None
+        if self.assembly_id == 0.0: self.assembly_id = None
 
 @dataclass
-class ElementPosition:
+class ElementPosition(ElementBaseProperties):
     """ Dataclass containing all relevant information about element position in [m] """
-    INIT_PROPERTIES = ['length', 'location', 'reference', 'tilt', 'mech_sep']
+    INIT_PROPERTIES = ['length', 'location', 'reference', 'reference_element', 'mech_sep']
     length: float = 0.0
     _length: float = field(init=False, repr=False, default=0.0)
     location: float = 0.0
     _location: float = field(init=False, repr=False, default=0.0)
     reference: float = 0.0
     _reference: float = field(init=False, repr=False, default=0.0)
-    tilt: float = 0.0
+    reference_element: str = ''
+    # tilt: float = 0.0
     mech_sep: float = 0.0
 
     def __post_init__(self):
@@ -37,7 +47,7 @@ class ElementPosition:
             self.location = 0.0
         if isinstance(self.reference, property):
             self.reference = 0.0
-    
+
     @property
     def length(self) -> float:
         return self._length
@@ -95,25 +105,26 @@ class ElementPosition:
                             'start':pos - self.length/2.,
                             'end':pos + self.length/2.}
         except: AttributeError
-
+    
 
 @dataclass
-class ApertureData:
-    INIT_PROPERTIES = ['aperture_size', 'aperture_type']
+class ApertureData(ElementBaseProperties):
     """Represents an aperture for elements"""
-    pass
+    INIT_PROPERTIES = ['aperture_size', 'aperture_type']
+    aperture_size: List = field(default_factory=lambda: [0.0])
+    aperture_type: Optional[str] = 'circle'
 
 
 @dataclass
 class CircularAperture(ApertureData):
     INIT_PROPERTIES = ['aperture_size', 'aperture_type', 'aperture_offset']
     aperture_size: float = 0.0
-    aperture_type: Optional[str] = 'circular'
+    aperture_type: Optional[str] = 'circle'
     aperture_offset: Optional[float] = 0.0
 
 
 @dataclass
-class BendData:
+class BendData(ElementBaseProperties):
     """ Bend strength dataclass """
     INIT_PROPERTIES = ['angle', 'e1', 'e2', 'k0']
     angle: float = 0.0
@@ -123,21 +134,21 @@ class BendData:
 
 
 @dataclass
-class SolenoidData:
+class SolenoidData(ElementBaseProperties):
     """ Solenoid strength dataclass """
     INIT_PROPERTIES = ['ks']
     ks: float = 0.0
 
 
 @dataclass
-class ThinSolenoidData:
+class ThinSolenoidData(ElementBaseProperties):
     """ Solenoid strength dataclass """
     INIT_PROPERTIES = ['ksi']
     ksi: float = 0.0
 
 
 @dataclass
-class DipoleEdgeData:
+class DipoleEdgeData(ElementBaseProperties):
     """ Dipole edge strength dataclass """
     INIT_PROPERTIES = ['h', 'e1', 'side']
     h: float 
@@ -149,7 +160,7 @@ class DipoleEdgeData:
 
 
 @dataclass
-class MultipoleStrengthData:
+class MultipoleStrengthData(ElementBaseProperties):
     INIT_PROPERTIES = ['kn', 'ks', 'polarity']
     kn: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0])  
     ks: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0]) 
@@ -181,7 +192,7 @@ class MultipoleStrengthData:
 
 
 @dataclass
-class ThinMultipoleStrengthData:
+class ThinMultipoleStrengthData(ElementBaseProperties):
     INIT_PROPERTIES = ['knl', 'ksl', 'polarity']
     knl: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0])  
     ksl: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0]) 
@@ -223,8 +234,14 @@ class QuadrupoleData(MultipoleStrengthData):
     def __post_init__(self):
         if isinstance(self.k1, property):
             self.k1 = 0.0
+        if isinstance(self.k1s, property):
+            self.k1s = 0.0
+        if self.kmax == 0.0: self.kmax = None
+        if self.kmin == 0.0: self.kmin = None
         self._update_arrays(min_order=2)
-    
+
+
+
     @property
     def k1(self):
         return self.kn[1]
@@ -254,6 +271,10 @@ class SextupoleData(MultipoleStrengthData):
     def __post_init__(self):
         if isinstance(self.k2, property):
             self.k2 = 0.0
+        if isinstance(self.k2s, property):
+            self.k2s = 0.0
+        if self.kmax == 0.0: self.kmax = None
+        if self.kmin == 0.0: self.kmin = None
         self._update_arrays(min_order=3)
 
     @property
@@ -284,6 +305,10 @@ class OctupoleData(MultipoleStrengthData):
     def __post_init__(self):
         if isinstance(self.k3, property):
             self.k3 = 0.0
+        if isinstance(self.k3s, property):
+            self.k3s = 0.0
+        if self.kmax == 0.0: self.kmax = None
+        if self.kmin == 0.0: self.kmin = None
         self._update_arrays(min_order=4)
 
     @property
@@ -304,7 +329,7 @@ class OctupoleData(MultipoleStrengthData):
 
 
 @dataclass
-class RFCavityData():
+class RFCavityData(ElementBaseProperties):
     INIT_PROPERTIES = ['voltage', 'frequency', 'lag']
     voltage: float = 0.0  
     frequency: float = 0.0 
@@ -312,15 +337,15 @@ class RFCavityData():
 
 
 @dataclass
-class HKickerData():
+class HKickerData(ElementBaseProperties):
     hkick: float  
 
 
 @dataclass
-class VKickerData():
+class VKickerData(ElementBaseProperties):
     vkick: float  
 
 
 @dataclass
-class KickerData():
+class KickerData(ElementBaseProperties):
     kick: float  

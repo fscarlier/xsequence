@@ -14,7 +14,7 @@ from fsf.conversion_utils import conv_utils, cpymad_conv_new, pyat_conv, xline_c
 class BaseElement():
     """Class containing base element properties and methods"""
     def __init__(self, name: str, **kwargs):
-        self.repr_attributes = ['id_data', 'position_data', 'aperture_data']
+        self._repr_attributes = ['id_data', 'position_data', 'aperture_data']
 
         self.name = name
         if kwargs is None:
@@ -63,15 +63,21 @@ class BaseElement():
             seq.append(thin_class(f'{self.name}_{idx}', radiation_length=rad_length, location=thin_pos, **kwargs) )
         return seq
 
+    def get_dict(self):
+        attr_dict = {}
+        for k in self._repr_attributes:
+            attr_dict.update(dict(getattr(self,k)))
+        return attr_dict
+
     def __eq__(self, other):
-        compare_list = ['name'] + self.repr_attributes
+        compare_list = ['name'] + self._repr_attributes
         for k in compare_list:
             if getattr(self, k) != getattr(other, k):
                 return False
         return True
 
     def __repr__(self) -> str:
-        content = ''.join([f', {x}={getattr(self, x)}' for x in self.repr_attributes])
+        content = ''.join([f', {x}={getattr(self, x)}' for x in self._repr_attributes])
         return f'{self.__class__.__name__}(' + f'{self.name}' + content + ')'
 
 
@@ -94,7 +100,7 @@ class Drift(BaseElement):
     """ Drift element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        assert self.length > 0.0, f"Drift {name} has zero or negative length"
+        assert self.length >= 0.0, f"Drift {name} has zero or negative length"
 
 
 class Collimator(Drift):
@@ -124,7 +130,7 @@ class SectorBend(BaseElement):
         super().__init__(name, **kwargs)
         
         self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs)) 
-        self.repr_attributes.append('bend_data')
+        self._repr_attributes.append('bend_data')
 
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_bend_strength(self.bend_data, num_slices)
@@ -165,7 +171,7 @@ class RectangularBend(SectorBend):
         super().__init__(name, **kwargs)
         
         self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs))
-        self.repr_attributes.append('bend_data')
+        self._repr_attributes.append('bend_data')
 
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_bend_strength(self.bend_data, num_slices)
@@ -185,7 +191,7 @@ class Solenoid(BaseElement):
         self.solenoid_data = kwargs.pop('solenoid_data', 
                                 xed.SolenoidData(**{k:kwargs[k] for k in xed.SolenoidData.INIT_PROPERTIES if k in kwargs})
                              )
-        self.repr_attributes.append('solenoid_data')
+        self._repr_attributes.append('solenoid_data')
 
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_solenoid_strength(self.solenoid_data, num_slices)
@@ -216,7 +222,7 @@ class Multipole(BaseElement):
     def __init__(self, name: str, strength_class=xed.MultipoleStrengthData, **kwargs):
         super().__init__(name, **kwargs)
         self.strength_data = kwargs.pop('strength_data', conv_utils.get_strength_data(strength_class=strength_class, **kwargs))
-        self.repr_attributes.append('strength_data')
+        self._repr_attributes.append('strength_data')
         
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_multipole_strength(self.strength_data, num_slices)
@@ -306,7 +312,7 @@ class RFCavity(BaseElement):
         super().__init__(name, **kwargs)
         
         self.rf_data = kwargs.pop('rf_data', conv_utils.get_rf_data(**kwargs))
-        self.repr_attributes.append('rf_data')
+        self._repr_attributes.append('rf_data')
         
 
 
@@ -339,7 +345,7 @@ class ThinSolenoid(BaseElement):
         super().__init__(name, **kwargs)
         
         self.solenoid_data = kwargs.pop('solenoid_data', conv_utils.get_solenoid_data(**kwargs))
-        self.repr_attributes.append('solenoid_data')
+        self._repr_attributes.append('solenoid_data')
         
         self.radiation_length = kwargs.pop('radiation_length', 0)
         assert self.length == 0
