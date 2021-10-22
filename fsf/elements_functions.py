@@ -1,5 +1,4 @@
 from typing import List
-from fsf.elements import BaseElement
 import fsf.elements_dataclasses as xed
 
 
@@ -19,14 +18,14 @@ def get_teapot_slicing_positions(position: xed.ElementPosition, num_slices: int)
         return thin_positions, position.length / num_slices 
 
 
-def get_sliced_multipole_strengths(strength: xed.MultipoleStrengthData, num_slices: int) -> List:
-    knl = strength.knl / num_slices
-    ksl = strength.ksl / num_slices
-    return xed.ThinMultipoleStrengthData(knl=knl, ksl=ksl, polarity=strength.polarity)
+def get_sliced_multipole_strengths(strength_data: xed.MultipoleStrengthData, num_slices: int) -> List:
+    knl = strength_data.knl / num_slices
+    ksl = strength_data.ksl / num_slices
+    return xed.ThinMultipoleStrengthData(knl=knl, ksl=ksl, polarity=strength_data.polarity)
 
 
-def get_sliced_bend_strength(bend: xed.BendData, num_slices: int) -> List:
-    knl = [bend.angle / num_slices]
+def get_sliced_bend_strength(bend_data: xed.BendData, num_slices: int) -> List:
+    knl = [bend_data.angle / num_slices]
     return xed.ThinMultipoleStrengthData(knl=knl)
 
 

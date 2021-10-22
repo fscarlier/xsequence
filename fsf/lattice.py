@@ -9,7 +9,7 @@ import scipy, at
 import fsf.elements
 import numpy as np
 from cpymad.madx import Madx
-from toolkit import pyat_functions
+from fsf.helpers import pyat_functions
 import xline as xl
 from collections import defaultdict
 
@@ -58,11 +58,11 @@ class Lattice:
         assert self.sequence[0].__class__.__name__ == 'Marker', "Start element of sequence should be Marker element"
         assert self.sequence[-1].__class__.__name__ == 'Marker', "Last element of sequence should be Marker element"
 
-        previous_end = self.sequence[0].end
+        previous_end = self.sequence[0].position_data.end
         drift_count = 0
         line_w_drifts = [self.sequence[0]]
         for element in self.sequence[1:]:
-            element_start = element.start
+            element_start = element.position_data.start
             if element_start > previous_end:
                 drift_length = element_start-previous_end
                 drift_pos = previous_end + drift_length/2.
@@ -73,7 +73,7 @@ class Lattice:
                 raise ValueError(f'Negative drift at element {element.name}')
 
             line_w_drifts.append(element)
-            previous_end = element.end
+            previous_end = element.position_data.end
         self._line = line_w_drifts
 
     def _calc_s_positions(self):
@@ -82,7 +82,7 @@ class Lattice:
         """
         previous_end = 0.0
         for element in self._line:
-            element.position = previous_end + element.length/2.
+            element.position_data.set_position(location=previous_end+element.length/2.) 
             previous_end += element.length
 
     def get_s_positions(self, reference='center'):
@@ -93,11 +93,11 @@ class Lattice:
             List of longitudinal positions of each element excluding drifts
         """
         if reference == 'center': 
-            return [element.position for element in self._sequence]
+            return [element.position_data.position for element in self._sequence]
         elif reference == 'start': 
-            return [element.start for element in self._sequence]
+            return [element.position_data.start for element in self._sequence]
         elif reference == 'end': 
-            return [element.end for element in self._sequence]
+            return [element.position_data.end for element in self._sequence]
 
     @property
     def sequence(self):
@@ -138,7 +138,7 @@ class Lattice:
 
     @property
     def total_length(self):
-        return self.line[-1].end
+        return self.line[-1].position_data.end
 
     def get_element_names(self, key='sequence'):
         if key == 'sequence':
@@ -158,7 +158,7 @@ class Lattice:
         end_element = self.get_element(end_element)
         assert len(start_element) == 1, "Cannot find range: Multiple elements with same start name"
         assert len(end_element) == 1, "Cannot find range: Multiple elements with same end name"
-        return self.get_range_s(start_element[0].position, end_element[0].position)
+        return self.get_range_s(start_element[0].position_data.position, end_element[0].position_data.position)
 
     def update_cavity_energy(self):
         cavities = self.get_class('RFCavity')
@@ -234,7 +234,7 @@ class Lattice:
         elements = self.sequence
         for element in elements[1:-1]:
             element.to_cpymad(madx)
-            seq_command += f'{element.name}, at={element.position}  ;\n'
+            seq_command += f'{element.name}, at={element.position_data.position}  ;\n'
         
         madx.input(f'{self.name}: sequence, refer=centre, l={self.sequence[-1].end};')
         madx.input(seq_command)

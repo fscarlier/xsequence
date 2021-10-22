@@ -8,6 +8,8 @@ This is a Python3 module containing base element classes element property datacl
 import math
 import fsf.elements_dataclasses as xed
 import fsf.elements_functions as xef
+from fsf.conversion_utils import conv_utils, cpymad_conv_new, pyat_conv, xline_conv
+
 
 class BaseElement():
     """Class containing base element properties and methods"""
@@ -17,12 +19,9 @@ class BaseElement():
         self.name = name
         if kwargs is None:
             kwargs = {'temp':0}
-        self.id_data = kwargs.pop('id_data', 
-                                xed.ElementID(**{k:kwargs[k] for k in xed.ElementID.INIT_PROPERTIES if k in kwargs}))
-        self.position_data = kwargs.pop('position_data', 
-                                xed.ElementPosition(**{k:kwargs[k] for k in xed.ElementPosition.INIT_PROPERTIES if k in kwargs}))
-        self.aperture_data = kwargs.pop('aperture_data', 
-                                xed.Aperture())
+        self.id_data = kwargs.pop('id_data', conv_utils.get_id_data(**kwargs))
+        self.position_data = kwargs.pop('position_data', conv_utils.get_position_data(**kwargs)) 
+        self.aperture_data = kwargs.pop('aperture_data', conv_utils.get_aperture_data(**kwargs))
 
     @property
     def length(self):
@@ -31,6 +30,28 @@ class BaseElement():
     @length.setter
     def length(self, length: float):
         self.position_data.length = length
+    
+    @classmethod
+    def from_cpymad(cls, cpymad_element):
+        """ Create Xsequence Element instance from cpymad element """
+        return cpymad_conv_new.from_cpymad(cls, cpymad_element)
+
+    def to_cpymad(self, madx):
+        """ Create cpymad element in madx instance from Element """
+        return cpymad_conv_new.to_cpymad(self, madx)
+
+    @classmethod
+    def from_pyat(cls, pyat_element):
+        """ Create Xsequence Element instance from pyAT element """
+        return pyat_conv.convert_element_from_pyat(cls, pyat_element)
+
+    def to_pyat(self):
+        """ Create pyAT element instance from element """
+        return pyat_conv.convert_element_to_pyat(self)
+
+    def to_xline(self):
+        """ Create Xline element instance from element """
+        return xline_conv.convert_element_to_xline(self)
 
     def _get_slice_positions(self, num_slices=1):
         return xef.get_teapot_slicing_positions(self.position_data, num_slices)
@@ -102,9 +123,7 @@ class SectorBend(BaseElement):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
         
-        self.bend_data = kwargs.pop('bend_data', 
-                            xed.BendData(**{k:kwargs[k] for k in xed.BendData.INIT_PROPERTIES if k in kwargs})
-                         )
+        self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs)) 
         self.repr_attributes.append('bend_data')
 
     def _get_sliced_strength(self, num_slices=1):
@@ -133,7 +152,7 @@ class SectorBend(BaseElement):
         return length*(2*math.sin(angle/2.))/angle
 
 
-class Rectangularbend(BaseElement):   
+class RectangularBend(SectorBend):   
     """ Rbend element class """
     def __init__(self, name: str, **kwargs):
         self._chord_length = kwargs.pop('length', 0)
@@ -143,11 +162,9 @@ class Rectangularbend(BaseElement):
         kwargs['e1'] = self._rbend_e1+abs(kwargs['angle'])/2.
         kwargs['e2'] = self._rbend_e2+abs(kwargs['angle'])/2.
         
-        super().__init__(name, bend_class=xed.BendData, **kwargs)
+        super().__init__(name, **kwargs)
         
-        self.bend_data = kwargs.pop('bend_data', 
-                            xed.BendData(**{k:kwargs[k] for k in xed.BendData.INIT_PROPERTIES if k in kwargs})
-                         )
+        self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs))
         self.repr_attributes.append('bend_data')
 
     def _get_sliced_strength(self, num_slices=1):
@@ -179,29 +196,26 @@ class Solenoid(BaseElement):
     
     @property
     def ks(self):
-        return self.strength.ks
+        return self.strength_data.ks
     
     @ks.setter
     def ks(self, ks: float):
-        self.strength.ks = ks
+        self.strength_data.ks = ks
 
     @property
     def ksi(self):
-        return self.strength.ks*self.length
+        return self.strength_data.ks*self.length
     
     @ksi.setter
     def ksi(self, ksi: float):
-        self.strength.ks = ksi/self.length
+        self.strength_data.ks = ksi/self.length
 
 
 class Multipole(BaseElement):
     """ Multipole element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, strength_class=xed.MultipoleStrengthData, **kwargs):
         super().__init__(name, **kwargs)
-
-        self.strength_data = kwargs.pop('strength_data', 
-                                xed.MultipoleStrengthData(**{k:kwargs[k] for k in xed.MultipoleStrengthData.INIT_PROPERTIES if k in kwargs})
-                             )
+        self.strength_data = kwargs.pop('strength_data', conv_utils.get_strength_data(strength_class=strength_class, **kwargs))
         self.repr_attributes.append('strength_data')
         
     def _get_sliced_strength(self, num_slices=1):
@@ -213,11 +227,11 @@ class Multipole(BaseElement):
 
     @property
     def knl(self):
-        return self.strength.kn*self.length
+        return self.strength_data.kn*self.length
     
     @knl.setter
     def knl(self, knl):
-        self.strength.kn = knl/self.length
+        self.strength_data.kn = knl/self.length
 
 
 class Quadrupole(Multipole):
@@ -227,19 +241,19 @@ class Quadrupole(Multipole):
 
     @property
     def k1(self):
-        return self.strength.k1
+        return self.strength_data.k1
     
     @k1.setter
     def k1(self, k1: float):
-        self.strength.k1 = k1
+        self.strength_data.k1 = k1
 
     @property
     def k1s(self):
-        return self.strength.k1s
+        return self.strength_data.k1s
     
     @k1s.setter
     def k1s(self, k1s: float):
-        self.strength.k1s = k1s
+        self.strength_data.k1s = k1s
 
 
 class Sextupole(Multipole):
@@ -249,19 +263,19 @@ class Sextupole(Multipole):
 
     @property
     def k2(self):
-        return self.strength.k2
+        return self.strength_data.k2
     
     @k2.setter
     def k1(self, k2: float):
-        self.strength.k2 = k2
+        self.strength_data.k2 = k2
 
     @property
     def k2s(self):
-        return self.strength.k2s
+        return self.strength_data.k2s
     
     @k2s.setter
     def k2s(self, k2s: float):
-        self.strength.k2s = k2s
+        self.strength_data.k2s = k2s
 
 
 class Octupole(Multipole):
@@ -271,19 +285,19 @@ class Octupole(Multipole):
 
     @property
     def k3(self):
-        return self.strength.k3
+        return self.strength_data.k3
     
     @k3.setter
     def k3(self, k3: float):
-        self.strength.k3 = k3
+        self.strength_data.k3 = k3
 
     @property
     def k3s(self):
-        return self.strength.k3s
+        return self.strength_data.k3s
     
     @k3s.setter
     def k3s(self, k3s: float):
-        self.strength.k3s = k3s
+        self.strength_data.k3s = k3s
 
 
 class RFCavity(BaseElement):
@@ -291,9 +305,7 @@ class RFCavity(BaseElement):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
         
-        self.rf_data = kwargs.pop('rf_data', 
-                            xed.RFCavityData(**{k:kwargs[k] for k in xed.RFCavityData.INIT_PROPERTIES if k in kwargs})
-                       )
+        self.rf_data = kwargs.pop('rf_data', conv_utils.get_rf_data(**kwargs))
         self.repr_attributes.append('rf_data')
         
 
@@ -326,9 +338,7 @@ class ThinSolenoid(BaseElement):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
         
-        self.solenoid_data = kwargs.pop('solenoid_data', 
-                                xed.ThinSolenoidData(**{k:kwargs[k] for k in xed.ThinSolenoidData.INIT_PROPERTIES if k in kwargs})
-                             )
+        self.solenoid_data = kwargs.pop('solenoid_data', conv_utils.get_solenoid_data(**kwargs))
         self.repr_attributes.append('solenoid_data')
         
         self.radiation_length = kwargs.pop('radiation_length', 0)
@@ -336,11 +346,11 @@ class ThinSolenoid(BaseElement):
 
     @property
     def ksi(self):
-        return self.strength.ks*self.length
+        return self.strength_data.ks*self.length
     
     @ksi.setter
     def ksi(self, ksi: float):
-        self.strength.ks = ksi/self.length
+        self.strength_data.ks = ksi/self.length
 
 
 class ThinRFMultipole(RFCavity):
@@ -349,3 +359,22 @@ class ThinRFMultipole(RFCavity):
         self.radiation_length = kwargs.pop('radiation_length', 0)
         assert self.length == 0
 
+
+CPYMAD_TO_FSF_MAP = {'marker': Marker, 
+                     'drift':  Drift, 
+                     'rbend':  RectangularBend, 
+                     'sbend':  SectorBend, 
+                     'quadrupole': Quadrupole, 
+                     'sextupole': Sextupole, 
+                     'collimator': Collimator, 
+                     'rfcavity': RFCavity}
+
+
+PYAT_TO_FSF_MAP = {'Marker': Marker, 
+                   'Drift':  Drift, 
+                   'Dipole':  SectorBend, 
+                   'Quadrupole': Quadrupole, 
+                   'Sextupole': Sextupole, 
+                   'Collimator': Collimator, 
+                   'RFCavity': RFCavity}
+                

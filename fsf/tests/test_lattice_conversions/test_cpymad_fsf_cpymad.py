@@ -6,9 +6,9 @@ This is a test module to test consistency for converting back and forth from cpy
 """
 
 from fsf.lattice import Lattice
-from toolkit.pyat_functions import get_optics_pyat
+from fsf.helpers.pyat_functions import get_optics_pyat
 import pytest
-from conversion_utils import conv_utils
+from fsf.conversion_utils import conv_utils
 from pathlib import Path
 
 TEST_SEQ_DIR = Path(__file__).parent / "test_sequences"

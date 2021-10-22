@@ -5,6 +5,7 @@ Module conversion_utils.conv_utils
 This is a Python3 module containing accelerator dependent utility functions.
 """
 
+import fsf.elements_dataclasses as xed
 from cpymad.madx import Madx
 import at
 
@@ -27,4 +28,23 @@ def create_pyat_from_file(file_path):
     ring = at.Lattice(ring)
     return ring
 
+def get_id_data(id_class=xed.ElementID, **kwargs):
+    return id_class(**{k:kwargs[k] for k in id_class.INIT_PROPERTIES if k in kwargs})
+        
+def get_position_data(position_class=xed.ElementPosition, **kwargs):
+    return position_class(**{k:kwargs[k] for k in position_class.INIT_PROPERTIES if k in kwargs})
 
+def get_aperture_data(aperture_class=xed.ApertureData, **kwargs):
+    return aperture_class(**{k:kwargs[k] for k in aperture_class.INIT_PROPERTIES if k in kwargs})
+
+def get_bend_data(bend_class=xed.BendData, **kwargs):
+    return bend_class(**{k:kwargs[k] for k in bend_class.INIT_PROPERTIES if k in kwargs})
+
+def get_solenoid_data(solenoid_class=xed.SolenoidData, **kwargs):
+    return solenoid_class(**{k:kwargs[k] for k in solenoid_class.INIT_PROPERTIES if k in kwargs})
+
+def get_strength_data(strength_class=xed.MultipoleStrengthData, **kwargs):
+    return strength_class(**{k:kwargs[k] for k in strength_class.INIT_PROPERTIES if k in kwargs})
+
+def get_rf_data(rf_class=xed.RFCavityData, **kwargs):
+    return rf_class(**{k:kwargs[k] for k in rf_class.INIT_PROPERTIES if k in kwargs})

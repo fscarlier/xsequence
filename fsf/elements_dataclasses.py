@@ -98,13 +98,14 @@ class ElementPosition:
 
 
 @dataclass
-class Aperture:
+class ApertureData:
+    INIT_PROPERTIES = ['aperture_size', 'aperture_type']
     """Represents an aperture for elements"""
     pass
 
 
 @dataclass
-class CircularAperture(Aperture):
+class CircularAperture(ApertureData):
     INIT_PROPERTIES = ['aperture_size', 'aperture_type', 'aperture_offset']
     aperture_size: float = 0.0
     aperture_type: Optional[str] = 'circular'

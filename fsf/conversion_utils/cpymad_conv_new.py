@@ -7,7 +7,7 @@ This is a Python3 module with functions for importing and exporting elements fro
 
 ATTRIBUTE_MAP = {
                 'length': 'l', 
-                'position': 'at', 
+                'location': 'at', 
                 'reference': 'from', 
                 'angle': 'angle',
                 'tilt': 'tilt', 
@@ -43,30 +43,30 @@ ATTRIBUTE_MAP = {
 INVERT_ATTRIBUTE_MAP = {v: k for k, v in ATTRIBUTE_MAP.items()}
 
 
-MARKER_ATTR      = ['length', 'position', 'reference', 'slot_id', 'assembly', 'mech_sep']
-RBEND_ATTR       = ['length', 'position', 'reference', 'polarity', 'angle', 'e1', 'e2', 'k0', 'mech_sep', 'slot_id', 'kmax', 'kmin', 'calibration', 'assembly']
-SBEND_ATTR       = ['length', 'position', 'reference', 'polarity', 'angle', 'e1', 'e2', 'k0', 'mech_sep', 'slot_id', 'assembly']
-SOLENOID_ATTR    = ['length', 'position', 'reference', 'ks', 'slot_id', 'mech_sep', 'assembly']
-DRIFT_ATTR       = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
-COLLIMATOR_ATTR  = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
-PLACEHOLDER_ATTR = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
-INSTRUMENT_ATTR  = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
-MONITOR_ATTR     = ['length', 'position', 'reference', 'slot_id', 'mech_sep', 'assembly']
-QUADRUPOLE_ATTR  = ['length', 'position', 'reference', 'polarity', 'k1', 'k1s', 'mech_sep', 'slot_id', 'assembly', 'kmax', 'kmin', 'calibration']
-SEXTUPOLE_ATTR   = ['length', 'position', 'reference', 'polarity', 'k2', 'k2s', 'mech_sep', 'slot_id', 'assembly', 'kmax', 'kmin', 'calibration']
-OCTUPOLE_ATTR    = ['length', 'position', 'reference', 'polarity', 'k3', 'k3s', 'mech_sep', 'slot_id', 'assembly', 'kmax', 'kmin', 'calibration']
-MULTIPOLE_ATTR   = ['length', 'position', 'reference', 'polarity', 'knl', 'slot_id', 'assembly', 'mech_sep', 'ksl']
-HKICKER_ATTR     = ['length', 'position', 'reference', 'polarity', 'kick', 'slot_id', 'assembly', 'mech_sep', 'kmax', 'kmin', 'calibration', 'tilt']
-VKICKER_ATTR     = ['length', 'position', 'reference', 'polarity', 'kick', 'slot_id', 'assembly', 'mech_sep', 'kmax', 'kmin', 'calibration', 'tilt']
-TKICKER_ATTR     = ['length', 'position', 'reference', 'polarity', 'hkick', 'vkick', 'slot_id', 'assembly', 'mech_sep']
-RFCAVITY_ATTR    = ['length', 'position', 'reference', 'voltage', 'lag', 'mech_sep', 'slot_id', 'assembly']
+MARKER_ATTR      = ['length', 'location', 'reference', 'slot_id', 'assembly', 'mech_sep']
+RECTANGULARBEND_ATTR       = ['length', 'location', 'reference', 'polarity', 'angle', 'e1', 'e2', 'k0', 'mech_sep', 'slot_id', 'kmax', 'kmin', 'calibration', 'assembly']
+SBEND_ATTR       = ['length', 'location', 'reference', 'polarity', 'angle', 'e1', 'e2', 'k0', 'mech_sep', 'slot_id', 'assembly']
+SOLENOID_ATTR    = ['length', 'location', 'reference', 'ks', 'slot_id', 'mech_sep', 'assembly']
+DRIFT_ATTR       = ['length', 'location', 'reference', 'slot_id', 'mech_sep', 'assembly']
+COLLIMATOR_ATTR  = ['length', 'location', 'reference', 'slot_id', 'mech_sep', 'assembly']
+PLACEHOLDER_ATTR = ['length', 'location', 'reference', 'slot_id', 'mech_sep', 'assembly']
+INSTRUMENT_ATTR  = ['length', 'location', 'reference', 'slot_id', 'mech_sep', 'assembly']
+MONITOR_ATTR     = ['length', 'location', 'reference', 'slot_id', 'mech_sep', 'assembly']
+QUADRUPOLE_ATTR  = ['length', 'location', 'reference', 'polarity', 'k1', 'k1s', 'mech_sep', 'slot_id', 'assembly', 'kmax', 'kmin', 'calibration']
+SEXTUPOLE_ATTR   = ['length', 'location', 'reference', 'polarity', 'k2', 'k2s', 'mech_sep', 'slot_id', 'assembly', 'kmax', 'kmin', 'calibration']
+OCTUPOLE_ATTR    = ['length', 'location', 'reference', 'polarity', 'k3', 'k3s', 'mech_sep', 'slot_id', 'assembly', 'kmax', 'kmin', 'calibration']
+MULTIPOLE_ATTR   = ['length', 'location', 'reference', 'polarity', 'knl', 'slot_id', 'assembly', 'mech_sep', 'ksl']
+HKICKER_ATTR     = ['length', 'location', 'reference', 'polarity', 'kick', 'slot_id', 'assembly', 'mech_sep', 'kmax', 'kmin', 'calibration', 'tilt']
+VKICKER_ATTR     = ['length', 'location', 'reference', 'polarity', 'kick', 'slot_id', 'assembly', 'mech_sep', 'kmax', 'kmin', 'calibration', 'tilt']
+TKICKER_ATTR     = ['length', 'location', 'reference', 'polarity', 'hkick', 'vkick', 'slot_id', 'assembly', 'mech_sep']
+RFCAVITY_ATTR    = ['length', 'location', 'reference', 'voltage', 'lag', 'mech_sep', 'slot_id', 'assembly']
 
 
 CPYMAD_ELEMENT_DICT = {'marker': MARKER_ATTR         ,     
                        'drift': DRIFT_ATTR           ,   
                        'monitor': DRIFT_ATTR           ,   
                        'sbend': SBEND_ATTR           ,   
-                       'rbend': RBEND_ATTR           ,   
+                       'rbend': RECTANGULARBEND_ATTR           ,   
                        'quadrupole': QUADRUPOLE_ATTR ,      
                        'sextupole': SEXTUPOLE_ATTR   ,  
                        'octupole': OCTUPOLE_ATTR     ,
@@ -77,8 +77,8 @@ CPYMAD_ELEMENT_DICT = {'marker': MARKER_ATTR         ,
 
 ELEMENT_DICT = {
                 'Marker'     : [ATTRIBUTE_MAP[k] for k in MARKER_ATTR     ],   
-                'Rbend'      : [ATTRIBUTE_MAP[k] for k in RBEND_ATTR      ],  
-                'Sbend'      : [ATTRIBUTE_MAP[k] for k in SBEND_ATTR      ],  
+                'RectangularBend'      : [ATTRIBUTE_MAP[k] for k in RECTANGULARBEND_ATTR      ],  
+                'SectorBend'      : [ATTRIBUTE_MAP[k] for k in SBEND_ATTR      ],  
                 'Solenoid'   : [ATTRIBUTE_MAP[k] for k in SOLENOID_ATTR   ],  
                 'Drift'      : [ATTRIBUTE_MAP[k] for k in DRIFT_ATTR      ],  
                 'Collimator' : [ATTRIBUTE_MAP[k] for k in COLLIMATOR_ATTR ],  
@@ -92,7 +92,7 @@ ELEMENT_DICT = {
                 'Hkicker'    : [ATTRIBUTE_MAP[k] for k in HKICKER_ATTR    ],  
                 'Vkicker'    : [ATTRIBUTE_MAP[k] for k in VKICKER_ATTR    ],  
                 'Tkicker'    : [ATTRIBUTE_MAP[k] for k in TKICKER_ATTR    ],  
-                'Rfcavity'   : [ATTRIBUTE_MAP[k] for k in RFCAVITY_ATTR   ],  
+                'RFCavity'   : [ATTRIBUTE_MAP[k] for k in RFCAVITY_ATTR   ],  
                 }
 
 
@@ -110,13 +110,14 @@ class AttributeMappingFromCpymad:
 
 class AttributeMappingToCpymad:
     def __init__(self, element, attr_dict):
+        self.params = {}
         for key in attr_dict:
-            try: setattr(self, key, element[INVERT_ATTRIBUTE_MAP[key]]) 
+            try: self.params[key] = element[INVERT_ATTRIBUTE_MAP[key]] 
             except: AttributeError
         
-        try: self.frequency /= 1e6
+        try: self.params['freq'] /= 1e6
         except: AttributeError
-        try: self.voltage /= 1e6
+        try: self.params['volt'] /= 1e6
         except: AttributeError
 
 
@@ -144,26 +145,24 @@ def convert_element_from_cpymad(xs_cls, name, mapped_attr, attribute_list):
 
 
 def to_cpymad(element, madx):
-    attribute_list = ELEMENT_DICT[base_type]
-    mapped_attr = AttributeMappingToCpymad(element, attr_dict)
+    attribute_list = ELEMENT_DICT[element.__class__.__name__]
+    mapped_attr = AttributeMappingToCpymad(element, attribute_list)
     base_type = element.__class__.__name__
-    if base_type == 'Rbend':
+    madx_base_type = base_type.lower()
+    if base_type == 'RectangularBend':
         mapped_attr.params['l'] =element._chord_length
         mapped_attr.params['e1'] = element._rbend_e1
         mapped_attr.params['e2'] = element._rbend_e2
-    
-    return convert_element_to_cpymad(base_type, madx, element.name, mapped_attr, attribute_list)
+        madx_base_type = 'rbend'
+    return convert_element_to_cpymad(madx_base_type, madx, element.name, mapped_attr, attribute_list)
 
 
 def convert_element_to_cpymad(base_type, madx, name, mapped_attr, attribute_list):
     attribute_list = attribute_list.copy()
-    if not hasattr(mapped_attr, 'aperture_size'):
-        attribute_list.remove('aper_type')
-        attribute_list.remove('aperture')
     kwargs = {}
     for key in attribute_list:
-        try: kwargs[key] = mapped_attr[key]
+        try: kwargs[key] = mapped_attr.params[key]
         except: AttributeError
-    madx.command[base_type.lower()].clone(name, **kwargs)
+    madx.command[base_type].clone(name, **kwargs)
 
 

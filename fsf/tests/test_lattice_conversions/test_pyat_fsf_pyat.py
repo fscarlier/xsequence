@@ -6,8 +6,8 @@ This is a test module to test consistency for converting back and forth from pya
 """
 
 import fsf.lattice as lat
-from toolkit.pyat_functions import get_optics_pyat
-from conversion_utils import conv_utils
+from fsf.helpers.pyat_functions import get_optics_pyat
+from fsf.conversion_utils import conv_utils
 import pytest
 from pathlib import Path
 

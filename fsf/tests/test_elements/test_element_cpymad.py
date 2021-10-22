@@ -9,7 +9,6 @@ import pytest
 import fsf.elements
 from pytest import mark
 from cpymad.madx import Madx
-from conversion_utils import conv_utils
 from pathlib import Path
 TEST_SEQ_DIR = Path(__file__).parent.parent / "test_sequences"
 
@@ -111,7 +110,7 @@ def test_rbend(example_madx_lattice):
     for idx in range(292,len(madx_lattice.elements)):
         el = madx_lattice.elements[idx]
         if el.base_type.name == 'rbend':
-            fsf.elements.Rbend.from_cpymad(el).to_cpymad(md)
+            fsf.elements.RectangularBend.from_cpymad(el).to_cpymad(md)
             if el == md.elements[el.name]:
                 results.append(True)
     assert all(results)
