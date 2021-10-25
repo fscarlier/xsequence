@@ -8,7 +8,7 @@ This is a Python3 module containing base element classes element property datacl
 import math
 import fsf.elements_dataclasses as xed
 import fsf.elements_functions as xef
-from fsf.conversion_utils import conv_utils, cpymad_conv_new, pyat_conv, xline_conv
+from fsf.conversion_utils import conv_utils, cpymad_conv_new, pyat_conv_new, xline_conv
 
 
 class BaseElement():
@@ -22,6 +22,8 @@ class BaseElement():
         self.id_data = kwargs.pop('id_data', conv_utils.get_id_data(**kwargs))
         self.position_data = kwargs.pop('position_data', conv_utils.get_position_data(**kwargs)) 
         self.aperture_data = kwargs.pop('aperture_data', conv_utils.get_aperture_data(**kwargs))
+        self.pyat_data = kwargs.pop('pyat_data', None)
+
 
     @property
     def length(self):
@@ -43,11 +45,11 @@ class BaseElement():
     @classmethod
     def from_pyat(cls, pyat_element):
         """ Create Xsequence Element instance from pyAT element """
-        return pyat_conv.convert_element_from_pyat(cls, pyat_element)
+        return pyat_conv_new.from_pyat(cls, pyat_element)
 
     def to_pyat(self):
         """ Create pyAT element instance from element """
-        return pyat_conv.convert_element_to_pyat(self)
+        return pyat_conv_new.to_pyat(self)
 
     def to_xline(self):
         """ Create Xline element instance from element """

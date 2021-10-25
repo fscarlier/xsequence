@@ -16,8 +16,6 @@ DIFF_ATTRIBUTE_MAP_CPYMAD = {
                         'aperture_type':'apertype',
                         }
 
-INVERT_DIFF_ATTRIBUTE_MAP_CPYMAD = {v: k for k, v in DIFF_ATTRIBUTE_MAP_CPYMAD.items()}
-
 
 def attr_mapping_from_cpymad(cpymad_element):
     for key in DIFF_ATTRIBUTE_MAP_CPYMAD:
@@ -47,6 +45,10 @@ def attr_mapping_to_cpymad(element_dict):
     if 'freq' in element_dict:
         element_dict['freq'] /= 1e6
         element_dict['volt'] /= 1e6
+    if 'kn' in element_dict:
+        element_dict.pop('kn')
+    if 'ks' in element_dict:
+        element_dict.pop('ks')
     return element_dict
 
 

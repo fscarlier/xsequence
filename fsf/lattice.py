@@ -163,13 +163,13 @@ class Lattice:
     def update_cavity_energy(self):
         cavities = self.get_class('RFCavity')
         for cav in cavities:
-            cav.energy = self.params['energy']
+            cav.rf_data.energy = self.params['energy']
 
     def update_harmonic_number(self):
         cavities = self.get_class('RFCavity')
         for cav in cavities:
             # Approximation for ultr-relativistic electrons
-            cav.harmonic_number = int(cav.rf_data.frequency/(scipy.constants.c/self.total_length))
+            cav.rf_data.harmonic_number = int(cav.rf_data.frequency/(scipy.constants.c/self.total_length))
 
     @classmethod
     def from_madx_seqfile(cls, seq_file, seq_name, energy, particle_type='electron'):

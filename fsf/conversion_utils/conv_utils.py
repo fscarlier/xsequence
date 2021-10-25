@@ -48,3 +48,6 @@ def get_strength_data(strength_class=xed.MultipoleStrengthData, **kwargs):
 
 def get_rf_data(rf_class=xed.RFCavityData, **kwargs):
     return rf_class(**{k:kwargs[k] for k in rf_class.INIT_PROPERTIES if k in kwargs})
+
+def get_pyat_data(pyat_class=xed.PyatData, **kwargs):
+    return pyat_class(**{k:kwargs[k] for k in pyat_class.INIT_PROPERTIES if k in kwargs})

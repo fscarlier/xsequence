@@ -9,9 +9,18 @@ def test_sextupole_length(name, l):
     q = xe.Sextupole(name, length=l)
     assert q.name == name
     assert q.position_data.length == l
+    
+    #CPYMAD
     md = Madx()
     q_conv = xe.Sextupole.from_cpymad(q.to_cpymad(md))
     assert q == q_conv
+    
+    #PYAT
+    pyat_sext = q.to_pyat()
+    assert pyat_sext.FamName == q.name
+    assert pyat_sext.Length == q.length
+    q_pyat = xe.Sextupole.from_pyat(pyat_sext)
+    assert q == q_pyat
 
 
 @mark.parametrize('name,    l,   k2',
@@ -22,9 +31,19 @@ def test_sextupole_length_k2(name, l, k2):
     assert q.name == name
     assert q.length == l
     assert q.strength_data.k2 == k2
+    
+    #CPYMAD
     md = Madx()
     q_conv = xe.Sextupole.from_cpymad(q.to_cpymad(md))
     assert q == q_conv
+    
+    #PYAT
+    pyat_sext = q.to_pyat()
+    assert pyat_sext.FamName == q.name
+    assert pyat_sext.Length == q.length
+    assert pyat_sext.H == q.k2
+    q_pyat = xe.Sextupole.from_pyat(pyat_sext)
+    assert q == q_pyat
 
 
 @mark.parametrize('name,    l,  k2s',
@@ -35,9 +54,18 @@ def test_sextupole_length_k2s(name, l, k2s):
     assert q.name == name
     assert q.length == l
     assert q.strength_data.k2s == k2s
+    
+    #CPYMAD
     md = Madx()
     q_conv = xe.Sextupole.from_cpymad(q.to_cpymad(md))
     assert q == q_conv
+    
+    #PYAT
+    pyat_sext = q.to_pyat()
+    assert pyat_sext.FamName == q.name
+    assert pyat_sext.Length == q.length
+    q_pyat = xe.Sextupole.from_pyat(pyat_sext)
+    assert q == q_pyat
 
 
 @mark.parametrize('name,    l,   k2,  k2s',
@@ -51,7 +79,18 @@ def test_sextupole_length_k2_k2s(name, l, k2, k2s):
     assert q.length == l
     assert q.strength_data.k2 == k2
     assert q.strength_data.k2s == k2s
+    
+    #CPYMAD
     md = Madx()
     q_conv = xe.Sextupole.from_cpymad(q.to_cpymad(md))
     assert q == q_conv
+    
+    #PYAT
+    pyat_sext = q.to_pyat()
+    assert pyat_sext.FamName == q.name
+    assert pyat_sext.Length == q.length
+    assert pyat_sext.H == q.k2
+    q_pyat = xe.Sextupole.from_pyat(pyat_sext)
+    assert q == q_pyat
+
 

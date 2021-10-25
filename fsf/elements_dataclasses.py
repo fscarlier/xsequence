@@ -113,14 +113,28 @@ class ApertureData(ElementBaseProperties):
     INIT_PROPERTIES = ['aperture_size', 'aperture_type']
     aperture_size: List = field(default_factory=lambda: [0.0])
     aperture_type: Optional[str] = 'circle'
+    aperture_offset: List = field(default_factory=lambda: [0.0])
 
 
 @dataclass
-class CircularAperture(ApertureData):
+class EllipticalAperture(ApertureData):
     INIT_PROPERTIES = ['aperture_size', 'aperture_type', 'aperture_offset']
-    aperture_size: float = 0.0
-    aperture_type: Optional[str] = 'circle'
-    aperture_offset: Optional[float] = 0.0
+
+
+@dataclass
+class RectangularAperture(ApertureData):
+    """Rectangular aperture dataclass. Aperture_size : [left, right, bottom, up]"""
+    INIT_PROPERTIES = ['aperture_size', 'aperture_type', 'aperture_offset']
+
+    def __post_init__(self):
+        if len(self.aperture_size) == 4:
+            self.reset_offset_and_size_from_4_array()
+
+    def reset_offset_and_size_from_4_array(self):
+        x_offset = (self.aperture_size[0] + self.aperture_size[1]) / 2.
+        y_offset = (self.aperture_size[2] + self.aperture_size[3]) / 2.
+        self.aperture_offset = [x_offset, y_offset]
+        self.aperture_size = [x_offset - self.aperture_size[0], y_offset - self.aperture_size[2]]
 
 
 @dataclass
@@ -232,6 +246,7 @@ class QuadrupoleData(MultipoleStrengthData):
     kmin: float = None
     
     def __post_init__(self):
+        self.INIT_PROPERTIES = self.INIT_PROPERTIES + super().INIT_PROPERTIES
         if isinstance(self.k1, property):
             self.k1 = 0.0
         if isinstance(self.k1s, property):
@@ -239,8 +254,6 @@ class QuadrupoleData(MultipoleStrengthData):
         if self.kmax == 0.0: self.kmax = None
         if self.kmin == 0.0: self.kmin = None
         self._update_arrays(min_order=2)
-
-
 
     @property
     def k1(self):
@@ -258,7 +271,6 @@ class QuadrupoleData(MultipoleStrengthData):
     def k1s(self, k1s: float):
         self.ks[1] = k1s
     
-    
 
 @dataclass(eq=False)
 class SextupoleData(MultipoleStrengthData):
@@ -269,6 +281,7 @@ class SextupoleData(MultipoleStrengthData):
     kmin: float = None
 
     def __post_init__(self):
+        self.INIT_PROPERTIES = self.INIT_PROPERTIES + super().INIT_PROPERTIES
         if isinstance(self.k2, property):
             self.k2 = 0.0
         if isinstance(self.k2s, property):
@@ -303,6 +316,7 @@ class OctupoleData(MultipoleStrengthData):
     kmin: float = None
 
     def __post_init__(self):
+        self.INIT_PROPERTIES = self.INIT_PROPERTIES + super().INIT_PROPERTIES
         if isinstance(self.k3, property):
             self.k3 = 0.0
         if isinstance(self.k3s, property):
@@ -349,3 +363,11 @@ class VKickerData(ElementBaseProperties):
 @dataclass
 class KickerData(ElementBaseProperties):
     kick: float  
+
+
+@dataclass
+class PyatData(ElementBaseProperties):
+    """ Specifc PyAT only data dataclass """
+    INIT_PROPERTIES = ['NumIntSteps', 'PassMethod']
+    NumIntSteps: int = None
+    PassMethod: str = None

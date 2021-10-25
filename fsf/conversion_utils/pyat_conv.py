@@ -12,6 +12,7 @@ Part II: Export functions
 import at
 import numpy as np
 from scipy.special import factorial
+import fsf.elements_dataclasses as xed
 
 FACTORIAL = factorial(np.arange(21), exact=True)
 
@@ -234,11 +235,11 @@ def convert_element_to_pyat(fsf_element):
     return TO_PYAT_CONV[fsf_element.__class__.__name__](fsf_element)
 
 
-TO_PYAT_CONV = {'Marker': marker_to_pyat, 
-                'Drift':  drift_to_pyat, 
-                'SectorBend':  sbend_to_pyat, 
-                'RectangularBend':  sbend_to_pyat, 
-                'Quadrupole': quadrupole_to_pyat, 
-                'Sextupole': sextupole_to_pyat, 
-                'Collimator': collimator_to_pyat, 
-                'RFCavity': rfcavity_to_pyat}
+TO_PYAT_CONV = {'Marker': at.Marker, 
+                'Drift':  at.Drift, 
+                'SectorBend':  at.Dipole, 
+                'RectangularBend':  at.Dipole, 
+                'Quadrupole': at.Quadrupole, 
+                'Sextupole': at.Sextupole, 
+                'Collimator': at.Collimator, 
+                'RFCavity': at.RFCavity}
