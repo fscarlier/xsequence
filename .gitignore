@@ -10,7 +10,6 @@
 *.bak
 *.orig
 *.egg-info
-*.madx
 \#*\#
 .hypothesis*
 .pydevproject
