@@ -10,7 +10,6 @@ import fsf.elements as xe
 from pytest import mark
 from cpymad.madx import Madx
 from pathlib import Path
-TEST_SEQ_DIR = Path(__file__).parent.parent / "test_sequences"
 
 
 @pytest.fixture(scope="module")
@@ -110,8 +109,8 @@ Element by element tests cpymad back to cpymad (FCC-ee lattice)
 @pytest.fixture(scope="module")
 def example_madx_lattice():
     madx_lattice = Madx()
-    madx_lattice.call(str(TEST_SEQ_DIR / "lhc.seq"))
-    madx_lattice.call(str(TEST_SEQ_DIR / "optics.madx"))
+    madx_lattice.call("./test_sequences/lhc.seq")
+    madx_lattice.call("./test_sequences/optics.madx")
     return madx_lattice    
 
 
