@@ -3,181 +3,64 @@ Module conversion_utils.cpymad_conv
 ------------------
 :author: Felix Carlier (fcarlier@cern.ch)
 This is a Python3 module with functions for importing and exporting elements from and to cpymad
-
-Part I: Import functions
-
-Part II: Export functions
 """
 
-
-"""
-Part I: Import functions
-"""
-
-
-def get_element_kwargs_from_cpymad(cpymad_element, attr_dict):
-    aper_dict = {'aper_type':'apertype', 'aperture':'aperture'}
-    if cpymad_element.aperture != [0]:
-        attr_dict.update(aper_dict)
-    
-    kwargs = {}
-    for key in attr_dict.keys():
-        try: kwargs[key] = getattr(cpymad_element, attr_dict[key])
-        except: AttributeError
-    return kwargs
+DIFF_ATTRIBUTE_MAP_CPYMAD = {
+                        'length': 'l', 
+                        'location': 'at', 
+                        'reference_element': 'from', 
+                        'voltage': 'volt', 
+                        'frequency': 'freq', 
+                        'calibration': 'calib',
+                        'aperture_size':'aperture',
+                        'aperture_type':'apertype',
+                        }
 
 
-def marker_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'position':'at'}
-    kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
-    return el_class(cpymad_element.name, **kwargs)
+def attr_mapping_from_cpymad(cpymad_element):
+    for key in DIFF_ATTRIBUTE_MAP_CPYMAD:
+        try: cpymad_element[key] = cpymad_element.pop(DIFF_ATTRIBUTE_MAP_CPYMAD[key]) 
+        except: KeyError 
+    if 'frequency' in cpymad_element:
+        cpymad_element['frequency'] *= 1e6
+        cpymad_element['voltage'] *= 1e6
+    return cpymad_element
 
 
-def drift_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'length':'l', 'position':'at'}
-    kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
-    return el_class(cpymad_element.name, **kwargs)
+def from_cpymad(xs_cls, cpymad_element, name=None, aperture=False):
+    if not isinstance(cpymad_element, dict):
+        name = cpymad_element.name
+        elemdata={'base_type':cpymad_element.base_type.name}
+        for parname, par in cpymad_element.cmdpar.items():
+            elemdata[parname]=par.value
+        cpymad_element = elemdata
+    mapped_attr = attr_mapping_from_cpymad(cpymad_element)
+    return xs_cls(name, **mapped_attr)
 
 
-def sbend_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'length':'l', 'position':'at', 'angle':'angle', 'e1':'e1', 'e2':'e2'}
-    kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
-    return el_class(cpymad_element.name, **kwargs)
+def attr_mapping_to_cpymad(element_dict):
+    for key in DIFF_ATTRIBUTE_MAP_CPYMAD:
+        try: element_dict[DIFF_ATTRIBUTE_MAP_CPYMAD[key]] = element_dict.pop(key) 
+        except: KeyError 
+    if 'freq' in element_dict:
+        element_dict['freq'] /= 1e6
+        element_dict['volt'] /= 1e6
+    if 'kn' in element_dict:
+        element_dict.pop('kn')
+    if 'ks' in element_dict:
+        element_dict.pop('ks')
+    return element_dict
 
 
-def rbend_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'length':'l', 'position':'at', 'angle':'angle', 'e1':'e1', 'e2':'e2'}
-    kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
-    return el_class(cpymad_element.name, **kwargs)
-
-
-def quadrupole_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'length':'l', 'position':'at', 'k1':'k1', 'k1s':'k1s'}
-    kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
-    return el_class(cpymad_element.name, **kwargs)
-
-
-def sextupole_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'length':'l', 'position':'at', 'k2':'k2', 'k2s':'k2s'}
-    kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
-    return el_class(cpymad_element.name, **kwargs)
-
-
-def octupole_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'length':'l', 'position':'at', 'k3':'k3', 'k3s':'k3s'}
-    kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
-    return el_class(cpymad_element.name, **kwargs)
-
-
-def collimator_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'length':'l', 'position':'at'}
-    kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
-    return el_class(cpymad_element.name, **kwargs)
-
-
-def rfcavity_from_cpymad(el_class, cpymad_element):
-    attr_dict = {'length':'l', 'position':'at', 'freq':'freq', 'volt':'volt', 'lag':'lag'}
-    kwargs = get_element_kwargs_from_cpymad(cpymad_element, attr_dict)
-    return el_class(cpymad_element.name, **kwargs)
-
-
-def convert_element_from_cpymad(el_class, cpymad_element):
-    return FROM_CPYMAD_CONV[cpymad_element.base_type.name](el_class, cpymad_element)
-
-
-FROM_CPYMAD_CONV = {'marker' : marker_from_cpymad,
-                    'drift' : drift_from_cpymad,
-                    'sbend' : sbend_from_cpymad,
-                    'rbend' : rbend_from_cpymad,
-                    'quadrupole' : quadrupole_from_cpymad, 
-                    'sextupole' : sextupole_from_cpymad, 
-                    'octupole' : octupole_from_cpymad, 
-                    'collimator' : collimator_from_cpymad, 
-                    'rfcavity' : rfcavity_from_cpymad}
-
-
-"""
-Part II: Export functions
-"""
-
-
-def get_element_kwargs_to_cpymad(fsf_element, attr_dict):
-    aper_dict = {'apertype':'aper_type', 'aperture':'aperture'}
-    try: 
-        if fsf_element.aperture != [0]: attr_dict.update(aper_dict)
-    except:AttributeError
-
-    kwargs = {}
-    for key in attr_dict.keys():
-        try: kwargs[key] = getattr(fsf_element, attr_dict[key])
-        except: AttributeError
-    return kwargs
-
-
-def marker_to_cpymad(fsf_element, madx):
-    attr_dict = {'at':'position'}
-    kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
-    madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
-
-
-def drift_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'length', 'at':'position'}
-    kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
-    madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
-
-
-def sbend_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'length', 'at':'position', 'angle':'angle', 'e1':'e1', 'e2':'e2'}
-    kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
-    madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
-
-
-def rbend_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'_chord_length', 'at':'position', 'angle':'angle', 'e1':'_rbend_e1', 'e2':'_rbend_e2'}
-    kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
-    madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
-
-
-def quadrupole_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'length', 'at':'position', 'k1':'k1', 'k1s':'k1s'}
-    kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
-    madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
-
-
-def sextupole_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'length', 'at':'position', 'k2':'k2', 'k2s':'k2s'}
-    kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
-    madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
-
-
-def octupole_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'length', 'at':'position', 'k3':'k3', 'k3s':'k3s'}
-    kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
-    madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
-
-
-def collimator_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'length', 'at':'position'}
-    kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
-    madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
-
-
-def rfcavity_to_cpymad(fsf_element, madx):
-    attr_dict = {'l':'length', 'at':'position', 'freq':'freq', 'volt':'volt', 'lag':'lag'}
-    kwargs = get_element_kwargs_to_cpymad(fsf_element, attr_dict)
-    madx.command[fsf_element.__class__.__name__.lower()].clone(fsf_element.name, **kwargs)
-
-
-def convert_element_to_cpymad(fsf_element, madx):
-    return TO_CPYMAD_CONV[fsf_element.__class__.__name__](fsf_element, madx)
-
-
-TO_CPYMAD_CONV = {'Marker' : marker_to_cpymad,
-                  'Drift' : drift_to_cpymad,
-                  'Sbend' : sbend_to_cpymad,
-                  'Rbend' : rbend_to_cpymad,
-                  'Quadrupole' : quadrupole_to_cpymad, 
-                  'Sextupole' : sextupole_to_cpymad, 
-                  'Octupole' : octupole_to_cpymad, 
-                  'Collimator' : collimator_to_cpymad, 
-                  'RFCavity' : rfcavity_to_cpymad}
+def to_cpymad(element, madx):
+    mapped_attr = attr_mapping_to_cpymad(element.get_dict())
+    base_type = element.__class__.__name__
+    madx_base_type = base_type.lower()
+    if base_type == 'RectangularBend':
+        mapped_attr['l'] = element._chord_length
+        mapped_attr['e1'] = element._rbend_e1
+        mapped_attr['e2'] = element._rbend_e2
+        madx_base_type = 'rbend'
+    if 'reference' in mapped_attr:
+        mapped_attr.pop('reference')
+    return madx.command[madx_base_type].clone(element.name, **mapped_attr)

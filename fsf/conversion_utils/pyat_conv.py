@@ -1,238 +1,128 @@
-"""
-Module conversion_utils.pyat_conv
-------------------
-:author: Felix Carlier (fcarlier@cern.ch)
-This is a Python3 module with functions for importing and exporting elements from and to pyat
-
-Part I: Import functions
-
-Part II: Export functions
-"""
-
-import at
+import at, copy
 import numpy as np
 from scipy.special import factorial
+from fsf.conversion_utils import conv_utils
 import fsf.elements_dataclasses as xed
 
 FACTORIAL = factorial(np.arange(21), exact=True)
 
-"""
-Part I: Import functions
-"""
+DIFF_ATTRIBUTE_MAP_PYAT = {
+                             'length':'Length',
+                             'angle':'BendingAngle',
+                             'e1':'EntranceAngle',
+                             'e2':'ExitAngle',
+                             'kn':'PolynomB',
+                             'ks':'PolynomA',
+                             'voltage':'Voltage',
+                             'frequency':'Frequency',
+                             'harmonic_number':'HarmNumber',
+                             'energy':'Energy',
+                            }
 
 
-def get_aperture_kwarg_from_pyat(pyat_element):
-    aper_kwarg = {}
-    try:
-        if len(pyat_element.aperture) == 1 and pyat_element.aperture[0] == 0: 
-            aper_kwarg = {}
-        elif len(pyat_element.aperture) == 2:
-            if pyat_element.aperture[0] == 0 or pyat_element.aperture[1] == 0: 
-                aper_kwarg = {}
-        else: 
-            if pyat_element.apertype == 'circle':
-                aper_kwarg = {'EApertures':[pyat_element.aperture[0], pyat_element.aperture[0]]}
-            elif pyat_element.apertype == 'ellipse':
-                aper_kwarg = {'EApertures':[pyat_element.aperture[0], pyat_element.aperture[1]]}
-            elif pyat_element.apertype == 'rectangle':
-                aper_kwarg = {'RApertures':[-pyat_element.aperture[0], pyat_element.aperture[0], 
-                                            -pyat_element.aperture[1], pyat_element.aperture[1]]}
-    except AttributeError:
-        pass
-    return aper_kwarg
+DIFF_ATTRIBUTE_MAP_TO_PYAT = {
+                             'length':'length',
+                             'int_steps':'NumIntSteps',
+                             'angle':'BendingAngle',
+                             'e1':'EntranceAngle',
+                             'e2':'ExitAngle',
+                             'kn':'PolynomB',
+                             'ks':'PolynomA',
+                             'voltage':'voltage',
+                             'frequency':'frequency',
+                             'harmonic_number':'harmonic_number',
+                             'energy':'energy',
+                            }
 
 
-def get_element_kwargs_from_pyat(pyat_element, attr_dict):
-    # aper_kwarg = get_aperture_kwarg_from_pyat(pyat_element)
-    aper_kwarg = {}
-    kwargs = {}
-    for key in attr_dict.keys():
-        if key == 'kn':
-            kwargs[key] = convert_PolyB_to_kn(pyat_element)
-        elif key == 'ks':
-            kwargs[key] = convert_PolyA_to_ks(pyat_element)
-        else:
-            try: kwargs[key] = getattr(pyat_element, attr_dict[key])
-            except: AttributeError
-    kwargs.update(aper_kwarg)
-    return kwargs
-
-
-def convert_PolyB_to_kn(pyat_element):
-    try: return pyat_element.PolynomB*FACTORIAL[:len(pyat_element.PolynomB)]
-    except: AttributeError
-
-
-def convert_PolyA_to_ks(pyat_element):
-    try: return pyat_element.PolynomA*FACTORIAL[:len(pyat_element.PolynomA)]
-    except: AttributeError
-
-
-def marker_from_pyat(el_class, pyat_element):
-    return el_class(pyat_element.FamName)
-
-
-def drift_from_pyat(el_class, pyat_element):
-    attr_dict = {'length':'Length', 'PassMethod':'PassMethod', 'int_steps':'NumIntSteps'}
-    kwargs = get_element_kwargs_from_pyat(pyat_element, attr_dict)
-    return el_class(pyat_element.FamName, **kwargs)
-
-
-def sbend_from_pyat(el_class, pyat_element):
-    attr_dict = {'length':'Length', 'PassMethod':'PassMethod', 'int_steps':'NumIntSteps',
-                'angle':'BendingAngle', 'e1':'EntranceAngle', 'e2':'ExitAngle'}
-    kwargs = get_element_kwargs_from_pyat(pyat_element, attr_dict)
-    return el_class(pyat_element.FamName, **kwargs)
-
-
-def quadrupole_from_pyat(el_class, pyat_element):
-    attr_dict = {'length':'Length', 'PassMethod':'PassMethod', 
-                'int_steps':'NumIntSteps', 'kn':'PolynomB', 'ks':'PolynomA'}
-    kwargs = get_element_kwargs_from_pyat(pyat_element, attr_dict)
-    return el_class(pyat_element.FamName, **kwargs)
-
-
-def sextupole_from_pyat(el_class, pyat_element):
-    attr_dict = {'length':'Length', 'PassMethod':'PassMethod', 
-                'int_steps':'NumIntSteps', 'kn':'PolynomB', 'ks':'PolynomA'}
-    kwargs = get_element_kwargs_from_pyat(pyat_element, attr_dict)
-    return el_class(pyat_element.FamName, **kwargs)
-
-
-def octupole_from_pyat(el_class, pyat_element):
-    attr_dict = {'length':'Length', 'PassMethod':'PassMethod', 
-                'int_steps':'NumIntSteps', 'kn':'PolynomB', 'ks':'PolynomA'}
-    kwargs = get_element_kwargs_from_pyat(pyat_element, attr_dict)
-    return el_class(pyat_element.FamName, **kwargs)
-
-
-def collimator_from_pyat(el_class, pyat_element):
-    attr_dict = {'length':'Length', 'PassMethod':'PassMethod', 'int_steps':'NumIntSteps'}
-    kwargs = get_element_kwargs_from_pyat(pyat_element, attr_dict)
-    return el_class(pyat_element.FamName, **kwargs)
-
-
-def rfcavity_from_pyat(el_class, pyat_element):
-    attr_dict = {'length':'Length', 'PassMethod':'PassMethod', 'int_steps':'NumIntSteps', 
-                'volt':'Voltage', 'freq':'Frequency', 'harmonic_number':'HarmNumber', 'energy':'Energy'}
-    kwargs = get_element_kwargs_from_pyat(pyat_element, attr_dict)
-    return el_class(pyat_element.FamName, **kwargs)
-
-
-FROM_PYAT_CONV = {'Marker' : marker_from_pyat,
-                  'Drift' : drift_from_pyat,
-                  'Dipole' : sbend_from_pyat,
-                  'Quadrupole' : quadrupole_from_pyat, 
-                  'Sextupole' : sextupole_from_pyat, 
-                  'Octupole' : octupole_from_pyat, 
-                  'Collimator' : collimator_from_pyat, 
-                  'RFCavity' : rfcavity_from_pyat}
-
-
-def convert_element_from_pyat(el_class, pyat_element):
-    return FROM_PYAT_CONV[pyat_element.__class__.__name__](el_class, pyat_element)
-
-
-"""
-Part II: Export functions
-"""
-
-
-def get_aperture_kwarg_to_pyat(fsf_element):
-    aper_kwarg = {}
-    try:
-        if len(fsf_element.aperture) == 1 and fsf_element.aperture[0] == 0: 
-            aper_kwarg = {}
-        elif len(fsf_element.aperture) == 2:
-            if fsf_element.aperture[0] == 0 or fsf_element.aperture[1] == 0: 
-                aper_kwarg = {}
-        else: 
-            if fsf_element.apertype == 'circle':
-                aper_kwarg = {'EApertures':[fsf_element.aperture[0], fsf_element.aperture[0]]}
-            elif fsf_element.apertype == 'ellipse':
-                aper_kwarg = {'EApertures':[fsf_element.aperture[0], fsf_element.aperture[1]]}
-            elif fsf_element.apertype == 'rectangle':
-                aper_kwarg = {'RApertures':[-fsf_element.aperture[0], fsf_element.aperture[0], 
-                                            -fsf_element.aperture[1], fsf_element.aperture[1]]}
-    except AttributeError:
-        pass
-    return aper_kwarg
-
-
-def convert_ks_to_polynomA(fsf_element):
-    try: return fsf_element.ks/FACTORIAL[:len(fsf_element.ks)]
-    except: AttributeError
-
-def convert_kn_to_polynomB(fsf_element):
-    try: return fsf_element.kn/FACTORIAL[:len(fsf_element.kn)]
-    except: AttributeError
-
-
-def get_element_kwargs_to_pyat(fsf_element, attr_dict):
-    aper_kwarg = get_aperture_kwarg_to_pyat(fsf_element)
-    kwargs = {}
-    for key in attr_dict.keys():
-        if key == 'PolynomB':
-            kwargs[key] = convert_kn_to_polynomB(fsf_element)
-        elif key == 'PolynomA':
-            kwargs[key] = convert_ks_to_polynomA(fsf_element)
-        else:
-            try: kwargs[key] = getattr(fsf_element, attr_dict[key])
-            except: AttributeError
-    kwargs.update(aper_kwarg)
-    return kwargs
-
-
-def marker_to_pyat(fsf_element):
-    return at.elements.Marker(fsf_element.name)
+def attr_mapping_from_pyat(pyat_element):
+    element_kw = {}
+    for key in DIFF_ATTRIBUTE_MAP_PYAT:
+        try: element_kw[key] = pyat_element.pop(DIFF_ATTRIBUTE_MAP_PYAT[key]) 
+        except: KeyError 
     
-
-def drift_to_pyat(fsf_element):
-    attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps', }
-    kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
-    return at.elements.Drift(fsf_element.name, fsf_element.length, **kwargs)
+    if 'kn' in element_kw:
+        element_kw['kn'] = element_kw['kn']*FACTORIAL[:len(element_kw['kn'])]
     
+    if 'ks' in element_kw:
+        element_kw['ks'] = element_kw['ks']*FACTORIAL[:len(element_kw['ks'])]
 
-def sbend_to_pyat(fsf_element):
-    attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps', 
-                 'BendingAngle':'angle', 'EntranceAngle':'e1', 'ExitAngle':'e2'}
-    kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
-    return at.elements.Dipole(fsf_element.name, fsf_element.length, **kwargs)
- 
- 
-def quadrupole_to_pyat(fsf_element):
-    attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps', 'PolynomB':'kn', 'PolynomA':'ks'}
-    kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
-    return at.elements.Quadrupole(fsf_element.name, fsf_element.length, **kwargs)
-
-
-def sextupole_to_pyat(fsf_element):
-    attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps', 'PolynomB':'kn', 'PolynomA':'ks'}
-    kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
-    return at.elements.Sextupole(fsf_element.name, fsf_element.length, **kwargs)
+    if 'EApertures' in pyat_element:
+        element_kw['aperture_data'] = xed.EllipticalAperture(aperture_size=pyat_element['EApertures'], 
+                                                             aperture_type='ellipse') 
+    if 'RApertures' in pyat_element:
+        element_kw['aperture_data'] = xed.RectangularAperture(aperture_size=pyat_element['EApertures'], 
+                                                             aperture_type='ellipse') 
+    if 'NumIntSteps' in pyat_element or 'PassMethod' in pyat_element:
+        element_kw['pyat_data'] = xed.PyatData(NumIntSteps=pyat_element.pop('NumIntSteps', None), PassMethod=pyat_element.pop('PassMethod', None))
+    return element_kw
 
 
-def octupole_to_pyat(fsf_element):
-    attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps', 'PolynomB':'kn', 'PolynomA':'ks'}
-    kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
-    return at.elements.Octupole(fsf_element.name, fsf_element.length, **kwargs)
+def from_pyat(xs_cls, pyat_element, name=None, aperture=False):
+    if not isinstance(pyat_element, dict):
+        name = pyat_element.FamName
+        elemdata={'base_type':pyat_element.__class__.__name__}
+        elemdata.update(dict(pyat_element.items()))
+        pyat_element = elemdata
+    mapped_attr = attr_mapping_from_pyat(pyat_element)
+    
+    if xs_cls.__name__ == 'Quadrupole':
+        mapped_attr['k1'] = mapped_attr['kn'][1]
+        mapped_attr['k1s'] = mapped_attr['ks'][1]
+    if xs_cls.__name__ == 'Sextupole':
+        mapped_attr['k2'] = mapped_attr['kn'][2]
+        mapped_attr['k2s'] = mapped_attr['ks'][2]
+    if xs_cls.__name__ == 'Octupole':
+        mapped_attr['k3'] = mapped_attr['kn'][3]
+        mapped_attr['k3s'] = mapped_attr['ks'][3]
+    return xs_cls(name, **mapped_attr)
 
 
-def collimator_to_pyat(fsf_element):
-    attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps', }
-    kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
-    return at.elements.Collimator(fsf_element.name, fsf_element.length, **kwargs)
+def attr_mapping_to_pyat(xe_element):
+    pyat_element_kw = {}
+    for key in DIFF_ATTRIBUTE_MAP_TO_PYAT:
+        try: pyat_element_kw[DIFF_ATTRIBUTE_MAP_TO_PYAT[key]] = xe_element[key] 
+        except: KeyError 
+    
+    if 'PolynomB' in pyat_element_kw:
+        pyat_element_kw['PolynomB'] = pyat_element_kw['PolynomB']/FACTORIAL[:len(pyat_element_kw['PolynomB'])]
+    
+    if 'PolynomA' in pyat_element_kw:
+        pyat_element_kw['PolynomA'] = pyat_element_kw['PolynomA']/FACTORIAL[:len(pyat_element_kw['PolynomA'])]
+
+    return pyat_element_kw
 
 
-def rfcavity_to_pyat(fsf_element):
-    attr_dict = {'PassMethod':'PassMethod', 'NumIntSteps':'int_steps'}
-    kwargs = get_element_kwargs_to_pyat(fsf_element, attr_dict)
-    return at.elements.RFCavity(fsf_element.name, fsf_element.length, fsf_element.rf_data.voltage, fsf_element.rf_data.frequency, 
-                                fsf_element.harmonic_number, fsf_element.energy*1e9, **kwargs)
+def to_pyat(xe_element):
+    element_dict = copy.copy(xe_element.get_dict())
+    mapped_attr = attr_mapping_to_pyat(element_dict)
 
+    if xe_element.aperture_data is not None: 
+        if isinstance(xe_element.aperture_data, xed.EllipticalAperture):
+            ### NOTE: aperture offsets not converted to pyat for elliptical apertures
+            mapped_attr['EApertures'] = xe_element.aperture_data.aperture_size 
+        elif isinstance(xe_element.aperture_data, xed.RectangularAperture):
+            mapped_attr['RApertures'] = xe_element.aperture_data.get_4_array()
+    
+    try: 
+        if xe_element.pyat_data.NumIntSteps is not None:
+            mapped_attr['NumIntSteps'] = xe_element.pyat_data.NumIntSteps
+    except: AttributeError
+    try: 
+        if xe_element.pyat_data.PassMethod is not None:
+            mapped_attr['PassMethod'] = xe_element.pyat_data.PassMethod
+    except: AttributeError
+    
+    if 'frequency' in mapped_attr:
+        mapped_attr['energy'] = xe_element.rf_data.energy    
+        mapped_attr['harmonic_number'] = xe_element.rf_data.harmonic_number    
 
-def convert_element_to_pyat(fsf_element):
-    return TO_PYAT_CONV[fsf_element.__class__.__name__](fsf_element)
+    mapped_attr.update({'family_name':xe_element.name})
+    if xe_element.__class__.__name__ == 'Octupole':
+        mapped_attr['poly_a'] = mapped_attr.pop('PolynomA')
+        mapped_attr['poly_b'] = mapped_attr.pop('PolynomB')
+
+    return TO_PYAT_CONV[xe_element.__class__.__name__](**mapped_attr)
 
 
 TO_PYAT_CONV = {'Marker': at.Marker, 
@@ -241,5 +131,7 @@ TO_PYAT_CONV = {'Marker': at.Marker,
                 'RectangularBend':  at.Dipole, 
                 'Quadrupole': at.Quadrupole, 
                 'Sextupole': at.Sextupole, 
+                'Octupole': at.Octupole, 
                 'Collimator': at.Collimator, 
                 'RFCavity': at.RFCavity}
+
