@@ -11,7 +11,7 @@ from fsf.conversion_utils import conv_utils
 import pytest
 from pathlib import Path
 
-TEST_SEQ_DIR = Path(__file__).parent / "test_sequences"
+TEST_SEQ_DIR = Path(__file__).parent.parent / "test_sequences"
 
 @pytest.fixture(scope="module")
 def example_pyat_fsf_pyat():
