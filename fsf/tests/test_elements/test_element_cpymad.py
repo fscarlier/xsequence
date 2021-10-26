@@ -9,8 +9,6 @@ import pytest
 import fsf.elements as xe
 from pytest import mark
 from cpymad.madx import Madx
-from pathlib import Path
-
 
 @pytest.fixture(scope="module")
 @mark.parametrize('name,    l',
@@ -109,10 +107,9 @@ Element by element tests cpymad back to cpymad (FCC-ee lattice)
 @pytest.fixture(scope="module")
 def example_madx_lattice():
     madx_lattice = Madx()
-    madx_lattice.call("./test_sequences/lhc.seq")
-    madx_lattice.call("./test_sequences/optics.madx")
+    madx_lattice.call("./lhc.seq")
+    madx_lattice.call("./optics.madx")
     return madx_lattice    
-
 
 def test_quadrupoles(example_madx_lattice):
     madx_lattice = example_madx_lattice
