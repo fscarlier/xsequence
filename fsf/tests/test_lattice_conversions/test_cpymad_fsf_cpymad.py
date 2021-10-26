@@ -9,6 +9,9 @@ from fsf.lattice import Lattice
 from fsf.helpers.pyat_functions import get_optics_pyat
 import pytest
 from fsf.conversion_utils import conv_utils
+from pathlib import Path
+
+TEST_SEQ_DIR = Path(__file__).parent.parent / "test_sequences"
 
 @pytest.fixture(scope="module")
 def example_cpymad_fsf_cpymad():
@@ -18,7 +21,7 @@ def example_cpymad_fsf_cpymad():
     Returns:
         Old and new twiss tables from cpymad
     """
-    madx_lattice = conv_utils.create_cpymad_from_file("./lattice.seq", 120)
+    madx_lattice = conv_utils.create_cpymad_from_file(str(TEST_SEQ_DIR / "lattice.seq"), 120)
     fsf_lattice = Lattice.from_cpymad(madx_lattice, 'l000013')
     madx_lattice_new = fsf_lattice.to_cpymad()
     madx_lattice.use('l000013')
@@ -66,7 +69,7 @@ def example_cpymad_fsf_cpymad_coll():
     Returns:
         Old and new twiss tables from cpymad
     """
-    madx_lattice = conv_utils.create_cpymad_from_file("./collimators.seq", 180)
+    madx_lattice = conv_utils.create_cpymad_from_file(str(TEST_SEQ_DIR / "collimators.seq"), 180)
     fsf_lattice = Lattice.from_cpymad(madx_lattice, 'ring')
     madx_lattice_new = fsf_lattice.to_cpymad()
     madx_lattice.use('ring')
