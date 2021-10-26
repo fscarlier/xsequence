@@ -110,23 +110,28 @@ class ElementPosition(ElementBaseProperties):
 @dataclass
 class ApertureData(ElementBaseProperties):
     """Represents an aperture for elements"""
-    INIT_PROPERTIES = ['aperture_size', 'aperture_type']
-    aperture_size: List = field(default_factory=lambda: [0.0])
-    aperture_type: Optional[str] = 'circle'
-    aperture_offset: List = field(default_factory=lambda: [0.0])
+    INIT_PROPERTIES = ['aperture_size', 'aperture_offset']
+    aperture_size: List = field(default_factory=lambda: [0.0, 0.0])
+    aperture_offset: List = field(default_factory=lambda: [0.0, 0.0])
 
 
 @dataclass
 class EllipticalAperture(ApertureData):
-    INIT_PROPERTIES = ['aperture_size', 'aperture_type', 'aperture_offset']
+    INIT_PROPERTIES = ['aperture_type']
+    aperture_type: Optional[str] = 'elliptical'
+
+    def __post_init__(self):
+        self.INIT_PROPERTIES = self.INIT_PROPERTIES + super().INIT_PROPERTIES
 
 
 @dataclass
 class RectangularAperture(ApertureData):
     """Rectangular aperture dataclass. Aperture_size : [left, right, bottom, up]"""
-    INIT_PROPERTIES = ['aperture_size', 'aperture_type', 'aperture_offset']
+    INIT_PROPERTIES = ['aperture_type']
+    aperture_type: Optional[str] = 'rectangular'
 
     def __post_init__(self):
+        self.INIT_PROPERTIES = self.INIT_PROPERTIES + super().INIT_PROPERTIES
         if len(self.aperture_size) == 4:
             self.reset_offset_and_size_from_4_array()
 
@@ -135,6 +140,15 @@ class RectangularAperture(ApertureData):
         y_offset = (self.aperture_size[2] + self.aperture_size[3]) / 2.
         self.aperture_offset = [x_offset, y_offset]
         self.aperture_size = [x_offset - self.aperture_size[0], y_offset - self.aperture_size[2]]
+
+    def get_4_array(self):
+        print(self.aperture_offset)
+        print(self.aperture_size)
+        aperture_size_data = [self.aperture_offset[0] - self.aperture_size[0],
+                            self.aperture_offset[0] + self.aperture_size[0],
+                            self.aperture_offset[1] - self.aperture_size[1],
+                            self.aperture_offset[1] + self.aperture_size[1]]
+        return aperture_size_data
 
 
 @dataclass

@@ -41,7 +41,7 @@ def test_sextupole_length_k2(name, l, k2):
     pyat_sext = q.to_pyat()
     assert pyat_sext.FamName == q.name
     assert pyat_sext.Length == q.length
-    assert pyat_sext.H == q.k2
+    assert pyat_sext.H*2. == q.k2
     q_pyat = xe.Sextupole.from_pyat(pyat_sext)
     assert q == q_pyat
 
@@ -89,7 +89,7 @@ def test_sextupole_length_k2_k2s(name, l, k2, k2s):
     pyat_sext = q.to_pyat()
     assert pyat_sext.FamName == q.name
     assert pyat_sext.Length == q.length
-    assert pyat_sext.H == q.k2
+    assert pyat_sext.H*2. == q.k2
     q_pyat = xe.Sextupole.from_pyat(pyat_sext)
     assert q == q_pyat
 

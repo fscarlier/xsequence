@@ -2,6 +2,7 @@ import fsf.elements as xe
 from pytest import mark
 from cpymad.madx import Madx
 
+
 @mark.parametrize('name,    l',
                  [( 'q1', 1.2),
                   ( 'q2', 0.2)])

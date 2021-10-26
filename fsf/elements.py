@@ -14,17 +14,28 @@ from fsf.conversion_utils import conv_utils, cpymad_conv_new, pyat_conv_new, xli
 class BaseElement():
     """Class containing base element properties and methods"""
     def __init__(self, name: str, **kwargs):
-        self._repr_attributes = ['id_data', 'position_data', 'aperture_data']
-
         self.name = name
         if kwargs is None:
             kwargs = {'temp':0}
         self.id_data = kwargs.pop('id_data', conv_utils.get_id_data(**kwargs))
         self.position_data = kwargs.pop('position_data', conv_utils.get_position_data(**kwargs)) 
-        self.aperture_data = kwargs.pop('aperture_data', conv_utils.get_aperture_data(**kwargs))
+        self.aperture_data = kwargs.pop('aperture_data', None)
         self.pyat_data = kwargs.pop('pyat_data', None)
+        
+    def get_repr_attributes(self):
+        repr_attributes = []
+        data_attribute_list = ['id_data', 'position_data', 'aperture_data',
+                               'strength_data', 'solenoid_data', 'bend_data',
+                               'rf_data']
 
-
+        for key in data_attribute_list:
+            try:
+                att =  getattr(self, key)
+                if att is not None:
+                    repr_attributes.append(key)
+            except: AttributeError
+        return repr_attributes
+        
     @property
     def length(self):
         return self.position_data.length
@@ -67,19 +78,19 @@ class BaseElement():
 
     def get_dict(self):
         attr_dict = {}
-        for k in self._repr_attributes:
+        for k in self.get_repr_attributes():
             attr_dict.update(dict(getattr(self,k)))
         return attr_dict
 
     def __eq__(self, other):
-        compare_list = ['name'] + self._repr_attributes
+        compare_list = ['name'] + self.get_repr_attributes()
         for k in compare_list:
             if getattr(self, k) != getattr(other, k):
                 return False
         return True
 
     def __repr__(self) -> str:
-        content = ''.join([f', {x}={getattr(self, x)}' for x in self._repr_attributes])
+        content = ''.join([f', {x}={getattr(self, x)}' for x in self.get_repr_attributes()])
         return f'{self.__class__.__name__}(' + f'{self.name}' + content + ')'
 
 
@@ -88,7 +99,6 @@ class ThinBaseElement(BaseElement):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
         assert self.length == 0.0, f"ThinBaseElement {name} has non-zero length"
-
 
 
 class Marker(BaseElement):
@@ -132,7 +142,6 @@ class SectorBend(BaseElement):
         super().__init__(name, **kwargs)
         
         self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs)) 
-        self._repr_attributes.append('bend_data')
 
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_bend_strength(self.bend_data, num_slices)
@@ -173,7 +182,6 @@ class RectangularBend(SectorBend):
         super().__init__(name, **kwargs)
         
         self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs))
-        self._repr_attributes.append('bend_data')
 
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_bend_strength(self.bend_data, num_slices)
@@ -193,7 +201,6 @@ class Solenoid(BaseElement):
         self.solenoid_data = kwargs.pop('solenoid_data', 
                                 xed.SolenoidData(**{k:kwargs[k] for k in xed.SolenoidData.INIT_PROPERTIES if k in kwargs})
                              )
-        self._repr_attributes.append('solenoid_data')
 
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_solenoid_strength(self.solenoid_data, num_slices)
@@ -224,7 +231,6 @@ class Multipole(BaseElement):
     def __init__(self, name: str, strength_class=xed.MultipoleStrengthData, **kwargs):
         super().__init__(name, **kwargs)
         self.strength_data = kwargs.pop('strength_data', conv_utils.get_strength_data(strength_class=strength_class, **kwargs))
-        self._repr_attributes.append('strength_data')
         
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_multipole_strength(self.strength_data, num_slices)
@@ -312,11 +318,8 @@ class RFCavity(BaseElement):
     """ RFCavity element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        
         self.rf_data = kwargs.pop('rf_data', conv_utils.get_rf_data(**kwargs))
-        self._repr_attributes.append('rf_data')
         
-
 
 class HKicker(BaseElement):
     def __init__(self, name: str, **kwargs):
@@ -345,10 +348,7 @@ class ThinSolenoid(BaseElement):
     """ ThinSolenoid element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        
         self.solenoid_data = kwargs.pop('solenoid_data', conv_utils.get_solenoid_data(**kwargs))
-        self._repr_attributes.append('solenoid_data')
-        
         self.radiation_length = kwargs.pop('radiation_length', 0)
         assert self.length == 0
 

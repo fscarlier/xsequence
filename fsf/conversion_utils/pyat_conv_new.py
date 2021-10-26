@@ -1,4 +1,4 @@
-import at
+import at, copy
 import numpy as np
 from scipy.special import factorial
 from fsf.conversion_utils import conv_utils
@@ -42,10 +42,10 @@ def attr_mapping_from_pyat(pyat_element):
         except: KeyError 
     
     if 'kn' in element_kw:
-        element_kw['kn']*FACTORIAL[:len(element_kw['kn'])]
+        element_kw['kn'] = element_kw['kn']*FACTORIAL[:len(element_kw['kn'])]
     
     if 'ks' in element_kw:
-        element_kw['ks']*FACTORIAL[:len(element_kw['ks'])]
+        element_kw['ks'] = element_kw['ks']*FACTORIAL[:len(element_kw['ks'])]
 
     if 'EApertures' in pyat_element:
         element_kw['aperture_data'] = xed.EllipticalAperture(aperture_size=pyat_element['EApertures'], 
@@ -75,16 +75,7 @@ def from_pyat(xs_cls, pyat_element, name=None, aperture=False):
     if xs_cls.__name__ == 'Octupole':
         mapped_attr['k3'] = mapped_attr['kn'][3]
         mapped_attr['k3s'] = mapped_attr['ks'][3]
-    print(mapped_attr) 
     return xs_cls(name, **mapped_attr)
-
-
-def RectangularAperture_to_pyat(aperture_data):
-    aperture_size_data = [aperture_data.aperture_offset[0] - aperture_data.aperture_size[0],
-                          aperture_data.aperture_offset[0] + aperture_data.aperture_size[0],
-                          aperture_data.aperture_offset[1] - aperture_data.aperture_size[1],
-                          aperture_data.aperture_offset[1] + aperture_data.aperture_size[1]]
-    return aperture_size_data
 
 
 def attr_mapping_to_pyat(xe_element):
@@ -94,28 +85,33 @@ def attr_mapping_to_pyat(xe_element):
         except: KeyError 
     
     if 'PolynomB' in pyat_element_kw:
-        pyat_element_kw['PolynomB'] /= FACTORIAL[:len(pyat_element_kw['PolynomB'])]
+        pyat_element_kw['PolynomB'] = pyat_element_kw['PolynomB']/FACTORIAL[:len(pyat_element_kw['PolynomB'])]
     
     if 'PolynomA' in pyat_element_kw:
-        pyat_element_kw['PolynomA'] /= FACTORIAL[:len(pyat_element_kw['PolynomA'])]
+        pyat_element_kw['PolynomA'] = pyat_element_kw['PolynomA']/FACTORIAL[:len(pyat_element_kw['PolynomA'])]
 
-    if 'aperture_data' in xe_element:
-        if isinstance(xe_element['aperture_data'], xed.EllipticalAperture):
-            ### NOTE: aperture offsets not converted to pyat for elliptical apertures
-            pyat_element_kw['EApertures'] = xe_element['aperture_data'].aperture_size 
-        elif isinstance(xe_element['aperture_data'], xed.RectangularAperture):
-            pyat_element_kw['EApertures'] = RectangularAperture_to_pyat(xe_element['aperture_data'])
-    
     return pyat_element_kw
 
 
 def to_pyat(xe_element):
-    mapped_attr = attr_mapping_to_pyat(xe_element.get_dict())
+    element_dict = copy.copy(xe_element.get_dict())
+    mapped_attr = attr_mapping_to_pyat(element_dict)
+
+    if xe_element.aperture_data is not None: 
+        if isinstance(xe_element.aperture_data, xed.EllipticalAperture):
+            ### NOTE: aperture offsets not converted to pyat for elliptical apertures
+            mapped_attr['EApertures'] = xe_element.aperture_data.aperture_size 
+        elif isinstance(xe_element.aperture_data, xed.RectangularAperture):
+            mapped_attr['RApertures'] = xe_element.aperture_data.get_4_array()
     
-    if xe_element.pyat_data.NumIntSteps:
-        mapped_attr['NumIntSteps'] = xe_element.pyat_data.NumIntSteps
-    if xe_element.pyat_data.PassMethod:
-        mapped_attr['PassMethod'] = xe_element.pyat_data.PassMethod
+    try: 
+        if xe_element.pyat_data.NumIntSteps is not None:
+            mapped_attr['NumIntSteps'] = xe_element.pyat_data.NumIntSteps
+    except: AttributeError
+    try: 
+        if xe_element.pyat_data.PassMethod is not None:
+            mapped_attr['PassMethod'] = xe_element.pyat_data.PassMethod
+    except: AttributeError
     
     if 'frequency' in mapped_attr:
         mapped_attr['energy'] = xe_element.rf_data.energy    
