@@ -105,7 +105,6 @@ def test_cpymad_quadrupole_import_k1s(name, l, k1s):
 
 """
 Element by element tests cpymad back to cpymad (FCC-ee lattice)
-"""
 
 @pytest.fixture(scope="module")
 def example_madx_lattice():
@@ -166,3 +165,4 @@ def test_rbend(example_madx_lattice):
                 results.append(True)
     assert all(results)
 
+"""
