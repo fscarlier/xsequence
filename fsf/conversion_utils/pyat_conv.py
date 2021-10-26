@@ -132,6 +132,6 @@ TO_PYAT_CONV = {'Marker': at.Marker,
                 'Quadrupole': at.Quadrupole, 
                 'Sextupole': at.Sextupole, 
                 'Octupole': at.Octupole, 
-                'Collimator': at.Collimator, 
+                'Collimator': at.Drift, 
                 'RFCavity': at.RFCavity}
 
