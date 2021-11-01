@@ -23,7 +23,8 @@ def test_eq_method(el1, el2):
 
 
 @mark.parametrize('el1, el2',
-                 [(BaseElement('el_0'),                                           BaseElement('el_1')   ),
+                 [(BaseElement('el_0'),                                           Quadrupole('el_0')   ),
+                  (BaseElement('el_0'),                                           BaseElement('el_1')   ),
                   (BaseElement('el_1', length=1.0),                               BaseElement('el_1', length=1.1)   ),
                   (BaseElement('el_2', length=0.0),                               BaseElement('el_2', length=0.1)   ),
                   (Quadrupole('el_3', length=1.0, k1=0.4, k1s=1.2),               Quadrupole('el_3', length=1.0, k1=0.1, k1s=1.2)   ),

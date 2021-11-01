@@ -64,6 +64,7 @@ def from_pyat(xs_cls, pyat_element, name=None, aperture=False):
         elemdata={'base_type':pyat_element.__class__.__name__}
         elemdata.update(dict(pyat_element.items()))
         pyat_element = elemdata
+    
     mapped_attr = attr_mapping_from_pyat(pyat_element)
     
     if xs_cls.__name__ == 'Quadrupole':
@@ -95,6 +96,10 @@ def attr_mapping_to_pyat(xe_element):
 
 def to_pyat(xe_element):
     element_dict = copy.copy(xe_element.get_dict())
+    try: element_dict['kn'] = xe_element.strength_data.kn
+    except: AttributeError
+    try: element_dict['ks'] = xe_element.strength_data.ks
+    except: AttributeError
     mapped_attr = attr_mapping_to_pyat(element_dict)
 
     if xe_element.aperture_data is not None: 

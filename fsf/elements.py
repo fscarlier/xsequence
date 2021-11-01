@@ -83,9 +83,14 @@ class BaseElement():
         return attr_dict
 
     def __eq__(self, other):
+        if self.__class__.__name__ != other.__class__.__name__:
+            print('class name')
+            return False
         compare_list = ['name'] + self.get_repr_attributes()
         for k in compare_list:
             if getattr(self, k) != getattr(other, k):
+                print(k)
+                print('attribute false')
                 return False
         return True
 
@@ -142,6 +147,7 @@ class SectorBend(BaseElement):
         super().__init__(name, **kwargs)
         
         self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs)) 
+        self.strength_data = kwargs.pop('strength_data', conv_utils.get_strength_data(strength_class=xed.QuadrupoleData, **kwargs))
 
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_bend_strength(self.bend_data, num_slices)
@@ -156,7 +162,7 @@ class SectorBend(BaseElement):
 
     def slice_element(self, num_slices=1):
         strength_data = self._get_sliced_strength(num_slices=num_slices)
-        sliced_bend =  self._get_sliced_element(num_slices=num_slices, thin_class=ThinSolenoid, strength_data=strength_data) 
+        sliced_bend =  self._get_sliced_element(num_slices=num_slices, thin_class=ThinMultipole, strength_data=strength_data) 
         sliced_bend.insert(0, self._get_DipoleEdge('start'))
         sliced_bend.append(self._get_DipoleEdge('end'))
         return sliced_bend
@@ -182,6 +188,7 @@ class RectangularBend(SectorBend):
         super().__init__(name, **kwargs)
         
         self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs))
+        self.strength_data = kwargs.pop('strength_data', conv_utils.get_strength_data(strength_class=xed.QuadrupoleData, **kwargs))
 
     def _get_sliced_strength(self, num_slices=1):
         return xef.get_sliced_bend_strength(self.bend_data, num_slices)
@@ -228,7 +235,7 @@ class Solenoid(BaseElement):
 
 class Multipole(BaseElement):
     """ Multipole element class """
-    def __init__(self, name: str, strength_class=xed.MultipoleStrengthData, **kwargs):
+    def __init__(self, name: str, strength_class=xed.ThinMultipoleStrengthData, **kwargs):
         super().__init__(name, **kwargs)
         self.strength_data = kwargs.pop('strength_data', conv_utils.get_strength_data(strength_class=strength_class, **kwargs))
         
@@ -324,16 +331,19 @@ class RFCavity(BaseElement):
 class HKicker(BaseElement):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
+        self.kick_data = kwargs.pop('kick_data', conv_utils.get_kick_data(kick_class=xed.HKickerData, **kwargs))
 
 
 class VKicker(BaseElement):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
+        self.kick_data = kwargs.pop('kick_data', conv_utils.get_kick_data(kick_class=xed.VKickerData, **kwargs))
 
 
 class TKicker(BaseElement):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
+        self.kick_data = kwargs.pop('kick_data', conv_utils.get_kick_data(**kwargs))
 
 
 class ThinMultipole(BaseElement):
@@ -368,14 +378,29 @@ class ThinRFMultipole(RFCavity):
         assert self.length == 0
 
 
-CPYMAD_TO_FSF_MAP = {'marker': Marker, 
-                     'drift':  Drift, 
-                     'rbend':  RectangularBend, 
-                     'sbend':  SectorBend, 
-                     'quadrupole': Quadrupole, 
-                     'sextupole': Sextupole, 
-                     'collimator': Collimator, 
-                     'rfcavity': RFCavity}
+CPYMAD_TO_FSF_MAP = { 
+                    'marker'          : Marker         ,  
+                    'drift'           : Drift          ,  
+                    'collimator'      : Collimator     ,  
+                    'monitor'         : Monitor        ,  
+                    'placeholder'     : Placeholder    ,  
+                    'instrument'      : Instrument     ,  
+                    'sbend'           : SectorBend     ,  
+                    'rbend'           : RectangularBend,     
+                    'dipedge'         : DipoleEdge     ,  
+                    'solenoid'        : Solenoid       ,  
+                    'multipole'       : Multipole      ,  
+                    'quadrupole'      : Quadrupole     ,  
+                    'sextupole'       : Sextupole      ,  
+                    'octupole'        : Octupole       ,  
+                    'rfcavity'        : RFCavity       ,  
+                    'hkicker'         : HKicker        ,  
+                    'vkicker'         : VKicker        ,  
+                    'tkicker'         : TKicker        ,  
+                    'thinmultipole'   : ThinMultipole  ,  
+                    'thinsolenoid'    : ThinSolenoid   ,  
+                    'thinrfmultipole' : ThinRFMultipole, 
+                    }
 
 
 PYAT_TO_FSF_MAP = {'Marker': Marker, 
@@ -386,3 +411,11 @@ PYAT_TO_FSF_MAP = {'Marker': Marker,
                    'Collimator': Collimator, 
                    'RFCavity': RFCavity}
                 
+
+
+def convert_arbitrary_cpymad_element(cpymad_element):
+    return CPYMAD_TO_FSF_MAP[cpymad_element.base_type.name].from_cpymad(cpymad_element)
+
+
+def convert_arbitrary_pyat_element(pyat_element):
+    return PYAT_TO_FSF_MAP[pyat_element.__class__.__name__].from_pyat(pyat_element)

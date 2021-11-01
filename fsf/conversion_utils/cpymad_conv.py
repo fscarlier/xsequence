@@ -27,7 +27,7 @@ def attr_mapping_from_cpymad(cpymad_element):
     return cpymad_element
 
 
-def from_cpymad(xs_cls, cpymad_element, name=None, aperture=False):
+def from_cpymad(xs_cls, cpymad_element, name=None):
     if not isinstance(cpymad_element, dict):
         name = cpymad_element.name
         elemdata={'base_type':cpymad_element.base_type.name}
@@ -35,6 +35,8 @@ def from_cpymad(xs_cls, cpymad_element, name=None, aperture=False):
             elemdata[parname]=par.value
         cpymad_element = elemdata
     mapped_attr = attr_mapping_from_cpymad(cpymad_element)
+    if mapped_attr['location'] > 1e19:
+        mapped_attr.pop('location')
     return xs_cls(name, **mapped_attr)
 
 

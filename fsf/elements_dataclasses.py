@@ -10,14 +10,14 @@ from dataclasses import dataclass, field
 import numpy as np
 
  
-class ElementBaseProperties: 
+class BaseElementData: 
     def __iter__(self):
         for key in self.INIT_PROPERTIES:
             yield key, getattr(self, key)
 
 
 @dataclass
-class ElementID(ElementBaseProperties):
+class ElementID(BaseElementData):
     INIT_PROPERTIES = ['slot_id', 'assembly_id']
     slot_id: Optional[int] = None
     assembly_id: Optional[int] = None
@@ -27,7 +27,7 @@ class ElementID(ElementBaseProperties):
         if self.assembly_id == 0.0: self.assembly_id = None
 
 @dataclass
-class ElementPosition(ElementBaseProperties):
+class ElementPosition(BaseElementData):
     """ Dataclass containing all relevant information about element position in [m] """
     INIT_PROPERTIES = ['length', 'location', 'reference', 'reference_element', 'mech_sep']
     length: float = 0.0
@@ -108,7 +108,7 @@ class ElementPosition(ElementBaseProperties):
     
 
 @dataclass
-class ApertureData(ElementBaseProperties):
+class ApertureData(BaseElementData):
     """Represents an aperture for elements"""
     INIT_PROPERTIES = ['aperture_size', 'aperture_offset']
     aperture_size: List = field(default_factory=lambda: [0.0, 0.0])
@@ -142,8 +142,6 @@ class RectangularAperture(ApertureData):
         self.aperture_size = [x_offset - self.aperture_size[0], y_offset - self.aperture_size[2]]
 
     def get_4_array(self):
-        print(self.aperture_offset)
-        print(self.aperture_size)
         aperture_size_data = [self.aperture_offset[0] - self.aperture_size[0],
                             self.aperture_offset[0] + self.aperture_size[0],
                             self.aperture_offset[1] - self.aperture_size[1],
@@ -152,7 +150,7 @@ class RectangularAperture(ApertureData):
 
 
 @dataclass
-class BendData(ElementBaseProperties):
+class BendData(BaseElementData):
     """ Bend strength dataclass """
     INIT_PROPERTIES = ['angle', 'e1', 'e2', 'k0']
     angle: float = 0.0
@@ -162,21 +160,21 @@ class BendData(ElementBaseProperties):
 
 
 @dataclass
-class SolenoidData(ElementBaseProperties):
+class SolenoidData(BaseElementData):
     """ Solenoid strength dataclass """
     INIT_PROPERTIES = ['ks']
     ks: float = 0.0
 
 
 @dataclass
-class ThinSolenoidData(ElementBaseProperties):
+class ThinSolenoidData(BaseElementData):
     """ Solenoid strength dataclass """
     INIT_PROPERTIES = ['ksi']
     ksi: float = 0.0
 
 
 @dataclass
-class DipoleEdgeData(ElementBaseProperties):
+class DipoleEdgeData(BaseElementData):
     """ Dipole edge strength dataclass """
     INIT_PROPERTIES = ['h', 'e1', 'side']
     h: float 
@@ -188,14 +186,21 @@ class DipoleEdgeData(ElementBaseProperties):
 
 
 @dataclass
-class MultipoleStrengthData(ElementBaseProperties):
+class MultipoleStrengthData(BaseElementData):
     INIT_PROPERTIES = ['kn', 'ks', 'polarity']
     kn: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0])  
     ks: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0]) 
     polarity: int = None  
 
-    def __post_init__(self):
+    @property
+    def kn(self):
         self._update_arrays()
+        return self.kn
+
+    @property
+    def ks(self):
+        self._update_arrays()
+        return self.ks
 
     def _update_arrays(self, min_order: int = 1):
         kn = np.trim_zeros(self.kn, trim='b')
@@ -220,7 +225,7 @@ class MultipoleStrengthData(ElementBaseProperties):
 
 
 @dataclass
-class ThinMultipoleStrengthData(ElementBaseProperties):
+class ThinMultipoleStrengthData(BaseElementData):
     INIT_PROPERTIES = ['knl', 'ksl', 'polarity']
     knl: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0])  
     ksl: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0]) 
@@ -251,8 +256,8 @@ class ThinMultipoleStrengthData(ElementBaseProperties):
         return True
 
 
-@dataclass(eq=False)
-class QuadrupoleData(MultipoleStrengthData):
+@dataclass
+class QuadrupoleData(BaseElementData):
     INIT_PROPERTIES = ['k1', 'k1s', 'kmax', 'kmin']
     k1: float = 0.0
     k1s: float = 0.0
@@ -260,34 +265,20 @@ class QuadrupoleData(MultipoleStrengthData):
     kmin: float = None
     
     def __post_init__(self):
-        self.INIT_PROPERTIES = self.INIT_PROPERTIES + super().INIT_PROPERTIES
-        if isinstance(self.k1, property):
-            self.k1 = 0.0
-        if isinstance(self.k1s, property):
-            self.k1s = 0.0
         if self.kmax == 0.0: self.kmax = None
         if self.kmin == 0.0: self.kmin = None
-        self._update_arrays(min_order=2)
 
     @property
-    def k1(self):
-        return self.kn[1]
+    def kn(self):
+        return np.array([0.0, self.k1]) 
 
-    @k1.setter
-    def k1(self, k1: float):
-        self.kn[1] = k1
-    
     @property
-    def k1s(self):
-        return self.ks[1]
+    def ks(self):
+        return np.array([0.0, self.k1s]) 
 
-    @k1s.setter
-    def k1s(self, k1s: float):
-        self.ks[1] = k1s
-    
 
-@dataclass(eq=False)
-class SextupoleData(MultipoleStrengthData):
+@dataclass
+class SextupoleData(BaseElementData):
     INIT_PROPERTIES = ['k2', 'k2s', 'kmax', 'kmin']
     k2: float = 0.0
     k2s: float = 0.0
@@ -295,34 +286,20 @@ class SextupoleData(MultipoleStrengthData):
     kmin: float = None
 
     def __post_init__(self):
-        self.INIT_PROPERTIES = self.INIT_PROPERTIES + super().INIT_PROPERTIES
-        if isinstance(self.k2, property):
-            self.k2 = 0.0
-        if isinstance(self.k2s, property):
-            self.k2s = 0.0
         if self.kmax == 0.0: self.kmax = None
         if self.kmin == 0.0: self.kmin = None
-        self._update_arrays(min_order=3)
 
     @property
-    def k2(self):
-        return self.kn[2]
+    def kn(self):
+        return np.array([0.0, 0.0, self.k2]) 
 
-    @k2.setter
-    def k2(self, k2: float):
-        self.kn[2] = k2
-    
     @property
-    def k2s(self):
-        return self.ks[2]
-
-    @k2s.setter
-    def k2s(self, k2s: float):
-        self.ks[2] = k2s
+    def ks(self):
+        return np.array([0.0, 0.0, self.k2s]) 
 
 
-@dataclass(eq=False)
-class OctupoleData(MultipoleStrengthData):
+@dataclass
+class OctupoleData(BaseElementData):
     INIT_PROPERTIES = ['k3', 'k3s', 'kmax', 'kmin']
     k3: float = 0.0
     k3s: float = 0.0
@@ -330,34 +307,20 @@ class OctupoleData(MultipoleStrengthData):
     kmin: float = None
 
     def __post_init__(self):
-        self.INIT_PROPERTIES = self.INIT_PROPERTIES + super().INIT_PROPERTIES
-        if isinstance(self.k3, property):
-            self.k3 = 0.0
-        if isinstance(self.k3s, property):
-            self.k3s = 0.0
         if self.kmax == 0.0: self.kmax = None
         if self.kmin == 0.0: self.kmin = None
-        self._update_arrays(min_order=4)
 
     @property
-    def k3(self):
-        return self.kn[3]
+    def kn(self):
+        return np.array([0.0, 0.0, 0.0, self.k3]) 
 
-    @k3.setter
-    def k3(self, k3: float):
-        self.kn[3] = k3
-    
     @property
-    def k3s(self):
-        return self.ks[3]
-
-    @k3s.setter
-    def k3s(self, k3s: float):
-        self.ks[3] = k3s
+    def ks(self):
+        return np.array([0.0, 0.0, 0.0, self.k3s]) 
 
 
 @dataclass
-class RFCavityData(ElementBaseProperties):
+class RFCavityData(BaseElementData):
     INIT_PROPERTIES = ['voltage', 'frequency', 'lag']
     voltage: float = 0.0  
     frequency: float = 0.0 
@@ -365,22 +328,28 @@ class RFCavityData(ElementBaseProperties):
 
 
 @dataclass
-class HKickerData(ElementBaseProperties):
-    hkick: float  
+class KickerData(BaseElementData):
+    INIT_PROPERTIES = ['hkick', 'vkick', 'kmax', 'kmin']
+    kmax: float = None 
+    kmin: float = None 
+    hkick: float = None 
+    vkick: float = None 
 
 
 @dataclass
-class VKickerData(ElementBaseProperties):
-    vkick: float  
+class HKickerData(KickerData):
+    INIT_PROPERTIES = ['kick', 'kmin', 'kmax']
+    kick: float = None 
 
 
 @dataclass
-class KickerData(ElementBaseProperties):
-    kick: float  
+class VKickerData(KickerData):
+    INIT_PROPERTIES = ['kick', 'kmin', 'kmax']
+    kick: float = None 
 
 
 @dataclass
-class PyatData(ElementBaseProperties):
+class PyatData(BaseElementData):
     """ Specifc PyAT only data dataclass """
     INIT_PROPERTIES = ['NumIntSteps', 'PassMethod']
     NumIntSteps: int = None

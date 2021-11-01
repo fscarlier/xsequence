@@ -29,7 +29,7 @@ class Lattice:
                 'sequence' for element_list without explicit drifts
         """
         self.name = name
-        self.params = {'key':key, 'energy':kwargs.pop('energy', 0.0)}
+        self.params = {'key':key, 'energy':kwargs.pop('energy', None)}
         self._set_lattice(element_list)
         self._update(**kwargs)
 
@@ -199,12 +199,8 @@ class Lattice:
             madx: cpymad.madx Madx() instance
             seq_name: string, name of madx sequence
         """
-        def convert_cpymad_element_to_fsf(element):
-            base_type = element.base_type.name
-            return fsf.elements.CPYMAD_TO_FSF_MAP[base_type].from_cpymad(element)
-        
         madx.use(seq_name)
-        element_seq = list(map(convert_cpymad_element_to_fsf, 
+        element_seq = list(map(fsf.elements.convert_arbitrary_cpymad_element, 
                                madx.sequence[seq_name].elements))
         
         variables=defaultdict(lambda :0)
@@ -216,13 +212,9 @@ class Lattice:
 
     @classmethod
     def from_pyat(cls, pyat_lattice):
-        def convert_pyat_element_to_fsf(element):
-            base_type = element.__class__.__name__
-            return fsf.elements.PYAT_TO_FSF_MAP[base_type].from_pyat(element)
-
         seq = []
         for el in pyat_lattice:
-            new_element = convert_pyat_element_to_fsf(el)
+            new_element = fsf.elements.convert_arbitrary_pyat_element(el)
             seq.append(new_element)
         return cls(pyat_lattice.name, seq, energy=pyat_lattice.energy*1e-9) 
 
