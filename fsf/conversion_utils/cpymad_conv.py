@@ -21,9 +21,6 @@ def attr_mapping_from_cpymad(cpymad_element):
     for key in DIFF_ATTRIBUTE_MAP_CPYMAD:
         try: cpymad_element[key] = cpymad_element.pop(DIFF_ATTRIBUTE_MAP_CPYMAD[key]) 
         except: KeyError 
-    if 'frequency' in cpymad_element:
-        cpymad_element['frequency'] *= 1e6
-        cpymad_element['voltage'] *= 1e6
     return cpymad_element
 
 
@@ -44,9 +41,6 @@ def attr_mapping_to_cpymad(element_dict):
     for key in DIFF_ATTRIBUTE_MAP_CPYMAD:
         try: element_dict[DIFF_ATTRIBUTE_MAP_CPYMAD[key]] = element_dict.pop(key) 
         except: KeyError 
-    if 'freq' in element_dict:
-        element_dict['freq'] /= 1e6
-        element_dict['volt'] /= 1e6
     if 'kn' in element_dict:
         element_dict.pop('kn')
     if 'ks' in element_dict:

@@ -47,6 +47,12 @@ def attr_mapping_from_pyat(pyat_element):
     if 'ks' in element_kw:
         element_kw['ks'] = element_kw['ks']*FACTORIAL[:len(element_kw['ks'])]
 
+    if 'voltage' in element_kw:
+        element_kw['voltage'] = element_kw['voltage'] / 1e6
+
+    if 'frequency' in element_kw:
+        element_kw['frequency'] = element_kw['frequency'] / 1e6
+
     if 'EApertures' in pyat_element:
         element_kw['aperture_data'] = xed.EllipticalAperture(aperture_size=pyat_element['EApertures'], 
                                                              aperture_type='ellipse') 
@@ -90,6 +96,12 @@ def attr_mapping_to_pyat(xe_element):
     
     if 'PolynomA' in pyat_element_kw:
         pyat_element_kw['PolynomA'] = pyat_element_kw['PolynomA']/FACTORIAL[:len(pyat_element_kw['PolynomA'])]
+
+    if 'Voltage' in pyat_element_kw:
+        pyat_element_kw['Voltage'] = pyat_element_kw['Voltage'] * 1e6
+
+    if 'Frequency' in pyat_element_kw:
+        pyat_element_kw['Frequency'] = pyat_element_kw['Frequency'] * 1e6
 
     return pyat_element_kw
 

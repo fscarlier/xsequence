@@ -25,7 +25,10 @@ class Lattice:
             self.line._set_positions()
         elif self.params['key'] == 'sequence':
             self.sequence = Sequence(element_list)
-    
+
+        if 'xdeps_manager' in kwargs:
+            self.xdeps_manager = kwargs['xdeps_manager']
+
     def get_total_length(self) -> float:
         return self.line._get_total_length()
 
@@ -47,7 +50,7 @@ class Lattice:
 
     @classmethod
     def from_cpymad(cls, madx, seq_name):
-        variables, element_seq = lc.from_cpymad(madx, seq_name)
+        variables, element_seq = lc.from_cpymad(madx, seq_name, dependencies=True)
         return cls(seq_name, element_seq, key='sequence', 
                    energy=madx.sequence[seq_name].beam.energy, global_variables=variables) 
 
