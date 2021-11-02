@@ -11,26 +11,53 @@ def from_cpymad(madx, seq_name):
         madx: cpymad.madx Madx() instance
         seq_name: string, name of madx sequence
     """
-    madx.use(seq_name)
-    element_seq = list(map(xe.convert_arbitrary_cpymad_element, 
-                            madx.sequence[seq_name].elements))
-    
-    element_seq = {el.name: xe.convert_arbitrary_cpymad_element(el) for el in madx.sequence[seq_name].elements}
+import time
+from fsf.lattice import Lattice
+import fsf.elements as xe 
+from collections import OrderedDict
 
-    lat_seq = OrderedDict()
-    elements={}
-    lat_go = False
-    for elem in madx.sequence[seq_name].elements:
-        name = elem.name
-        elemdata={}
-        for parname, par in elem.cmdpar.items():
-            elemdata[parname]=par.value
-        elements[name]=elemdata
-        if 'start' in name:
-            lat_go = True
-        if lat_go:
-            lat_seq[name] = xe.convert_arbitrary_cpymad_element(elem) 
+def timeit():
+    if hasattr(timeit,'start'):
+        newstart=time.time()
+        print(f"Elapsed: {newstart-timeit.start:13.9f} sec")
+    timeit.start=time.time()
 
+
+timeit()
+from cpymad.madx import Madx
+mad=Madx(stdout=False)
+mad.call("lhc.seq")
+mad.call("optics.madx")
+timeit()
+
+seq_name = 'lhcb1'
+
+mad.use(seq_name)
+timeit()
+element_seq = list(map(xe.convert_arbitrary_cpymad_element, 
+                        mad.sequence[seq_name].elements))
+print('list comprehension')
+timeit()
+element_seq = {el.name: xe.convert_arbitrary_cpymad_element(el) for el in madx.sequence[seq_name].elements}
+print('dict comprehension')
+timeit()
+
+lat_seq = OrderedDict()
+elements={}
+lat_go = False
+for elem in mad.sequence[seq_name].elements:
+    name = elem.name
+    elemdata={}
+    for parname, par in elem.cmdpar.items():
+        elemdata[parname]=par.value
+    elements[name]=elemdata
+    if 'start' in name:
+        lat_go = True
+    if lat_go:
+        lat_seq[name] = xe.convert_arbitrary_cpymad_element(elem) 
+
+print('full loop')
+timeit()
 
     variables=defaultdict(lambda :0)
     for name,par in madx.globals.cmdpar.items():

@@ -30,6 +30,9 @@ class ElementDict(OrderedDict):
     def positions(self):
         return [self[element].position_data.position for element in self]
 
+    def get_last_element(self):
+        return self[self.names[-1]]    
+
     def get_s_positions(self, reference='center'):
         if reference == 'center': 
             return [self[name].position_data.position for name in self.names]
@@ -56,8 +59,11 @@ class ElementDict(OrderedDict):
                 key = _key_to_idx_slice(names, key)
             names = names[key]
             return ElementDict({name:self[name] for name in names})
-        return super().__getitem__(key)
-
+        else:
+            if isinstance(key, int):
+                return self[self.names[key]]
+            else:
+                return super().__getitem__(key)
 
 class Line(ElementDict):
     def _set_positions(self):

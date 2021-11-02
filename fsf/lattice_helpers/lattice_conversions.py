@@ -9,7 +9,7 @@ import scipy, at
 import fsf.elements as xe
 from cpymad.madx import Madx
 import xline as xl
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from typing import List, Tuple, Dict
 from fsf.lattice_baseclasses import Sequence, Line
 
@@ -24,45 +24,59 @@ def from_madx_seqfile(seq_file, energy: float, particle_type: str = 'electron') 
     return madx
 
 
-def from_cpymad(madx: Madx, seq_name: str) -> Tuple(Dict, List):
+def from_cpymad(madx: Madx, seq_name: str) -> Tuple[Dict, OrderedDict]:
     """ Import lattice from cpymad sequence """
     madx.use(seq_name)
-    element_seq = list(map(xe.convert_arbitrary_cpymad_element, 
-                            madx.sequence[seq_name].elements))
     
+    sequence_dict = OrderedDict()
+    lat_go = False
+    for elem in madx.sequence[seq_name].elements:
+        elemdata={}
+        for parname, par in elem.cmdpar.items():
+            elemdata[parname]=par.value
+        if 'start' in elem.name:
+            lat_go = True
+        if lat_go:
+            sequence_dict[elem.name] = xe.convert_arbitrary_cpymad_element(elem) 
+
     variables=defaultdict(lambda :0)
     for name,par in madx.globals.cmdpar.items():
         variables[name]=par.value
-    return variables, element_seq 
+
+    return variables, sequence_dict 
 
 
-def from_pyat(pyat_lattice: at.Lattice) -> List[xe.BaseElement]:
-    seq = []
+def from_pyat(pyat_lattice: at.Lattice) -> OrderedDict:
+    seq = OrderedDict()
     for el in pyat_lattice:
-        new_element = xe.convert_arbitrary_pyat_element(el)
-        seq.append(new_element)
+        name = el.FamName
+        if name in seq.keys():
+            n = 1
+            while f"{name}_{n}" in seq.keys():
+                n += 1
+            name = f"{name}_{n}"
+        seq[name] = xe.convert_arbitrary_pyat_element(el)
     return seq 
 
 
-def to_cpymad(seq_name: str, sequence: Sequence) -> Madx:
+def to_cpymad(seq_name: str, energy: float, sequence: Sequence) -> Madx:
     madx = Madx()
     madx.option(echo=False, info=False, debug=False)
     seq_command = ''
     
-    elements = sequence
-    for element in elements[1:-1]:
+    for name, element in sequence[1:-1].items():
         element.to_cpymad(madx)
-        seq_command += f'{element.name}, at={element.position_data.position}  ;\n'
-    
-    madx.input(f'{seq_name}: sequence, refer=centre, l={sequence[-1].position_data.end};')
+        seq_command += f'{name}, at={element.position_data.position}  ;\n'
+     
+    madx.input(f'{seq_name}: sequence, refer=centre, l={sequence[sequence.names[-1]].position_data.end};')
     madx.input(seq_command)
     madx.input('endsequence;')
-    madx.command.beam(particle='electron', energy=self.params['energy'])
+    madx.command.beam(particle='electron', energy=energy)
     return madx
 
 
 def to_pyat(seq_name: str, energy: float, line: Line) -> at.Lattice:
-    seq = [element.to_pyat() for element in line]
+    seq = [line[element].to_pyat() for element in line]
     pyat_lattice = at.Lattice(seq, name=seq_name, key='ring', energy=energy)
     for cav in at.get_elements(pyat_lattice, at.RFCavity):
         cav.Frequency = cav.HarmNumber*scipy.constants.c/pyat_lattice.circumference 
