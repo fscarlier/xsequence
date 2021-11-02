@@ -1,7 +1,7 @@
 import fsf.lattice as lat
-from toolkit.pyat_functions import get_optics_pyat
+from fsf.helpers.pyat_functions import get_optics_pyat
 import pytest
-from conversion_utils import conv_utils
+from fsf.conversion_utils import conv_utils
 
 
 @pytest.fixture(scope="module")
