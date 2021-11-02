@@ -7,6 +7,7 @@ This is a Python3 module containing base Lattice class to manipulate accelerator
 
 import scipy
 import numpy as np
+import fsf.elements as xe
 from fsf.helpers import pyat_functions
 from collections import OrderedDict
 from fsf.lattice_baseclasses import Line, Sequence
@@ -21,6 +22,7 @@ class Lattice:
         
         if self.params['key'] == 'line':
             self.line = Line(element_list)
+            self.line._set_positions()
         elif self.params['key'] == 'sequence':
             self.sequence = Sequence(element_list)
     
@@ -28,12 +30,12 @@ class Lattice:
         return self.line._get_total_length()
 
     def _update_cavity_energy(self):
-        cavities = self.get_class('RFCavity')
+        cavities = self.get_class(xe.RFCavity)
         for cav in cavities:
             cav.rf_data.energy = self.params['energy']
 
     def _update_harmonic_number(self):
-        cavities = self.get_class('RFCavity')
+        cavities = self.get_class(xe.RFCavity)
         for cav in cavities:
             # Approximation for ultr-relativistic electrons
             cav.rf_data.harmonic_number = int(cav.rf_data.frequency/(scipy.constants.c/self.get_total_length()))
@@ -55,12 +57,12 @@ class Lattice:
         return cls(pyat_lattice.name, seq, energy=pyat_lattice.energy*1e-9) 
 
     def to_cpymad(self):
-        lc.to_cpymad(self.name, self.params['energy'], self.sequence)
+        return lc.to_cpymad(self.name, self.params['energy'], self.sequence)
 
     def to_pyat(self):
         self._update_cavity_energy()
         self._update_harmonic_number()
-        lc.to_pyat(self.name, self.params['energy']*1e9, self.line)
+        return lc.to_pyat(self.name, self.params['energy']*1e9, self.line)
 
     def to_xline(self):
         lc.to_xline(self.sliced.line) 
@@ -107,9 +109,9 @@ class Lattice:
                     mask[el_idx] = False
             self.sequence = np.array(self.sequence)[mask]
 
-    def get_class(self, class_names: List[str]):
+    def get_class(self, class_type: xe.BaseElement) -> List[xe.BaseElement]:
         """ Get list of elements matching given class """
-        return [self.line[element] for element in self.line if isinstance(self.line[element], class_names)]
+        return [self.line[element] for element in self.line if isinstance(self.line[element], class_type)]
 
     def convert_sbend_to_rbend(self):
         """ Convert all rbends to sbends in sequence """
