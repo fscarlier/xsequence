@@ -43,6 +43,7 @@ DEPENDENCIES = [
     "cpymad>=1.8.1", 
     "xline", 
     "accelerator-toolbox",
+    "xdeps",
     ]
 
 # Extra dependencies
