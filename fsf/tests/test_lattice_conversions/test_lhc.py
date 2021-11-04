@@ -28,7 +28,7 @@ def example_cpymad_fsf_cpymad():
     madx_lattice.call(str(TEST_SEQ_DIR / "lhc.seq"))
     madx_lattice.call(str(TEST_SEQ_DIR / "optics.madx"))
     madx_lattice.options.rbarc = True
-    fsf_lattice = Lattice.from_cpymad(madx_lattice, seq_name, dependencies=True)
+    fsf_lattice = Lattice.from_cpymad(madx_lattice, seq_name, dependencies=False)
     madx_lattice_new = fsf_lattice.to_cpymad()
     
     madx_lattice.command.beam(particle='proton')
