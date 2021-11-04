@@ -111,9 +111,9 @@ def from_cpymad(madx: Madx, seq_name: str):
 def from_cpymad_with_dependencies(madx: Madx, seq_name: str, dependencies: bool = False):
     variables, sequence_dict = from_cpymad(madx, seq_name)
     manager = xdeps.DepManager()
-    vref = manager.ref(variables,'variables')
-    mref = manager.ref(math,'math')
-    lref = manager.ref(sequence_dict,'lattice')
+    vref = manager.ref(variables,'v')
+    mref = manager.ref(math,'m')
+    lref = manager.ref(sequence_dict,'l')
     madeval = XSequenceMadxEval(vref,mref,lref).eval
 
     for name,par in madx.globals.cmdpar.items():
