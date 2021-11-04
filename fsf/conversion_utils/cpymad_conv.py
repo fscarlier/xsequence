@@ -5,21 +5,12 @@ Module conversion_utils.cpymad_conv
 This is a Python3 module with functions for importing and exporting elements from and to cpymad
 """
 
-DIFF_ATTRIBUTE_MAP_CPYMAD = {
-                        'length': 'l', 
-                        'location': 'at', 
-                        'reference_element': 'from', 
-                        'voltage': 'volt', 
-                        'frequency': 'freq', 
-                        'calibration': 'calib',
-                        'aperture_size':'aperture',
-                        'aperture_type':'apertype',
-                        }
+import fsf.conversion_utils.cpymad_properties as madx_attr
 
 
 def attr_mapping_from_cpymad(cpymad_element):
-    for key in DIFF_ATTRIBUTE_MAP_CPYMAD:
-        try: cpymad_element[key] = cpymad_element.pop(DIFF_ATTRIBUTE_MAP_CPYMAD[key]) 
+    for key in madx_attr.DIFF_ATTRIBUTE_MAP_CPYMAD:
+        try: cpymad_element[key] = cpymad_element.pop(madx_attr.DIFF_ATTRIBUTE_MAP_CPYMAD[key]) 
         except: KeyError 
     return cpymad_element
 
@@ -38,9 +29,15 @@ def from_cpymad(xs_cls, cpymad_element, name=None):
 
 
 def attr_mapping_to_cpymad(element_dict):
-    for key in DIFF_ATTRIBUTE_MAP_CPYMAD:
-        try: element_dict[DIFF_ATTRIBUTE_MAP_CPYMAD[key]] = element_dict.pop(key) 
-        except: KeyError 
+    for key in madx_attr.DIFF_ATTRIBUTE_MAP_CPYMAD:
+        try: element_dict[madx_attr.DIFF_ATTRIBUTE_MAP_CPYMAD[key]] = element_dict.pop(key) 
+        except: KeyError
+
+    if 'knl' in element_dict:
+        element_dict['knl'] = list(element_dict['knl'])
+    if 'ksl' in element_dict:
+        element_dict['ksl'] = list(element_dict['ksl'])
+ 
     if 'kn' in element_dict:
         element_dict.pop('kn')
     if 'ks' in element_dict:
@@ -49,14 +46,23 @@ def attr_mapping_to_cpymad(element_dict):
 
 
 def to_cpymad(element, madx):
-    mapped_attr = attr_mapping_to_cpymad(element.get_dict())
     base_type = element.__class__.__name__
     madx_base_type = base_type.lower()
+    if base_type == 'SectorBend':
+        madx_base_type = 'sbend'
     if base_type == 'RectangularBend':
+        madx_base_type = 'rbend'
+    if base_type == 'ThinMultipole':
+        madx_base_type = 'multipole'
+
+    el_dict = element.get_dict()
+    el_dict = attr_mapping_to_cpymad(el_dict)
+    mapped_attr = {k:el_dict[k] for k in madx_attr.ELEM_DICT[madx_base_type] if k in el_dict}
+    if madx_base_type == 'rbend':
         mapped_attr['l'] = element._chord_length
         mapped_attr['e1'] = element._rbend_e1
         mapped_attr['e2'] = element._rbend_e2
-        madx_base_type = 'rbend'
+    
     if 'reference' in mapped_attr:
         mapped_attr.pop('reference')
     return madx.command[madx_base_type].clone(element.name, **mapped_attr)

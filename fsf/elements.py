@@ -6,44 +6,54 @@ This is a Python3 module containing base element classes element property datacl
 """
 
 import math
+import numpy as np
 import fsf.elements_dataclasses as xed
 import fsf.elements_functions as xef
 from fsf.conversion_utils import conv_utils, cpymad_conv, pyat_conv, xline_conv
+from abc import ABC, abstractmethod
+
+
+
+class ShouldUseMultipoleError(Exception):
+    """Exception raised for trying to define kn/ks for Quadrupole, Sextupole, Octupole."""
+    def __init__(self, name: str, attr: str):
+        self.name = name
+        self.attr = attr
+        self.message = f'Cannot define {attr} for element {name} -> Should use Multipole class instead'
+        super().__init__(self.message)
+
 
 
 class BaseElement():
     """Class containing base element properties and methods"""
+    
+    length = xef._property_factory('position_data', 'length', docstring='Get and set length attribute')
+    position = xef._property_factory('position_data', 'position', docstring='Get and set position attribute')
+    
     def __init__(self, name: str, **kwargs):
         self.name = name
         if kwargs is None:
-            kwargs = {'temp':0}
+            kwargs = {'empty_kw_dict':None}
         self.id_data = kwargs.pop('id_data', conv_utils.get_id_data(**kwargs))
+        self.parameter_data = kwargs.pop('parameter_data', conv_utils.get_parameter_data(**kwargs))
         self.position_data = kwargs.pop('position_data', conv_utils.get_position_data(**kwargs)) 
         self.aperture_data = kwargs.pop('aperture_data', None)
         self.pyat_data = kwargs.pop('pyat_data', None)
-        
-    def get_repr_attributes(self):
-        repr_attributes = []
-        data_attribute_list = ['id_data', 'position_data', 'aperture_data',
-                               'strength_data', 'solenoid_data', 'bend_data',
-                               'rf_data']
+    
+    def _set_as_dict(self, key, value):
+        if key == xed.ElementID.INIT_PROPERTIES:
+            setattr(self.id_data, key, value)
+        elif key == xed.ElementParameterData.INIT_PROPERTIES:
+            setattr(self.parameter_data, key, value)
+        elif key == xed.ElementPosition.INIT_PROPERTIES:
+            setattr(self.position_data, key, value)
+        elif key == xed.ApertureData.INIT_PROPERTIES:
+            setattr(self.aperture_data, key, value)
+        elif key == xed.PyatData.INIT_PROPERTIES:
+            setattr(self.pyat_data, key, value)
+        else:
+            setattr(self, key, value)
 
-        for key in data_attribute_list:
-            try:
-                att =  getattr(self, key)
-                if att is not None:
-                    repr_attributes.append(key)
-            except: AttributeError
-        return repr_attributes
-        
-    @property
-    def length(self):
-        return self.position_data.length
-    
-    @length.setter
-    def length(self, length: float):
-        self.position_data.length = length
-    
     @classmethod
     def from_cpymad(cls, cpymad_element):
         """ Create Xsequence Element instance from cpymad element """
@@ -67,6 +77,7 @@ class BaseElement():
         return xline_conv.convert_element_to_xline(self)
 
     def _get_slice_positions(self, num_slices=1):
+        """ Create Xline element instance from element """
         return xef.get_teapot_slicing_positions(self.position_data, num_slices)
     
     def _get_sliced_element(self, num_slices=1, thin_class=None, **kwargs):
@@ -78,39 +89,50 @@ class BaseElement():
 
     def get_dict(self):
         attr_dict = {}
-        for k in self.get_repr_attributes():
-            attr_dict.update(dict(getattr(self,k)))
+        for k in self.__dict__:
+            if isinstance(getattr(self, k), xed.BaseElementData):
+                attr_dict.update(dict(getattr(self,k)))
+            else:
+                attr_dict[k] = getattr(self, k)
         return attr_dict
 
     def __eq__(self, other):
         if self.__class__.__name__ != other.__class__.__name__:
-            print('class name')
             return False
-        compare_list = ['name'] + self.get_repr_attributes()
-        for k in compare_list:
-            if getattr(self, k) != getattr(other, k):
-                print(k)
-                print('attribute false')
-                return False
+        for k in self.__dict__:
+            if k in ['kn', 'ks', 'knl', 'ksl']:
+                if len(getattr(self, k)) != len(getattr(other, k)):
+                    return False
+                arr_eq = np.isclose(getattr(self, k), getattr(other, k), rtol=1e-8)
+                if False in arr_eq:
+                    return False
+            else:
+                if getattr(self, k) != getattr(other, k):
+                    return False
         return True
 
     def __repr__(self) -> str:
-        content = ''.join([f', {x}={getattr(self, x)}' for x in self.get_repr_attributes()])
-        return f'{self.__class__.__name__}(' + f'{self.name}' + content + ')'
+        content = ''.join([f', {x}={getattr(self, x)}' for x in self.__dict__ if x != 'name'])
+        return f'{self.__class__.__name__}({self.name}{content})'
 
 
-class ThinBaseElement(BaseElement):
-    """ Thin base element class """
+class ThickElement(ABC):
+    """ Thick element class """
+    @abstractmethod
+    def slice_element(self):
+        pass
+
+
+class ThinElement:
+    """ Thin element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
-        assert self.length == 0.0, f"ThinBaseElement {name} has non-zero length"
+        assert self.length == 0.0, f"BaseElement, ThinElement {name} has non-zero length"
 
 
-class Marker(BaseElement):
+class Marker(BaseElement, ThinElement):
     """ Marker element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        assert self.length == 0.0, f"Marker {name} has non-zero length"
     
 
 class Drift(BaseElement):
@@ -127,255 +149,310 @@ class Collimator(Drift):
 
 
 class Monitor(Drift):
+    """ Monitor element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
 
 
 class Placeholder(Drift):
+    """ Placeholder element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
 
 
 class Instrument(Drift):
+    """ Instrument element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
 
 
 class SectorBend(BaseElement):
-    """ Sbend element class """
+    """ Sector bend element class """
     def __init__(self, name: str, **kwargs):
+        self.angle = kwargs.pop('angle', 0.0)
+        self.e1 = kwargs.pop('e1', 0.0)
+        self.e2 = kwargs.pop('e2', 0.0)
+        self.k0 = kwargs.pop('k0', 0.0)
         super().__init__(name, **kwargs)
-        
-        self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs)) 
-        self.strength_data = kwargs.pop('strength_data', conv_utils.get_strength_data(strength_class=xed.QuadrupoleData, **kwargs))
-
-    def _get_sliced_strength(self, num_slices=1):
-        return xef.get_sliced_bend_strength(self.bend_data, num_slices)
 
     def _get_DipoleEdge(self, side):
-        assert side in ['start', 'end']
-        h = self.bend_data.angle/self.length
-        if side == 'start':
-            return DipoleEdge(f'{self.name}_edge_{side}', side=side, h=h, e1=self.bend_data.e1, location=self.position_data.start)
-        elif side == 'end':
-            return DipoleEdge(f'{self.name}_edge_{side}', side=side, h=h, e1=self.bend_data.e2, location=self.position_data.end)
+        h = self.angle/self.length
+        if side == 'entrance':
+            return DipoleEdge(f'{self.name}_edge_{side}', 
+                                side=side, h=h, edge_angle=self.e1, 
+                                location=self.position_data.start)
+        elif side == 'exit':
+            return DipoleEdge(f'{self.name}_edge_{side}', 
+                                side=side, h=h, edge_angle=self.e2, 
+                                location=self.position_data.end)
 
     def slice_element(self, num_slices=1):
-        strength_data = self._get_sliced_strength(num_slices=num_slices)
-        sliced_bend =  self._get_sliced_element(num_slices=num_slices, thin_class=ThinMultipole, strength_data=strength_data) 
-        sliced_bend.insert(0, self._get_DipoleEdge('start'))
-        sliced_bend.append(self._get_DipoleEdge('end'))
+        knl = [self.angle / num_slices]
+        sliced_bend =  self._get_sliced_element(num_slices=num_slices, thin_class=ThinMultipole, knl=knl) 
+        sliced_bend.insert(0, self._get_DipoleEdge('entrance'))
+        sliced_bend.append(self._get_DipoleEdge('exit'))
         return sliced_bend
-
-
-    def _calc_length(self, angle: float, chord_length: float):
-        return (angle*chord_length)/(2*math.sin(angle/2.))
 
     def _calc_chordlength(self, angle: float, length: float) :
         return length*(2*math.sin(angle/2.))/angle
 
 
 class RectangularBend(SectorBend):   
-    """ Rbend element class """
+    """ Rectangular bend element class """
     def __init__(self, name: str, **kwargs):
         self._chord_length = kwargs.pop('length', 0)
         self._rbend_e1 = kwargs.pop('e1', 0)
         self._rbend_e2 = kwargs.pop('e2', 0)
-        kwargs['length'] = self._calc_length(kwargs['angle'], self._chord_length)
+        kwargs['length'] = self._calc_arclength(kwargs['angle'], self._chord_length)
         kwargs['e1'] = self._rbend_e1+abs(kwargs['angle'])/2.
         kwargs['e2'] = self._rbend_e2+abs(kwargs['angle'])/2.
-        
         super().__init__(name, **kwargs)
-        
-        self.bend_data = kwargs.pop('bend_data', conv_utils.get_bend_data(**kwargs))
-        self.strength_data = kwargs.pop('strength_data', conv_utils.get_strength_data(strength_class=xed.QuadrupoleData, **kwargs))
 
-    def _get_sliced_strength(self, num_slices=1):
-        return xef.get_sliced_bend_strength(self.bend_data, num_slices)
+    def _calc_arclength(self, angle: float, chord_length: float):
+        return (angle*chord_length)/(2*math.sin(angle/2.))
 
 
 class DipoleEdge(BaseElement):
     """ Dipole edge element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=DipoleEdge, **kwargs)
+        self.h = kwargs.pop('h', 0.0) 
+        self.edge_angle = kwargs.pop('edge_angle', 0.0)
+        self.side = kwargs.pop('side', 'entrance')
+        assert self.side in ['entrance', 'exit']
+        super().__init__(name, **kwargs)
 
 
 class Solenoid(BaseElement):
     """ Solenoid element class """
     def __init__(self, name: str, **kwargs):
+        self.ks = kwargs.pop('ks', 0.0)
         super().__init__(name, **kwargs)
-
-        self.solenoid_data = kwargs.pop('solenoid_data', 
-                                xed.SolenoidData(**{k:kwargs[k] for k in xed.SolenoidData.INIT_PROPERTIES if k in kwargs})
-                             )
-
-    def _get_sliced_strength(self, num_slices=1):
-        return xef.get_sliced_solenoid_strength(self.solenoid_data, num_slices)
-
-    def slice_element(self, num_slices=1):
-        solenoid_data = self._get_sliced_strength(num_slices=num_slices)
-        return self._get_sliced_element(num_slices=num_slices, thin_class=ThinSolenoid, solenoid_data=solenoid_data) 
-    
-    @property
-    def ks(self):
-        return self.strength_data.ks
-    
-    @ks.setter
-    def ks(self, ks: float):
-        self.strength_data.ks = ks
-
+        
     @property
     def ksi(self):
-        return self.strength_data.ks*self.length
-    
+        return self.ks*self.length
+
     @ksi.setter
     def ksi(self, ksi: float):
-        self.strength_data.ks = ksi/self.length
-
-
-class Multipole(BaseElement):
-    """ Multipole element class """
-    def __init__(self, name: str, strength_class=xed.ThinMultipoleStrengthData, **kwargs):
-        super().__init__(name, **kwargs)
-        self.strength_data = kwargs.pop('strength_data', conv_utils.get_strength_data(strength_class=strength_class, **kwargs))
-        
+        self.ks = ksi/self.length
+    
     def _get_sliced_strength(self, num_slices=1):
-        return xef.get_sliced_multipole_strength(self.strength_data, num_slices)
+        return self.ksi/num_slices
 
     def slice_element(self, num_slices=1):
-        strength_data = self._get_sliced_strength(num_slices=num_slices)
-        return self._get_sliced_element(num_slices=num_slices, thin_class=ThinMultipole, strength_data=strength_data) 
+        ksi_sliced = self._get_sliced_strength(num_slices=num_slices)
+        return self._get_sliced_element(num_slices=num_slices, thin_class=ThinSolenoid, ksi=ksi_sliced) 
+    
 
+class _BaseMultipole(ABC):
+    """ Multipole element class """
+    def slice_element(self, num_slices=1):
+        knl_sliced = self.knl / num_slices
+        ksl_sliced = self.ksl / num_slices
+        return self._get_sliced_element(num_slices=num_slices, thin_class=ThinMultipole, knl=knl_sliced, ksl=ksl_sliced) 
+    
+    @property
+    @abstractmethod
+    def kn(self):
+        pass 
+    
+    @property
+    @abstractmethod
+    def ks(self):
+        pass 
+    
+    @kn.setter
+    @abstractmethod
+    def kn(self):
+        pass 
+    
+    @ks.setter
+    @abstractmethod
+    def ks(self):
+        pass 
+    
     @property
     def knl(self):
-        return self.strength_data.kn*self.length
+        return self.kn*self.length
+    
+    @property
+    def ksl(self):
+        return self.kn*self.length
     
     @knl.setter
     def knl(self, knl):
-        self.strength_data.kn = knl/self.length
+        self.kn = knl / self.length
+    
+    @ksl.setter
+    def ksl(self, ksl):
+        self.kn = ksl / self.length
 
 
-class Quadrupole(Multipole):
+class Multipole(BaseElement, _BaseMultipole):
+    """ Multipole element class """
+    def __init__(self, name: str, **kwargs):
+        self.kn = kwargs.pop('kn', np.zeros(2))
+        self.ks = kwargs.pop('ks', np.zeros(2))
+        super().__init__(name, **kwargs)
+        
+    @property
+    def kn(self):
+        return self._kn 
+
+    @kn.setter
+    def kn(self, kn):
+        self._kn = kn 
+
+    @property
+    def ks(self):
+        return self._ks 
+    
+    @ks.setter
+    def ks(self, ks):
+        self._ks = ks 
+    
+    def _update_arrays(self, min_order: int = 1):
+        kn = np.trim_zeros(self.kn, trim='b')
+        ks = np.trim_zeros(self.ks, trim='b')
+        if len(kn) == 0: kn = np.zeros(1)
+        if len(ks) == 0: ks = np.zeros(1)
+        self.order = max(len(kn), len(ks), min_order)
+        self.kn = np.pad(kn, (0, self.order-len(kn)))
+        self.ks = np.pad(ks, (0, self.order-len(ks)))
+
+
+class Quadrupole(BaseElement, _BaseMultipole):
     """ Quadrupole element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=xed.QuadrupoleData, **kwargs)
+        self.k1 = kwargs.pop('k1', 0.0)
+        self.k1s = kwargs.pop('k1s', 0.0)
+        super().__init__(name, **kwargs)
 
     @property
-    def k1(self):
-        return self.strength_data.k1
-    
-    @k1.setter
-    def k1(self, k1: float):
-        self.strength_data.k1 = k1
+    def kn(self):
+        return np.array([0.0, self.k1]) 
 
     @property
-    def k1s(self):
-        return self.strength_data.k1s
+    def ks(self):
+        return np.array([0.0, self.k1s]) 
     
-    @k1s.setter
-    def k1s(self, k1s: float):
-        self.strength_data.k1s = k1s
+    @kn.setter
+    def kn(self, kn):
+        raise ShouldUseMultipoleError(self.name, 'kn') 
+
+    @ks.setter
+    def ks(self, ks):
+        raise ShouldUseMultipoleError(self.name, 'ks') 
 
 
-class Sextupole(Multipole):
+
+class Sextupole(BaseElement, _BaseMultipole):
     """ Sextupole element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=xed.SextupoleData, **kwargs)
+        self.k2 = kwargs.pop('k2', 0.0)
+        self.k2s = kwargs.pop('k2s', 0.0)
+        super().__init__(name, **kwargs)
+    
+    @property
+    def kn(self):
+        return np.array([0.0, 0.0, self.k2]) 
 
     @property
-    def k2(self):
-        return self.strength_data.k2
+    def ks(self):
+        return np.array([0.0, 0.0, self.k2s]) 
     
-    @k2.setter
-    def k1(self, k2: float):
-        self.strength_data.k2 = k2
+    @kn.setter
+    def kn(self, kn):
+        raise ShouldUseMultipoleError(self.name, 'kn') 
 
-    @property
-    def k2s(self):
-        return self.strength_data.k2s
-    
-    @k2s.setter
-    def k2s(self, k2s: float):
-        self.strength_data.k2s = k2s
+    @ks.setter
+    def ks(self, ks):
+        raise ShouldUseMultipoleError(self.name, 'ks') 
 
 
-class Octupole(Multipole):
+class Octupole(BaseElement, _BaseMultipole):
     """ Octupole element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=xed.OctupoleData, **kwargs)
+        self.k3 = kwargs.pop('k3', 0.0)
+        self.k3s = kwargs.pop('k3s', 0.0)
+        super().__init__(name, **kwargs)
 
     @property
-    def k3(self):
-        return self.strength_data.k3
-    
-    @k3.setter
-    def k3(self, k3: float):
-        self.strength_data.k3 = k3
+    def kn(self):
+        return np.array([0.0, 0.0, 0.0, self.k3]) 
 
     @property
-    def k3s(self):
-        return self.strength_data.k3s
+    def ks(self):
+        return np.array([0.0, 0.0, 0.0, self.k3s]) 
     
-    @k3s.setter
-    def k3s(self, k3s: float):
-        self.strength_data.k3s = k3s
+    @kn.setter
+    def kn(self, kn):
+        raise ShouldUseMultipoleError(self.name, 'kn') 
+
+    @ks.setter
+    def ks(self, ks):
+        raise ShouldUseMultipoleError(self.name, 'ks') 
 
 
 class RFCavity(BaseElement):
     """ RFCavity element class """
     def __init__(self, name: str, **kwargs):
+        self.voltage = kwargs.pop('voltage', 0.0)
+        self.frequency = kwargs.pop('frequency', 0.0)
+        self.lag = kwargs.pop('lag', 0.0)
+        self.energy = kwargs.pop('energy', 0.0)
+        self.harmonic_number = kwargs.pop('harmonic_number', 0.0)
         super().__init__(name, **kwargs)
-        self.rf_data = kwargs.pop('rf_data', conv_utils.get_rf_data(**kwargs))
-        
+
 
 class HKicker(BaseElement):
+    """ Horizontal kicker element class """
     def __init__(self, name: str, **kwargs):
+        self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
-        self.kick_data = kwargs.pop('kick_data', conv_utils.get_kick_data(kick_class=xed.HKickerData, **kwargs))
 
 
 class VKicker(BaseElement):
+    """ Vertical kicker element class """
     def __init__(self, name: str, **kwargs):
+        self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
-        self.kick_data = kwargs.pop('kick_data', conv_utils.get_kick_data(kick_class=xed.VKickerData, **kwargs))
 
 
 class TKicker(BaseElement):
+    """ TKicker element class """
     def __init__(self, name: str, **kwargs):
+        self.vkick = kwargs.pop('vkick', 0.0)
+        self.hkick = kwargs.pop('hkick', 0.0)
         super().__init__(name, **kwargs)
-        self.kick_data = kwargs.pop('kick_data', conv_utils.get_kick_data(**kwargs))
 
 
-class ThinMultipole(BaseElement):
+class ThinMultipole(BaseElement, ThinElement):
     """ Thin multipole element class """
     def __init__(self, name: str, **kwargs):
-        super().__init__(name, strength_class=xed.ThinMultipoleStrengthData, **kwargs)
-        self.radiation_length = kwargs.pop('radiation_length', 0)
-        assert self.length == 0
+        self.knl = kwargs.pop('knl', np.zeros(2))
+        self.ksl = kwargs.pop('ksl', np.zeros(2))
+        super().__init__(name, **kwargs)
 
 
-class ThinSolenoid(BaseElement):
+class ThinSolenoid(BaseElement, ThinElement):
     """ ThinSolenoid element class """
     def __init__(self, name: str, **kwargs):
+        self.ksi = kwargs.pop('ksi', 0.0)
         super().__init__(name, **kwargs)
-        self.solenoid_data = kwargs.pop('solenoid_data', conv_utils.get_solenoid_data(**kwargs))
-        self.radiation_length = kwargs.pop('radiation_length', 0)
-        assert self.length == 0
 
     @property
-    def ksi(self):
-        return self.strength_data.ks*self.length
+    def ks(self):
+        return self.ksi/self.position_data.radiation_length
     
-    @ksi.setter
-    def ksi(self, ksi: float):
-        self.strength_data.ks = ksi/self.length
+    @ks.setter
+    def ks(self, ks: float):
+        self.ksi = ks * self.position_data.radiation_length
 
 
-class ThinRFMultipole(RFCavity):
+class ThinRFMultipole(BaseElement, ThinElement):
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-        self.radiation_length = kwargs.pop('radiation_length', 0)
-        assert self.length == 0
 
 
 CPYMAD_TO_FSF_MAP = { 
@@ -389,7 +466,7 @@ CPYMAD_TO_FSF_MAP = {
                     'rbend'           : RectangularBend,     
                     'dipedge'         : DipoleEdge     ,  
                     'solenoid'        : Solenoid       ,  
-                    'multipole'       : Multipole      ,  
+                    'multipole'       : ThinMultipole      ,  
                     'quadrupole'      : Quadrupole     ,  
                     'sextupole'       : Sextupole      ,  
                     'octupole'        : Octupole       ,  
@@ -402,6 +479,8 @@ CPYMAD_TO_FSF_MAP = {
                     'thinrfmultipole' : ThinRFMultipole, 
                     }
 
+CPYMAD_TO_FSF_MAP_INVERTED = {v: k for k, v in CPYMAD_TO_FSF_MAP.items()}
+
 
 PYAT_TO_FSF_MAP = {'Marker': Marker, 
                    'Drift':  Drift, 
@@ -410,6 +489,8 @@ PYAT_TO_FSF_MAP = {'Marker': Marker,
                    'Sextupole': Sextupole, 
                    'Collimator': Collimator, 
                    'RFCavity': RFCavity}
+
+PYAT_TO_FSF_MAP_INVERTED = {v: k for k, v in PYAT_TO_FSF_MAP.items()}
                 
 
 
@@ -419,3 +500,5 @@ def convert_arbitrary_cpymad_element(cpymad_element):
 
 def convert_arbitrary_pyat_element(pyat_element):
     return PYAT_TO_FSF_MAP[pyat_element.__class__.__name__].from_pyat(pyat_element)
+
+

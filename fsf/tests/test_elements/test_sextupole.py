@@ -1,4 +1,5 @@
 import fsf.elements as xe
+import fsf.elements_dataclasses as xed
 from pytest import mark
 from cpymad.madx import Madx
 
@@ -16,6 +17,7 @@ def test_sextupole_length(name, l):
     assert q == q_conv
     
     #PYAT
+    q = xe.Sextupole(name, length=l, pyat_data=xed.PyatData(NumIntSteps=10, PassMethod='StrMPoleSymplectic4Pass'))
     pyat_sext = q.to_pyat()
     assert pyat_sext.FamName == q.name
     assert pyat_sext.Length == q.length
@@ -30,7 +32,7 @@ def test_sextupole_length_k2(name, l, k2):
     q = xe.Sextupole(name, length=l, k2=k2)
     assert q.name == name
     assert q.length == l
-    assert q.strength_data.k2 == k2
+    assert q.k2 == k2
     
     #CPYMAD
     md = Madx()
@@ -38,6 +40,7 @@ def test_sextupole_length_k2(name, l, k2):
     assert q == q_conv
     
     #PYAT
+    q = xe.Sextupole(name, length=l, k2=k2, pyat_data=xed.PyatData(NumIntSteps=10, PassMethod='StrMPoleSymplectic4Pass'))
     pyat_sext = q.to_pyat()
     assert pyat_sext.FamName == q.name
     assert pyat_sext.Length == q.length
@@ -53,7 +56,7 @@ def test_sextupole_length_k2s(name, l, k2s):
     q = xe.Sextupole(name, length=l, k2s=k2s)
     assert q.name == name
     assert q.length == l
-    assert q.strength_data.k2s == k2s
+    assert q.k2s == k2s
     
     #CPYMAD
     md = Madx()
@@ -61,9 +64,11 @@ def test_sextupole_length_k2s(name, l, k2s):
     assert q == q_conv
     
     #PYAT
+    q = xe.Sextupole(name, length=l, k2s=k2s, pyat_data=xed.PyatData(NumIntSteps=10, PassMethod='StrMPoleSymplectic4Pass'))
     pyat_sext = q.to_pyat()
     assert pyat_sext.FamName == q.name
     assert pyat_sext.Length == q.length
+    assert pyat_sext.PolynomA[2]*2. == q.k2s
     q_pyat = xe.Sextupole.from_pyat(pyat_sext)
     assert q == q_pyat
 
@@ -77,8 +82,8 @@ def test_sextupole_length_k2_k2s(name, l, k2, k2s):
     q = xe.Sextupole(name, length=l, k2=k2, k2s=k2s)
     assert q.name == name
     assert q.length == l
-    assert q.strength_data.k2 == k2
-    assert q.strength_data.k2s == k2s
+    assert q.k2 == k2
+    assert q.k2s == k2s
     
     #CPYMAD
     md = Madx()
@@ -86,6 +91,7 @@ def test_sextupole_length_k2_k2s(name, l, k2, k2s):
     assert q == q_conv
     
     #PYAT
+    q = xe.Sextupole(name, length=l, k2=k2, k2s=k2s, pyat_data=xed.PyatData(NumIntSteps=10, PassMethod='StrMPoleSymplectic4Pass'))
     pyat_sext = q.to_pyat()
     assert pyat_sext.FamName == q.name
     assert pyat_sext.Length == q.length

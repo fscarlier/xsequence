@@ -13,12 +13,12 @@ def test_teapot_slice_Sbend_4_slices():
     sb1 = SectorBend('sb1', length=15.0, location=7.5, angle=0.30)
     sliced_element = sb1.slice_element(num_slices=4)
     
-    ref = [DipoleEdge('sb1_edge_start', location=0.0, h=0.02, side='start'), 
-           ThinMultipole('sb1_0', location=1.5, knl=[0.075], rad_length=15/4), 
-           ThinMultipole('sb1_1', location=5.5, knl=[0.075], rad_length=15/4), 
-           ThinMultipole('sb1_2', location=9.5, knl=[0.075], rad_length=15/4), 
-           ThinMultipole('sb1_3', location=13.5, knl=[0.075], rad_length=15/4), 
-           DipoleEdge('sb1_edge_end', location=15.0, h=0.02, side='end')]
+    ref = [DipoleEdge('sb1_edge_entrance', location=0.0, h=0.02, side='entrance'), 
+           ThinMultipole('sb1_0', location=1.5, knl=[0.075], radiation_length=15/4), 
+           ThinMultipole('sb1_1', location=5.5, knl=[0.075], radiation_length=15/4), 
+           ThinMultipole('sb1_2', location=9.5, knl=[0.075], radiation_length=15/4), 
+           ThinMultipole('sb1_3', location=13.5, knl=[0.075], radiation_length=15/4), 
+           DipoleEdge('sb1_edge_exit', location=15.0, h=0.02, side='exit')]
 
     for idx, el in enumerate(ref):
         assert el == sliced_element[idx]       
@@ -28,11 +28,11 @@ def test_teapot_slice_Sbend_3_slices():
     sb1 = SectorBend('sb1', length=15.0, location=7.5, angle=0.30)
     sliced_element = sb1.slice_element(num_slices=3)
     
-    ref = [DipoleEdge('sb1_edge_start', location=0.0, h=0.02, side='start'), 
-           ThinMultipole('sb1_0', location=1.875, knl=[0.1], rad_length=15/3), 
-           ThinMultipole('sb1_1', location=7.5, knl=[0.1], rad_length=15/3), 
-           ThinMultipole('sb1_2', location=13.125, knl=[0.1], rad_length=15/3), 
-           DipoleEdge('sb1_edge_end', location=15.0, h=0.02, side='end')]
+    ref = [DipoleEdge('sb1_edge_entrance', location=0.0, h=0.02, side='entrance'), 
+           ThinMultipole('sb1_0', location=1.875, knl=[0.1], radiation_length=15/3), 
+           ThinMultipole('sb1_1', location=7.5, knl=[0.1], radiation_length=15/3), 
+           ThinMultipole('sb1_2', location=13.125, knl=[0.1], radiation_length=15/3), 
+           DipoleEdge('sb1_edge_exit', location=15.0, h=0.02, side='exit')]
 
     for idx, el in enumerate(ref):
         assert el == sliced_element[idx]     

@@ -21,9 +21,11 @@ def example_cpymad_fsf_cpymad():
         Old and new twiss tables from cpymad
     """
     madx_lattice = conv_utils.create_cpymad_from_file(str(TEST_SEQ_DIR / "lattice.seq"), 120)
+    madx_lattice.command.beam(particle='electron', energy=120)
+    madx_lattice.use('l000013')
     fsf_lattice = Lattice.from_cpymad(madx_lattice, 'l000013')
     madx_lattice_new = fsf_lattice.to_cpymad()
-    madx_lattice.use('l000013')
+    madx_lattice_new.command.beam(particle='electron', energy=120)
     madx_lattice_new.use('l000013')
     twiss = madx_lattice.twiss(sequence='l000013')
     twiss_new = madx_lattice_new.twiss(sequence='l000013')
@@ -69,9 +71,11 @@ def example_cpymad_fsf_cpymad_coll():
         Old and new twiss tables from cpymad
     """
     madx_lattice = conv_utils.create_cpymad_from_file(str(TEST_SEQ_DIR / "collimators.seq"), 180)
+    madx_lattice.command.beam(particle='electron', energy=180)
+    madx_lattice.use('ring')
     fsf_lattice = Lattice.from_cpymad(madx_lattice, 'ring')
     madx_lattice_new = fsf_lattice.to_cpymad()
-    madx_lattice.use('ring')
+    madx_lattice_new.command.beam(particle='electron', energy=180)
     madx_lattice_new.use('ring')
     twiss = madx_lattice.twiss(sequence='ring')
     twiss_new = madx_lattice_new.twiss(sequence='ring')

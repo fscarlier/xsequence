@@ -2,6 +2,16 @@ from typing import List
 import fsf.elements_dataclasses as xed
 
 
+def _property_factory(data_type, api_property_name, docstring=None):
+    def getter(self):
+        return self.__getattribute__(data_type).__getattribute__(api_property_name)
+
+    def setter(self, value):
+        self.__getattribute__(data_type).__setattr__(api_property_name, value)
+
+    return property(getter, setter, doc=docstring)
+
+
 def get_teapot_slicing_positions(position: xed.ElementPosition, num_slices: int) -> List:
     """
     TODO: Should return ElementPosition objects of course!
@@ -16,19 +26,3 @@ def get_teapot_slicing_positions(position: xed.ElementPosition, num_slices: int)
         for i in range(num_slices-1):
             thin_positions.append(thin_positions[-1] + separation)
         return thin_positions, position.length / num_slices 
-
-
-def get_sliced_multipole_strengths(strength_data: xed.MultipoleStrengthData, num_slices: int) -> List:
-    knl = strength_data.knl / num_slices
-    ksl = strength_data.ksl / num_slices
-    return xed.ThinMultipoleStrengthData(knl=knl, ksl=ksl, polarity=strength_data.polarity)
-
-
-def get_sliced_bend_strength(bend_data: xed.BendData, num_slices: int) -> List:
-    knl = [bend_data.angle / num_slices]
-    return xed.ThinMultipoleStrengthData(knl=knl)
-
-
-def get_sliced_solenoid_strength(solenoid_data: xed.SolenoidData, num_slices: int) -> List:
-    ksi = solenoid_data.ksi/num_slices
-    return xed.ThinSolenoidData(ksi=ksi)

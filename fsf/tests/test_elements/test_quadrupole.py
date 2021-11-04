@@ -1,4 +1,5 @@
 import fsf.elements as xe
+import fsf.elements_dataclasses as xed
 from pytest import mark
 from cpymad.madx import Madx
 
@@ -16,6 +17,7 @@ def test_quadrupole_length(name, l):
     assert q == q_conv
     
     #PYAT
+    q = xe.Quadrupole(name, length=l, pyat_data=xed.PyatData(NumIntSteps=10, PassMethod='StrMPoleSymplectic4Pass'))
     pyat_quad = q.to_pyat()
     assert pyat_quad.FamName == q.name
     assert pyat_quad.Length == q.length
@@ -30,7 +32,7 @@ def test_quadrupole_length_k1(name, l, k1):
     q = xe.Quadrupole(name, length=l, k1=k1)
     assert q.name == name
     assert q.length == l
-    assert q.strength_data.k1 == k1
+    assert q.k1 == k1
     
     #CPYMAD
     md = Madx()
@@ -38,6 +40,7 @@ def test_quadrupole_length_k1(name, l, k1):
     assert q == q_conv
 
     #PYAT
+    q = xe.Quadrupole(name, length=l, k1=k1, pyat_data=xed.PyatData(NumIntSteps=10, PassMethod='StrMPoleSymplectic4Pass'))
     pyat_quad = q.to_pyat()
     assert pyat_quad.FamName == q.name
     assert pyat_quad.Length == q.length
@@ -53,7 +56,7 @@ def test_quadrupole_length_k1s(name, l, k1s):
     q = xe.Quadrupole(name, length=l, k1s=k1s)
     assert q.name == name
     assert q.length == l
-    assert q.strength_data.k1s == k1s
+    assert q.k1s == k1s
     
     #CPYMAD
     md = Madx()
@@ -61,9 +64,11 @@ def test_quadrupole_length_k1s(name, l, k1s):
     assert q == q_conv
     
     #PYAT
+    q = xe.Quadrupole(name, length=l, k1s=k1s, pyat_data=xed.PyatData(NumIntSteps=10, PassMethod='StrMPoleSymplectic4Pass'))
     pyat_quad = q.to_pyat()
     assert pyat_quad.FamName == q.name
     assert pyat_quad.Length == q.length
+    assert pyat_quad.PolynomA[1] == q.k1s
     q_pyat = xe.Quadrupole.from_pyat(pyat_quad)
     assert q == q_pyat
 
@@ -77,8 +82,8 @@ def test_quadrupole_length_k1_k1s(name, l, k1, k1s):
     q = xe.Quadrupole(name, length=l, k1=k1, k1s=k1s)
     assert q.name == name
     assert q.length == l
-    assert q.strength_data.k1 == k1
-    assert q.strength_data.k1s == k1s
+    assert q.k1 == k1
+    assert q.k1s == k1s
     
     #CPYMAD
     md = Madx()
@@ -86,6 +91,7 @@ def test_quadrupole_length_k1_k1s(name, l, k1, k1s):
     assert q == q_conv
     
     #PYAT
+    q = xe.Quadrupole(name, length=l, k1=k1, k1s=k1s, pyat_data=xed.PyatData(NumIntSteps=10, PassMethod='StrMPoleSymplectic4Pass'))
     pyat_quad = q.to_pyat()
     assert pyat_quad.FamName == q.name
     assert pyat_quad.Length == q.length

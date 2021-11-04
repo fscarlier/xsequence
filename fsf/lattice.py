@@ -8,11 +8,11 @@ This is a Python3 module containing base Lattice class to manipulate accelerator
 import scipy
 import numpy as np
 import fsf.elements as xe
+import fsf.lattice_conversions as lc
 from fsf.helpers import pyat_functions
 from collections import OrderedDict
 from fsf.lattice_baseclasses import Line, Sequence
 from typing import List
-import fsf.lattice_helpers.lattice_conversions as lc
 
 class Lattice:
     """ A class used to represent an accelerator lattice """
@@ -35,13 +35,13 @@ class Lattice:
     def _update_cavity_energy(self):
         cavities = self.get_class(xe.RFCavity)
         for cav in cavities:
-            cav.rf_data.energy = self.params['energy']
+            cav.energy = self.params['energy']
 
     def _update_harmonic_number(self):
         cavities = self.get_class(xe.RFCavity)
         for cav in cavities:
             # Approximation for ultr-relativistic electrons
-            cav.rf_data.harmonic_number = int(cav.rf_data.frequency/(scipy.constants.c/self.get_total_length()))
+            cav.harmonic_number = int(cav.frequency/(scipy.constants.c/self.get_total_length()))
 
     @classmethod
     def from_madx_seqfile(cls, seq_file, seq_name, energy, particle_type='electron'):
@@ -49,10 +49,13 @@ class Lattice:
         return cls.from_cpymad(madx, seq_name)
 
     @classmethod
-    def from_cpymad(cls, madx, seq_name):
-        variables, element_seq = lc.from_cpymad(madx, seq_name, dependencies=True)
-        return cls(seq_name, element_seq, key='sequence', 
-                   energy=madx.sequence[seq_name].beam.energy, global_variables=variables) 
+    def from_cpymad(cls, madx, seq_name, dependencies=True):
+        if dependencies:
+            xdeps_manager, element_seq = lc.from_cpymad_with_dependencies(madx, seq_name)
+            return cls(seq_name, element_seq, key='sequence', xdeps_manager=xdeps_manager) 
+        else:
+            _, element_seq = lc.from_cpymad(madx, seq_name)
+            return cls(seq_name, element_seq, key='sequence') 
 
     @classmethod
     def from_pyat(cls, pyat_lattice):

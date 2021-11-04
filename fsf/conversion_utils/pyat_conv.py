@@ -108,9 +108,9 @@ def attr_mapping_to_pyat(xe_element):
 
 def to_pyat(xe_element):
     element_dict = copy.copy(xe_element.get_dict())
-    try: element_dict['kn'] = xe_element.strength_data.kn
+    try: element_dict['kn'] = xe_element.kn
     except: AttributeError
-    try: element_dict['ks'] = xe_element.strength_data.ks
+    try: element_dict['ks'] = xe_element.ks
     except: AttributeError
     mapped_attr = attr_mapping_to_pyat(element_dict)
 
@@ -131,8 +131,8 @@ def to_pyat(xe_element):
     except: AttributeError
     
     if 'frequency' in mapped_attr:
-        mapped_attr['energy'] = xe_element.rf_data.energy    
-        mapped_attr['harmonic_number'] = xe_element.rf_data.harmonic_number    
+        mapped_attr['energy'] = xe_element.energy    
+        mapped_attr['harmonic_number'] = xe_element.harmonic_number    
 
     mapped_attr.update({'family_name':xe_element.name})
     if xe_element.__class__.__name__ == 'Octupole':
