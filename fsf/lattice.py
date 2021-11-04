@@ -49,7 +49,7 @@ class Lattice:
         return cls.from_cpymad(madx, seq_name)
 
     @classmethod
-    def from_cpymad(cls, madx, seq_name, dependencies=True):
+    def from_cpymad(cls, madx, seq_name, dependencies=False):
         if dependencies:
             xdeps_manager, element_seq = lc.from_cpymad_with_dependencies(madx, seq_name)
             return cls(seq_name, element_seq, key='sequence', xdeps_manager=xdeps_manager) 
