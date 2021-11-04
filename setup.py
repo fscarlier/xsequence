@@ -44,6 +44,7 @@ DEPENDENCIES = [
     "xline", 
     "accelerator-toolbox",
     "xdeps",
+    "lark",
     ]
 
 # Extra dependencies
