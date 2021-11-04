@@ -5,16 +5,16 @@ Module fsf.lattice
 This is a Python3 module containing base Lattice class to manipulate accelerator sequences.
 """
 
-import scipy, at, xdeps, math
-import fsf.elements as xe
-import fsf.elements_dataclasses as xed
+import scipy, math
 from cpymad.madx import Madx
-import xline as xl
+import fsf.elements as xe
 from collections import OrderedDict, defaultdict
-from typing import Tuple, Dict
+import fsf.conversion_utils.cpymad_properties as madx_attr
 from fsf.lattice_baseclasses import Sequence, Line
 from lark import Lark, Transformer, v_args
-import fsf.conversion_utils.cpymad_properties as madx_attr
+import xdeps
+import at
+import xline as xl
 
 calc_grammar = """
     ?start: sum
@@ -149,7 +149,7 @@ def from_pyat(pyat_lattice: at.Lattice) -> OrderedDict:
     return seq 
 
 
-def to_cpymad(seq_name: str, energy: float, sequence: Sequence) -> Madx:
+def to_cpymad(seq_name, energy, sequence):
     madx = Madx()
     madx.option(echo=False, info=False, debug=False)
     seq_command = ''
@@ -169,6 +169,7 @@ def to_cpymad(seq_name: str, energy: float, sequence: Sequence) -> Madx:
 
 
 def to_pyat(seq_name: str, energy: float, line: Line) -> at.Lattice:
+    
     seq = [line[element].to_pyat() for element in line]
     pyat_lattice = at.Lattice(seq, name=seq_name, key='ring', energy=energy)
     for cav in at.get_elements(pyat_lattice, at.RFCavity):
@@ -177,6 +178,7 @@ def to_pyat(seq_name: str, energy: float, line: Line) -> at.Lattice:
 
 
 def to_xline(sliced_line: Line):
+    
     names =  sliced_line.names
     line = [el.to_xline() for el in sliced_line]
     xline_lattice = xl.Line(elements=line, element_names=names)
