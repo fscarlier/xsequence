@@ -1,0 +1,4 @@
+AdjustTune[nx_,ny_]:=Module[
+{},
+FFS["cell;reset qu* qi* qr*;reject total;FIT $$$ nx "// nx //" NY "//ny//"; fit ip ax 0 bx bx0 ay 0 by by0 ex 0 epx 0; fit frf qrfl1 bxm bxmrf bym bymrf; fit qu7 qu1 bxm bxmds bym bymds; fit qi1 qia bxm bxmds bym bymds; fit frf ax 0 ay 0 ex 0 epx 0; fix *; free qr*; qrf* min 0 max 0.04;qrd* max 0 min -0.04; go;",6 ]
+                            ];

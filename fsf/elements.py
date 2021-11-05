@@ -7,10 +7,15 @@ This is a Python3 module containing base element classes element property datacl
 
 import math
 import numpy as np
+from abc import ABC, abstractmethod
+
 import fsf.elements_dataclasses as xed
 import fsf.elements_functions as xef
-from fsf.conversion_utils import conv_utils, cpymad_conv, pyat_conv, xline_conv
-from abc import ABC, abstractmethod
+
+from fsf.conversion_utils import conv_utils
+from fsf.conversion_utils.cpymad import cpymad_conv
+from fsf.conversion_utils.pyat import pyat_conv
+from fsf.conversion_utils.xline import xline_conv
 
 
 
@@ -479,8 +484,6 @@ CPYMAD_TO_FSF_MAP = {
                     'thinrfmultipole' : ThinRFMultipole, 
                     }
 
-CPYMAD_TO_FSF_MAP_INVERTED = {v: k for k, v in CPYMAD_TO_FSF_MAP.items()}
-
 
 PYAT_TO_FSF_MAP = {'Marker': Marker, 
                    'Drift':  Drift, 
@@ -489,9 +492,6 @@ PYAT_TO_FSF_MAP = {'Marker': Marker,
                    'Sextupole': Sextupole, 
                    'Collimator': Collimator, 
                    'RFCavity': RFCavity}
-
-PYAT_TO_FSF_MAP_INVERTED = {v: k for k, v in PYAT_TO_FSF_MAP.items()}
-                
 
 
 def convert_arbitrary_cpymad_element(cpymad_element):

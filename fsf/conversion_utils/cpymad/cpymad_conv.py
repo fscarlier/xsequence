@@ -5,12 +5,12 @@ Module conversion_utils.cpymad_conv
 This is a Python3 module with functions for importing and exporting elements from and to cpymad
 """
 
-import fsf.conversion_utils.cpymad_properties as madx_attr
+import fsf.conversion_utils.cpymad.cpymad_properties as cpymad_properties
 
 
 def attr_mapping_from_cpymad(cpymad_element):
-    for key in madx_attr.DIFF_ATTRIBUTE_MAP_CPYMAD:
-        try: cpymad_element[key] = cpymad_element.pop(madx_attr.DIFF_ATTRIBUTE_MAP_CPYMAD[key]) 
+    for key in cpymad_properties.DIFF_ATTRIBUTE_MAP_CPYMAD:
+        try: cpymad_element[key] = cpymad_element.pop(cpymad_properties.DIFF_ATTRIBUTE_MAP_CPYMAD[key]) 
         except: KeyError 
     return cpymad_element
 
@@ -29,8 +29,8 @@ def from_cpymad(xs_cls, cpymad_element, name=None):
 
 
 def attr_mapping_to_cpymad(element_dict):
-    for key in madx_attr.DIFF_ATTRIBUTE_MAP_CPYMAD:
-        try: element_dict[madx_attr.DIFF_ATTRIBUTE_MAP_CPYMAD[key]] = element_dict.pop(key) 
+    for key in cpymad_properties.DIFF_ATTRIBUTE_MAP_CPYMAD:
+        try: element_dict[cpymad_properties.DIFF_ATTRIBUTE_MAP_CPYMAD[key]] = element_dict.pop(key) 
         except: KeyError
 
     if 'knl' in element_dict:
@@ -57,7 +57,7 @@ def to_cpymad(element, madx):
 
     el_dict = element.get_dict()
     el_dict = attr_mapping_to_cpymad(el_dict)
-    mapped_attr = {k:el_dict[k] for k in madx_attr.ELEM_DICT[madx_base_type] if k in el_dict}
+    mapped_attr = {k:el_dict[k] for k in cpymad_properties.ELEM_DICT[madx_base_type] if k in el_dict}
     if madx_base_type == 'rbend':
         mapped_attr['l'] = element._chord_length
         mapped_attr['e1'] = element._rbend_e1

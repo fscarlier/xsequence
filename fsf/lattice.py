@@ -8,7 +8,12 @@ This is a Python3 module containing base Lattice class to manipulate accelerator
 import scipy
 import numpy as np
 import fsf.elements as xe
-import fsf.lattice_conversions as lc
+
+from fsf.conversion_utils.cpymad import cpymad_lattice_conv
+from fsf.conversion_utils.pyat import pyat_lattice_conv
+from fsf.conversion_utils.xline import xline_lattice_conv
+from fsf.conversion_utils.sad import sad_lattice_conv
+
 from fsf.helpers import pyat_functions
 from collections import OrderedDict
 from fsf.lattice_baseclasses import Line, Sequence
@@ -45,33 +50,38 @@ class Lattice:
 
     @classmethod
     def from_madx_seqfile(cls, seq_file, seq_name, energy, particle_type='electron'):
-        madx = lc.from_madx_seqfile(seq_file, energy, particle_type)
+        madx = cpymad_lattice_conv.from_madx_seqfile(seq_file, energy, particle_type)
         return cls.from_cpymad(madx, seq_name)
 
     @classmethod
     def from_cpymad(cls, madx, seq_name, dependencies=False):
         if dependencies:
-            xdeps_manager, element_seq = lc.from_cpymad_with_dependencies(madx, seq_name)
+            xdeps_manager, element_seq = cpymad_lattice_conv.from_cpymad_with_dependencies(madx, seq_name)
             return cls(seq_name, element_seq, key='sequence', xdeps_manager=xdeps_manager) 
         else:
-            _, element_seq = lc.from_cpymad(madx, seq_name)
+            _, element_seq = cpymad_lattice_conv.from_cpymad(madx, seq_name)
             return cls(seq_name, element_seq, key='sequence') 
 
     @classmethod
+    def from_sad(cls, sad_lattice, seq_name, momentum):
+        madx = sad_lattice_conv.from_sad_to_madx(sad_lattice, momentum)
+        return cls.from_cpymad(madx, seq_name)
+
+    @classmethod
     def from_pyat(cls, pyat_lattice):
-        seq = lc.from_pyat(pyat_lattice)
+        seq = pyat_lattice_conv.from_pyat(pyat_lattice)
         return cls(pyat_lattice.name, seq, energy=pyat_lattice.energy*1e-9) 
 
     def to_cpymad(self):
-        return lc.to_cpymad(self.name, self.params['energy'], self.sequence)
+        return cpymad_lattice_conv.to_cpymad(self.name, self.params['energy'], self.sequence)
 
     def to_pyat(self):
         self._update_cavity_energy()
         self._update_harmonic_number()
-        return lc.to_pyat(self.name, self.params['energy']*1e9, self.line)
+        return pyat_lattice_conv.to_pyat(self.name, self.params['energy']*1e9, self.line)
 
     def to_xline(self):
-        lc.to_xline(self.sliced.line) 
+        xline_lattice_conv.to_xline(self.sliced.line) 
 
     def optics(self, engine='madx', drop_drifts=False):
         """
@@ -137,9 +147,7 @@ class Lattice:
         return Lattice(self.name, self.slice_lattice(), key='sequence')
 
     def __str__(self):
-        args_str = [f"'{self.name}'", f"{self._sequence}", f"key='{self.params['key']}'"] 
-        return f"{self.__class__.__name__}({', '.join(args_str)})"
+        return f"{self.__class__.__name__}({self.name}, sequence = {self.sequence.names})"
 
     def __repr__(self):
-        args_str = [f"'{self.name}'", f"{self._sequence}", f"key='{self.params['key']}'"] 
-        return f"{self.__class__.__name__}({', '.join(args_str)})"
+        return f"{self.__class__.__name__}({self.name}, sequence = {self.sequence.names})"

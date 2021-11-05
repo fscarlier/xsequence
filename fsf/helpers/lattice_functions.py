@@ -1,197 +1,83 @@
-import xdeps, math
-from collections import defaultdict, OrderedDict
-import fsf.elements as xe
+from rich.console import Console
+from rich.theme import Theme
+
+from fsf.lattice_baseclasses import Sequence, Line
+
+custom_theme = Theme({"success": "green", "error":"red1", "warning":"orange3", "normal":"white"})
+console = Console(theme=custom_theme)
 
 
-def from_cpymad(madx, seq_name):
-    """
-    Import lattice from cpymad sequence
-
-    Args:
-        madx: cpymad.madx Madx() instance
-        seq_name: string, name of madx sequence
-    """
-import time
-from fsf.lattice import Lattice
-import fsf.elements as xe 
-from collections import OrderedDict
-
-def timeit():
-    if hasattr(timeit,'start'):
-        newstart=time.time()
-        print(f"Elapsed: {newstart-timeit.start:13.9f} sec")
-    timeit.start=time.time()
+def compare_lattice_name(lat1, lat2):
+    console.print(f"", style="normal")
+    console.print(f"---- Checking lattice names", style="normal")
+    if lat1.name == lat2.name:
+        console.print(f"Identical Lattice name: {lat1.name}", style="success")
+        return True
+    else:
+        console.print(f"Different Lattice names", style="error")
+        console.print(f"        {lat1.name}  <-->  {lat2.name}"  )
+        return False
 
 
-timeit()
-from cpymad.madx import Madx
-mad=Madx(stdout=False)
-mad.call("lhc.seq")
-mad.call("optics.madx")
-timeit()
-
-seq_name = 'lhcb1'
-
-mad.use(seq_name)
-timeit()
-element_seq = list(map(xe.convert_arbitrary_cpymad_element, 
-                        mad.sequence[seq_name].elements))
-print('list comprehension')
-timeit()
-element_seq = {el.name: xe.convert_arbitrary_cpymad_element(el) for el in madx.sequence[seq_name].elements}
-print('dict comprehension')
-timeit()
-
-lat_seq = OrderedDict()
-elements={}
-lat_go = False
-for elem in mad.sequence[seq_name].elements:
-    name = elem.name
-    elemdata={}
-    for parname, par in elem.cmdpar.items():
-        elemdata[parname]=par.value
-    elements[name]=elemdata
-    if 'start' in name:
-        lat_go = True
-    if lat_go:
-        lat_seq[name] = xe.convert_arbitrary_cpymad_element(elem) 
-
-print('full loop')
-timeit()
-
-    variables=defaultdict(lambda :0)
-    for name,par in madx.globals.cmdpar.items():
-        variables[name]=par.value
-
-    manager=xdeps.DepManager()
-    vref=manager.ref(variables,'v')
-    sref=manager.ref(element_seq,'s')
-    fref=manager.ref(math,'f')
-    madeval=xdeps.MadxEval(vref,fref,sref).eval
-
-    for name,par in mad.globals.cmdpar.items():
-        if par.expr is not None:
-            vref[name]=madeval(par.expr)
-
-    lat_go = False
-    parlis = []
-    for name,elem in mad.elements.items():
-        for parname, par in elem.cmdpar.items():
-            if par.expr is not None:
-                if par.dtype==12: # handle lists
-                    for ii,ee in enumerate(par.expr):
-                        if ee is not None:
-                            if parname in ['aper_vx', 'aper_vy']:
-                                pass
-                            else:
-                                eref[name][parname][ii]=madeval(ee)
-                else:
-                    if parname not in parlis:
-                        parlis.append(parname)
-                    eref[name][parname]=madeval(par.expr)
-                    if 'start' in name:
-                        lat_go = True
-                    if lat_go:
-                        if parname == 'at':
-                            lref[name].position_data.location = madeval(par.expr)
-                        elif parname == 'l':
-                            lref[name].length = madeval(par.expr)
-                        
-                        elif parname == 'kmax':
-                            try:
-                                lref[name].strength_data.kmax = madeval(par.expr)
-                            except AttributeError:
-                                lref[name].kick_data.kmax = madeval(par.expr)
-                        elif parname == 'kmin':
-                            try:
-                                lref[name].strength_data.kmin = madeval(par.expr)
-                            except AttributeError:
-                                lref[name].kick_data.kmin = madeval(par.expr)
-                        # elif parname == 'calib':
-                        #     lref[name]. = madeval(par.expr)
-                        elif parname == 'polarity':
-                            lref[name].strength_data.polarity = madeval(par.expr)
-                        elif parname == 'tilt':
-                            lref[name].position_data.tilt = madeval(par.expr)
-                        elif parname == 'k0':
-                            lref[name].bend_data.k0 = madeval(par.expr)
-                        elif parname == 'k1':
-                            lref[name].strength_data.k1 = madeval(par.expr)
-                        elif parname == 'k1s':
-                            lref[name].strength_data.k1s = madeval(par.expr)
-                        elif parname == 'k2':
-                            lref[name].strength_data.k2 = madeval(par.expr)
-                        elif parname == 'k2s':
-                            lref[name].strength_data.k2s = madeval(par.expr)
-                        elif parname == 'k3':
-                            lref[name].strength_data.k3 = madeval(par.expr)
-                        elif parname == 'angle':
-                            lref[name].bend_data.angle = madeval(par.expr)
-                        elif parname == 'kick':
-                            lref[name].kick_data.kick = madeval(par.expr)
-                        elif parname == 'hkick':
-                            lref[name].kick_data.hkick = madeval(par.expr)
-                        elif parname == 'vkick':
-                            lref[name].kick_data.vkick = madeval(par.expr)
-                        elif parname == 'volt':
-                            lref[name].rf_data.voltage = madeval(par.expr)
-                        elif parname == 'lag':
-                            lref[name].rf_data.lag = madeval(par.expr)
-                        elif parname == 'slot_id':
-                            lref[name].id_data.slot_id = madeval(par.expr)
-                        elif parname == 'assembly_id':
-                            lref[name].id_data.assembly_id = madeval(par.expr)
-
-    timeit()
-    for el in lat_seq:
-        if lat_seq[el].position_data.reference_element:
-            lat_seq[el].position_data.reference = lat_seq[lat_seq[el].position_data.reference_element].position_data.position 
-
-    timeit()
-
-    lhcb1_seq = []
-    lhcb2_seq = []
-    lhcb1 = True
-    lhcb2 = False
-    for elname in lat_seq:
-        if lhcb1:
-            lhcb1_seq.append(lat_seq[elname])   
-            if 'lhcb1$end' in elname:
-                lhcb1 = False
-        if 'lhcb2$start' in elname:
-            lhcb2 = True
-        if lhcb2:
-            lhcb2_seq.append(lat_seq[elname])   
-        
-    timeit()
-
-    lhcb1_seq[-1].position_data.location = lhcb1_seq[-2].position_data.end
-    lhcb2_seq[-1].position_data.location = lhcb2_seq[-2].position_data.end
-    print(lhcb1_seq[-1])
-    print(lhcb2_seq[0])
+def compare_sequence_lengths(sequence_1: Sequence, sequence_2: Sequence):
+    console.print(f"", style="normal")
+    console.print(f"--- Checking sequence lengths", style="normal")
+    if len(sequence_1.positions) == len(sequence_2.positions):
+        console.print(f"Identical sequence lengths: {len(sequence_1)}", style="success")
+        return True
+    else:
+        console.print(f"Different sequence lengths: {len(sequence_1)}, {len(sequence_2)}", style="error")
+        return False
 
 
-    lhcb1 = Lattice('lhcb1', lhcb1_seq, key='sequence', global_variables=vref) 
-    lhcb2 = Lattice('lhcb2', lhcb2_seq, key='sequence', global_variables=vref) 
-    timeit()
+def compare_elements(sequence_1: Sequence, sequence_2: Sequence, ignore_attributes = []):
+    console.print(f"", style="normal")
+    console.print(f"", style="normal")
+    console.print(f"-- Comparing elements     ", style="normal")
+    console.print(f"", style="normal")
+    console.print(f"---- Checking element names", style="normal")
+    
+    no_error = True
+    for el in sequence_1:
+        if el not in sequence_2:
+            console.print(f"Element '{el}' is not in Lattice 2", style="error")
+            no_error = False
+    for el in sequence_2:
+        if el not in sequence_1:
+            console.print(f"Element '{el}' is not in Lattice 1", style="error")
+            no_error = False
+    if no_error:
+        console.print(f"All elements present in other lattice", style="success")
+    
+    console.print(f"", style="normal")
+    console.print(f"", style="normal")
+    
+    console.print(f"---- Checking element attributes", style="normal")
+    
+    for el in sequence_1:
+        if el not in sequence_2:
+            pass
+        else:
+            if sequence_1[el] != sequence_2[el]:
+                console.print(f"Element '{el}' not equal between lattices", style="error")
+                seq1_dict = sequence_1[el].get_dict()
+                seq2_dict = sequence_2[el].get_dict()
+                for k in seq1_dict:
+                    if k not in ignore_attributes:
+                        if seq1_dict[k] != seq2_dict[k]:
+                            console.print(f"    Attribute '{k}' is not equal", style="warning")
+                            console.print(f"        {seq1_dict[k]}  <-->  {seq2_dict[k]}"  )
+                no_error = False
+    if no_error:
+        console.print(f"All elements in sequence are identical", style="success")
+        return True
+    else:
+        return False
 
-    print("""
-    Still need to implement:
-    - calib
-    - kick
-    - vkick
-    - hkick
-    - kmax, kmin for kickers
-    """)
-    timeit()
 
-
-    import time
-    start=time.time()
-    print(elements['mcbcv.5r1.b2']['kick'])
-    vref['on_x1']=2
-    print(elements['mcbcv.5r1.b2']['kick'])
-    print(time.time()-start)
-
-
-
+def compare_lattices(lattice_1, lattice_2, ignore_attributes=[], debug=False):
+    no_errors = True
+    no_errors *= compare_lattice_name(lattice_1, lattice_2)
+    no_errors *= compare_sequence_lengths(lattice_1.sequence, lattice_2.sequence)
+    no_errors *= compare_elements(lattice_1.sequence, lattice_2.sequence, ignore_attributes=ignore_attributes)
+    return no_errors
