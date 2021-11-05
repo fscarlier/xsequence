@@ -1,4 +1,4 @@
-from fsf.lattice import Lattice
+from xsequence.lattice import Lattice
 from cpymad.madx import Madx
 
 mad=Madx(stdout=False)

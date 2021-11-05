@@ -1,0 +1,5 @@
+option, echo=false, info=false, debug=false;
+call, file="/home/fcarlier/git-projects/xsequence/xsequence/tests/test_sequences/lattice.seq";
+SET, FORMAT="25.20e";
+beam, particle=electron, energy=120;
+use, sequence=l000013;

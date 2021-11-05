@@ -1,4 +1,4 @@
-from fsf.lattice import Lattice
+from xsequence.lattice import Lattice
 from conversion_utils import conv_utils
 
 

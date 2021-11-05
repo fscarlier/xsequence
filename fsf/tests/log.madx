@@ -1,7 +1,0 @@
-option, echo=false, info=false, debug=false;
-call, file="/home/fcarlier/git-projects/fsf/fsf/tests/test_sequences/collimators.seq";
-SET, FORMAT="25.20e";
-beam, particle=electron, energy=180;
-beam, particle=electron, energy=180;
-use, sequence=ring;
-twiss, sequence=ring;

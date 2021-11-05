@@ -1,7 +1,7 @@
 """
-Setup file for fsf Package
+Setup file for xsequence Package
 ------------------
-fsf: Package to manage particle accelerator lattices and interface to different simulation codes
+xsequence: Package to manage particle accelerator lattices and interface to different simulation codes
 """
 
 
@@ -9,7 +9,7 @@ import pathlib
 
 import setuptools
 
-MODULE_NAME = "fsf"
+MODULE_NAME = "xsequence"
 # The directory containing this file
 TOPLEVEL_DIR = pathlib.Path(__file__).parent.absolute()
 ABOUT_FILE = TOPLEVEL_DIR / MODULE_NAME / "__init__.py"
@@ -29,7 +29,7 @@ def about_package(init_posixpath: pathlib.Path) -> dict:
     }
 
 
-ABOUT_FSF = about_package(ABOUT_FILE)
+ABOUT_XSEQUENCE = about_package(ABOUT_FILE)
 
 with README.open("r") as docs:
     long_description = docs.read()
@@ -57,18 +57,18 @@ EXTRA_DEPENDENCIES = {
 EXTRA_DEPENDENCIES.update({"all": [elem for list_ in EXTRA_DEPENDENCIES.values() for elem in list_]})
 
 setuptools.setup(
-    name=ABOUT_FSF["__title__"],
-    version=ABOUT_FSF["__version__"],
-    description=ABOUT_FSF["__description__"],
+    name=ABOUT_XSEQUENCE["__title__"],
+    version=ABOUT_XSEQUENCE["__version__"],
+    description=ABOUT_XSEQUENCE["__description__"],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author=ABOUT_FSF["__author__"],
-    author_email=ABOUT_FSF["__author_email__"],
-    url=ABOUT_FSF["__url__"],
+    author=ABOUT_XSEQUENCE["__author__"],
+    author_email=ABOUT_XSEQUENCE["__author_email__"],
+    url=ABOUT_XSEQUENCE["__url__"],
     packages=setuptools.find_packages(include=(MODULE_NAME,)),
     include_package_data=True,
     python_requires=">=3.6",
-    license=ABOUT_FSF["__license__"],
+    license=ABOUT_XSEQUENCE["__license__"],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
