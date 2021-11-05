@@ -10,13 +10,12 @@ import numpy as np
 from abc import ABC, abstractmethod
 
 import fsf.elements_dataclasses as xed
-import fsf.elements_functions as xef
+import fsf.helpers.elements_functions as xef
 
 from fsf.conversion_utils import conv_utils
 from fsf.conversion_utils.cpymad import cpymad_conv
 from fsf.conversion_utils.pyat import pyat_conv
 from fsf.conversion_utils.xline import xline_conv
-
 
 
 class ShouldUseMultipoleError(Exception):
@@ -26,7 +25,6 @@ class ShouldUseMultipoleError(Exception):
         self.attr = attr
         self.message = f'Cannot define {attr} for element {name} -> Should use Multipole class instead'
         super().__init__(self.message)
-
 
 
 class BaseElement():

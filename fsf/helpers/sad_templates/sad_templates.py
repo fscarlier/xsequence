@@ -101,4 +101,5 @@ class SadToMadx:
         f.write(command)
         f.close()
         os.system(f"/home/fcarlier/git-projects/SAD/bin/gs temp.job")
+        os.remove("temp.job")
 
