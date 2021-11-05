@@ -45,13 +45,13 @@ DEPENDENCIES = [
     "accelerator-toolbox",
     "xdeps",
     "lark",
+    "rich",
     ]
 
 # Extra dependencies
 EXTRA_DEPENDENCIES = {
     "test": ["pytest>=5.2", "pytest-cov>=2.9"],
     "doc": ["sphinx", "sphinx_rtd_theme"],
-    "rich",
 }
 
 EXTRA_DEPENDENCIES.update({"all": [elem for list_ in EXTRA_DEPENDENCIES.values() for elem in list_]})
