@@ -3,13 +3,16 @@ from rich.theme import Theme
 
 from fsf.lattice_baseclasses import Sequence, Line
 
-custom_theme = Theme({"success": "green", "error":"red1", "warning":"orange3", "normal":"white"})
+custom_theme = Theme({"success": "green", "error":"red1", "warning":"orange3"})
 console = Console(theme=custom_theme)
 
 
 def compare_lattice_name(lat1, lat2):
-    console.print(f"", style="normal")
-    console.print(f"---- Checking lattice names", style="normal")
+    console.print("")
+    console.print("")
+    console.print(f"-- Comparing global      ")
+    console.print("")
+    console.print(f"---- Checking lattice names")
     if lat1.name == lat2.name:
         console.print(f"Identical Lattice name: {lat1.name}", style="success")
         return True
@@ -20,8 +23,8 @@ def compare_lattice_name(lat1, lat2):
 
 
 def compare_sequence_lengths(sequence_1: Sequence, sequence_2: Sequence):
-    console.print(f"", style="normal")
-    console.print(f"--- Checking sequence lengths", style="normal")
+    console.print("")
+    console.print(f"---- Checking sequence lengths")
     if len(sequence_1.positions) == len(sequence_2.positions):
         console.print(f"Identical sequence lengths: {len(sequence_1)}", style="success")
         return True
@@ -31,11 +34,11 @@ def compare_sequence_lengths(sequence_1: Sequence, sequence_2: Sequence):
 
 
 def compare_elements(sequence_1: Sequence, sequence_2: Sequence, ignore_attributes = []):
-    console.print(f"", style="normal")
-    console.print(f"", style="normal")
-    console.print(f"-- Comparing elements     ", style="normal")
-    console.print(f"", style="normal")
-    console.print(f"---- Checking element names", style="normal")
+    console.print("")
+    console.print("")
+    console.print(f"-- Comparing elements     ")
+    console.print("")
+    console.print(f"---- Checking element names")
     
     no_error = True
     for el in sequence_1:
@@ -49,10 +52,10 @@ def compare_elements(sequence_1: Sequence, sequence_2: Sequence, ignore_attribut
     if no_error:
         console.print(f"All elements present in other lattice", style="success")
     
-    console.print(f"", style="normal")
-    console.print(f"", style="normal")
+    console.print("")
+    console.print("")
     
-    console.print(f"---- Checking element attributes", style="normal")
+    console.print(f"---- Checking element attributes")
     
     for el in sequence_1:
         if el not in sequence_2:
@@ -76,6 +79,7 @@ def compare_elements(sequence_1: Sequence, sequence_2: Sequence, ignore_attribut
 
 
 def compare_lattices(lattice_1, lattice_2, ignore_attributes=[], debug=False):
+    
     no_errors = True
     no_errors *= compare_lattice_name(lattice_1, lattice_2)
     no_errors *= compare_sequence_lengths(lattice_1.sequence, lattice_2.sequence)
