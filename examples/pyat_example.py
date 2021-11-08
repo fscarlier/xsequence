@@ -1,23 +1,45 @@
 from xsequence.lattice import Lattice
 from xsequence.conversion_utils import conv_utils
-import xdeps, math
 
-madx_lattice = conv_utils.create_cpymad_from_file("FCCee_h.seq", 120)
+madx_lattice = conv_utils.create_cpymad_from_file("fcc-ee_h.seq", 120)
 lat = Lattice.from_cpymad(madx_lattice, 'l000013')
 
 lat.params['energy'] = 120
 lat.line = lat.sequence._get_line()
 plat = lat.to_pyat()
 
-variables = {}
+import at
+plat.radiation_off()
+l0,q,qp,l = at.linopt(plat,refpts=range(len(plat)))
+ax1,=plot(l.s_pos,l.beta[:,0])
+ax2,=plot(l.s_pos,l.beta[:,1])
+
+def update_twiss(plat,elements):
+    plat.radiation_off()
+    l0,q,qp,l = at.linopt(plat,refpts=range(len(plat)))
+    ax1.set_ydata(l.beta[:,0])
+    ax2.set_ydata(l.beta[:,1])
+
+import xdeps
+
+plat.e=dict( (el.FamName,el) for el in plat)
+plat.v = xdeps.utils.AttrDict()
 
 manager = xdeps.DepManager()
-vref = manager.ref(variables,'v')
-mref = manager.ref(math,'m')
-sref = manager.ref(lat.sequence,'s')
+pref=manager.ref(plat,'plat')
 
-lat.xdeps_manager =manager
-lat.vref = vref
-lat.mref = mref
-lat.sref = sref
+pref.update_twiss=update_twiss
+pref.up=pref.update_twiss(pref,pref.e)
+
+pref.v.dk=0
+pref.e['qc1l1.1'].K=-0.24949831119187935*(1+pref.v.dk)
+
+pref.v.dk=plat.v.dk+0.001
+
+manager.to_pydot(list(manager.tasks))
+
+
+
+
+
 
