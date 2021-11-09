@@ -16,75 +16,56 @@ from xsequence.conversion_utils.sad import sad_lattice_conv
 
 from xsequence.helpers import pyat_functions
 from collections import OrderedDict
-from xsequence.lattice_baseclasses import Line, Sequence, ElementDict
+from xsequence.lattice_baseclasses import Line, Sequence
 from typing import List
 
 class Lattice:
     """ A class used to represent an accelerator lattice """
-    def __init__(self, name: str, element_dict: OrderedDict, key: str = 'line', **kwargs):
+    def __init__(self, name: str, element_list: OrderedDict, key: str = 'line', **kwargs):
         self.name = name
         self.params = {'key':key, 'energy':kwargs.pop('energy', None)}
         
         if self.params['key'] == 'line':
-            self.line = Line(element_dict)
+            self.line = Line(element_list)
+            self.line._set_positions()
         elif self.params['key'] == 'sequence':
-            self.sequence = Sequence(element_dict)
+            self.sequence = Sequence(element_list)
 
         if 'xdeps_manager' in kwargs:
-            self.manager = kwargs['xdeps_manager']
-            self.vref = kwargs['vref']
-            self.mref = kwargs['mref']
-            self.sref = kwargs['sref']
-
-    @property
-    def line(self):
-        return self._line
-    
-    @line.setter
-    def line(self, line):
-        self._line = line
-        self._sequence = line._get_sequence()
-
-    @property
-    def sequence(self):
-        return self._sequence
-    
-    @sequence.setter
-    def sequence(self, sequence):
-        self._sequence = sequence
-        self._line = sequence._get_line()
-
+            self.xdeps_manager = kwargs['xdeps_manager']
 
     def get_total_length(self) -> float:
-        return self.sequence._get_total_length()
+        return self.line._get_total_length()
 
     def _update_cavity_energy(self):
-        for cav in self.sequence.get_class('RFCavity'):
-            self.sequence[cav].energy = self.params['energy']
+        cavities = self.get_class(xe.RFCavity)
+        for cav in cavities:
+            cav.energy = self.params['energy']
 
     def _update_harmonic_number(self):
-        for cav in self.sequence.get_class('RFCavity'):
+        cavities = self.get_class(xe.RFCavity)
+        for cav in cavities:
             # Approximation for ultr-relativistic electrons
-            self.sequence[cav].harmonic_number = int(self.sequence[cav].frequency*1e6/(scipy.constants.c/self.get_total_length()))
+            cav.harmonic_number = int(cav.frequency/(scipy.constants.c/self.get_total_length()))
 
     @classmethod
-    def from_madx_seqfile(cls, seq_file, seq_name, energy=None, dependencies=False, particle_type='electron'):
+    def from_madx_seqfile(cls, seq_file, seq_name, energy, particle_type='electron'):
         madx = cpymad_lattice_conv.from_madx_seqfile(seq_file, energy, particle_type)
-        return cls.from_cpymad(madx, seq_name, energy=energy, dependencies=dependencies)
+        return cls.from_cpymad(madx, seq_name)
 
     @classmethod
-    def from_cpymad(cls, madx, seq_name, energy=None, dependencies=False):
+    def from_cpymad(cls, madx, seq_name, dependencies=False):
         if dependencies:
-            xdeps_manager, vref, mref, sref, element_seq = cpymad_lattice_conv.from_cpymad_with_dependencies(madx, seq_name)
-            return cls(seq_name, element_seq, energy=energy, key='sequence', vref=vref, mref=mref, sref=sref, xdeps_manager=xdeps_manager) 
+            xdeps_manager, element_seq = cpymad_lattice_conv.from_cpymad_with_dependencies(madx, seq_name)
+            return cls(seq_name, element_seq, key='sequence', xdeps_manager=xdeps_manager) 
         else:
             _, element_seq = cpymad_lattice_conv.from_cpymad(madx, seq_name)
-            return cls(seq_name, element_seq, energy=energy, key='sequence') 
+            return cls(seq_name, element_seq, key='sequence') 
 
     @classmethod
-    def from_sad(cls, sad_lattice, seq_name, energy=None):
-        madx = sad_lattice_conv.from_sad_to_madx(sad_lattice, energy)
-        return cls.from_cpymad(madx, seq_name, energy=energy)
+    def from_sad(cls, sad_lattice, seq_name, momentum):
+        madx = sad_lattice_conv.from_sad_to_madx(sad_lattice, momentum)
+        return cls.from_cpymad(madx, seq_name)
 
     @classmethod
     def from_pyat(cls, pyat_lattice):
@@ -144,22 +125,26 @@ class Lattice:
                     mask[el_idx] = False
             self.sequence = np.array(self.sequence)[mask]
 
+    def get_class(self, class_type: xe.BaseElement) -> List[xe.BaseElement]:
+        """ Get list of elements matching given class """
+        return [self.line[element] for element in self.line if isinstance(self.line[element], class_type)]
+
     def convert_sbend_to_rbend(self):
         """ Convert all rbends to sbends in sequence """
-        self.sequence = Sequence({el:val.convert_to_rbend() if el.__class__.__name__ == 'SectorBend' else val for el, val in self.sequence.items()})
+        self.sequence = [element.convert_to_rbend() if element.__class__.__name__ == 'Sbend' else element for element in self.sequence]
 
     def convert_rbend_to_sbend(self):
         """ Convert all rbends to sbends in sequence """
-        self.sequence = Sequence({el:val.convert_to_sbend() if el.__class__.__name__ == 'RectangularBend' else val for el, val in self.sequence.items()})
-    
-    def _slice_lattice(self):
-        thin_list = [el.slice_element() for name, el in self.sequence.items()]
+        self.sequence = [element.convert_to_sbend() if element.__class__.__name__ == 'Rbend' else element for element in self.sequence]
+
+    def slice_lattice(self):
+        thin_list = [el.slice_element() for el in self.sequence]
         thin_list = [item for sublist in thin_list for item in sublist]
         return {el.name:el for el in thin_list}
 
     @property
     def sliced(self):
-        return Lattice(self.name, self._slice_lattice(), key='sequence')
+        return Lattice(self.name, self.slice_lattice(), key='sequence')
 
     def __str__(self):
         return f"{self.__class__.__name__}({self.name}, sequence = {self.sequence.names})"

@@ -20,10 +20,10 @@ def example_cpymad_xsequence_cpymad():
     Returns:
         Old and new twiss tables from cpymad
     """
-    madx_lattice = conv_utils.create_cpymad_from_file(str(TEST_SEQ_DIR / "lattice.seq"), 120)
+    madx_lattice = conv_utils.create_cpymad_from_file(str(TEST_SEQ_DIR / "lattice.seq"), energy=120)
     madx_lattice.command.beam(particle='electron', energy=120)
     madx_lattice.use('l000013')
-    xsequence_lattice = Lattice.from_cpymad(madx_lattice, 'l000013')
+    xsequence_lattice = Lattice.from_cpymad(madx_lattice, 'l000013', energy=120)
     madx_lattice_new = xsequence_lattice.to_cpymad()
     madx_lattice_new.command.beam(particle='electron', energy=120)
     madx_lattice_new.use('l000013')

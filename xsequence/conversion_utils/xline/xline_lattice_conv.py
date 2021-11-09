@@ -11,6 +11,6 @@ import xline as xl
 
 def to_xline(sliced_line: Line):
     names =  sliced_line.names
-    line = [el.to_xline() for el in sliced_line]
+    line = [sliced_line[el].to_xline() for el in sliced_line]
     xline_lattice = xl.Line(elements=line, element_names=names)
     return xline_lattice

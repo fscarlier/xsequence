@@ -13,6 +13,7 @@ from collections import OrderedDict, defaultdict
 from lark import Lark, Transformer, v_args
 
 import xsequence.elements as xe
+import xsequence.elements_dataclasses as xed
 import xsequence.conversion_utils.cpymad.cpymad_properties as cpymad_properties
 
 calc_grammar = """
@@ -81,8 +82,6 @@ def from_madx_seqfile(seq_file, seq_name, energy: float, particle_type: str = 'e
     madx.option(echo=False, info=False, debug=False)
     madx.call(file=seq_file)
     madx.input('SET, FORMAT="25.20e";')
-    madx.command.beam(particle=particle_type, energy=energy)
-    madx.use(seq_name)
     return madx
 
 
@@ -107,14 +106,29 @@ def from_cpymad(madx: Madx, seq_name: str):
     return variables, sequence_dict 
 
 
+def set_from_key(el, key, value):
+    if key in xed.ElementID.INIT_PROPERTIES:
+        setattr(el.id_data, key, value)
+    elif key in xed.ElementParameterData.INIT_PROPERTIES:
+        setattr(el.parameter_data, key, value)
+    elif key in xed.ElementPosition.INIT_PROPERTIES:
+        setattr(el.position_data, key, value)
+    elif key in xed.ApertureData.INIT_PROPERTIES:
+        setattr(el.aperture_data, key, value)
+    elif key in xed.PyatData.INIT_PROPERTIES:
+        setattr(el.pyat_data, key, value)
+    else:
+        setattr(el, key, value)
+
+
 def from_cpymad_with_dependencies(madx: Madx, seq_name: str, dependencies: bool = False):
     variables, sequence_dict = from_cpymad(madx, seq_name)
-    manager = xdeps.DepManager()
+    manager = xdeps.Manager()
     vref = manager.ref(variables,'v')
     mref = manager.ref(math,'m')
-    lref = manager.ref(sequence_dict,'l')
-    madeval = XSequenceMadxEval(vref,mref,lref).eval
-
+    sref = manager.ref(sequence_dict,'s')
+    madeval = XSequenceMadxEval(vref,mref,sref).eval
+    
     for name,par in madx.globals.cmdpar.items():
         if par.expr is not None:
             vref[name]=madeval(par.expr)
@@ -126,13 +140,13 @@ def from_cpymad_with_dependencies(madx: Madx, seq_name: str, dependencies: bool 
                 if par.dtype==12: # handle lists
                     for ii,ee in enumerate(par.expr):
                         if ee is not None:
-                            lref[name]._set_from_key(parname, madeval(ee))
+                            sref[name]._set_from_key(parname, madeval(ee))
                 else:
                     if parname in cpymad_properties.DIFF_ATTRIBUTE_MAP_CPYMAD_INVERTED:
                         parname = cpymad_properties.DIFF_ATTRIBUTE_MAP_CPYMAD_INVERTED[parname]
-                    lref[name]._set_from_key(parname, madeval(par.expr))
+                    set_from_key(sref[name], parname, madeval(par.expr))
 
-    return manager, sequence_dict
+    return manager, vref, mref, sref, sequence_dict
 
 
 def to_cpymad(seq_name, energy, sequence):

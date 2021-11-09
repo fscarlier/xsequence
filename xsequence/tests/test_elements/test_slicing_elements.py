@@ -11,7 +11,8 @@ from pytest import mark
 
 def test_teapot_slice_Sbend_4_slices():
     sb1 = SectorBend('sb1', length=15.0, location=7.5, angle=0.30)
-    sliced_element = sb1.slice_element(num_slices=4)
+    sb1.num_slices = 4
+    sliced_element = sb1.slice_element()
     
     ref = [DipoleEdge('sb1_edge_entrance', location=0.0, h=0.02, side='entrance'), 
            ThinMultipole('sb1_0', location=1.5, knl=[0.075], radiation_length=15/4), 
@@ -26,7 +27,8 @@ def test_teapot_slice_Sbend_4_slices():
 
 def test_teapot_slice_Sbend_3_slices():
     sb1 = SectorBend('sb1', length=15.0, location=7.5, angle=0.30)
-    sliced_element = sb1.slice_element(num_slices=3)
+    sb1.num_slices = 3
+    sliced_element = sb1.slice_element()
     
     ref = [DipoleEdge('sb1_edge_entrance', location=0.0, h=0.02, side='entrance'), 
            ThinMultipole('sb1_0', location=1.875, knl=[0.1], radiation_length=15/3), 

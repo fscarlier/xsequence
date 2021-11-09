@@ -25,15 +25,15 @@ def thin_multipole_to_xline(element):
 
 
 def rfcavity_to_xline(element):
-    kwargs = {'voltage':element.volt*1e6, 
-              'frequency':element.freq*1e6, 
+    kwargs = {'voltage':element.voltage*1e6, 
+              'frequency':element.frequency*1e6, 
               'lag':element.lag}
     return xl.Cavity(**kwargs)
 
 
 def dipole_edge_to_xline(element):
     kwargs = {'h':element.h, 
-              'e1':element.e1} 
+              'e1':element.edge_angle} 
     return xl.DipoleEdge(**kwargs)
 
 

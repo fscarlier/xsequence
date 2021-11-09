@@ -7,7 +7,7 @@ This is a Python3 module containing base element dataclasses for particle accele
 
 from collections import OrderedDict
 import xsequence.elements as xe
-from typing import List, Tuple
+
 
 def _key_to_idx_slice(names, key):
     if key.start:
@@ -32,18 +32,6 @@ class ElementDict(OrderedDict):
 
     def get_last_element(self):
         return self[self.names[-1]]    
-    
-    def get_class(self, class_type: List[str]) -> List[xe.BaseElement]:
-        """ Get list of elements matching given class """
-        return ElementDict({name:self[name] for name in self if self[name].__class__.__name__ in class_type})
-
-    def find_elements(self, pattern):
-        if pattern.startswith('*'):
-            return ElementDict({name:self[name] for name in self if name.endswith(pattern[1:])})
-        elif pattern.endswith('*'):
-            return ElementDict({name:self[name] for name in self if name.startswith(pattern[:-1])})
-        else:
-            return ElementDict({name:self[name] for name in self if pattern in name})
 
     def get_s_positions(self, reference='center'):
         if reference == 'center': 
@@ -76,10 +64,6 @@ class ElementDict(OrderedDict):
                 return self[self.names[key]]
             else:
                 return super().__getitem__(key)
-
-    def __repr__(self):
-        return f"{self.names}"
-
 
 class Line(ElementDict):
     def _set_positions(self):

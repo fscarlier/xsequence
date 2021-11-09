@@ -8,7 +8,7 @@ This is a Python3 module containing base element dataclasses for particle accele
 from typing import List, Optional
 from dataclasses import dataclass, field
 import numpy as np
-
+from abc import ABC, abstractmethod
 
 class BaseElementData: 
     def __iter__(self):
@@ -161,22 +161,13 @@ class RectangularAperture(ApertureData):
         return aperture_size_data
 
 
-@dataclass
-class AlignmentError(BaseElementData):
-    INIT_PROPERTIES = ['kn_err', 'ks_err'] 
-    dx: float= 0.0  # Horizontal displacement [m]
-    dy: float= 0.0  # Vertical displacement [m]
-    ds: float= 0.0  # Longitudinal displacement [m] 
-    dphi: float= 0.0    # Rotation about x-axis [rad] 
-    dtheta: float= 0.0  # Rotation about y-axis [rad]
-    dpsi: float= 0.0    # Rotation about s-axis [rad]
-
 
 @dataclass
 class MultipoleError(BaseElementData):
     INIT_PROPERTIES = ['kn_err', 'ks_err'] 
-    kn_err: List = field(default_factory=lambda: np.array([0.0, 0.0, 0.0, 0.0]))  
-    ks_err: List = field(default_factory=lambda: np.array([0.0, 0.0, 0.0, 0.0])) 
+    kn_err: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0])  
+    ks_err: List = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0]) 
+
 
 
 @dataclass

@@ -78,10 +78,16 @@ def compare_elements(sequence_1: Sequence, sequence_2: Sequence, ignore_attribut
         return False
 
 
-def compare_lattices(lattice_1, lattice_2, ignore_attributes=[], debug=False):
-    
-    no_errors = True
-    no_errors *= compare_lattice_name(lattice_1, lattice_2)
-    no_errors *= compare_sequence_lengths(lattice_1.sequence, lattice_2.sequence)
-    no_errors *= compare_elements(lattice_1.sequence, lattice_2.sequence, ignore_attributes=ignore_attributes)
-    return no_errors
+def compare_lattices(lattice_1, lattice_2, key='sequence', ignore_attributes=[], debug=False):
+    if key == 'sequence':    
+        no_errors = True
+        no_errors *= compare_lattice_name(lattice_1, lattice_2)
+        no_errors *= compare_sequence_lengths(lattice_1.sequence, lattice_2.sequence)
+        no_errors *= compare_elements(lattice_1.sequence, lattice_2.sequence, ignore_attributes=ignore_attributes)
+        return no_errors
+    elif key == 'line':    
+        no_errors = True
+        no_errors *= compare_lattice_name(lattice_1, lattice_2)
+        no_errors *= compare_sequence_lengths(lattice_1.line, lattice_2.line)
+        no_errors *= compare_elements(lattice_1.line, lattice_2.line, ignore_attributes=ignore_attributes)
+        return no_errors
