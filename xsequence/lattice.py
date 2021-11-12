@@ -102,7 +102,7 @@ class Lattice:
     def to_xline(self):
         xline_lattice_conv.to_xline(self.sliced.line) 
 
-    def optics(self, engine='madx', drop_drifts=False):
+    def optics(self, engine='madx', drop_drifts=False, pyat_idx_to_mad=False):
         """
         Calculate optics 
 
@@ -124,8 +124,9 @@ class Lattice:
             lin = pyat_functions.calc_optics_pyat(pyat_instance)
             tw = pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
             tw.set_index('name', inplace=True)
-            tw.index = np.roll(tw.index, 1)
-            tw.keyword = np.roll(tw.keyword, 1)
+            if pyat_idx_to_mad:
+                tw.index = np.roll(tw.index, 1)
+                tw.keyword = np.roll(tw.keyword, 1)
 
         if drop_drifts:
             tw = tw.drop(tw[tw['keyword']=='drift'].index)

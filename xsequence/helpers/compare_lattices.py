@@ -67,6 +67,7 @@ def compare_elements(sequence_1: Sequence, sequence_2: Sequence, ignore_attribut
                 seq2_dict = sequence_2[el].get_dict()
                 for k in seq1_dict:
                     if k not in ignore_attributes:
+                        print(k)
                         if seq1_dict[k] != seq2_dict[k]:
                             console.print(f"    Attribute '{k}' is not equal", style="warning")
                             console.print(f"        {seq1_dict[k]}  <-->  {seq2_dict[k]}"  )

@@ -6,7 +6,7 @@ This is a Python3 module containing base Lattice class to manipulate accelerator
 """
 
 import os 
-from xsequence.helpers.sad_templates.sad_templates import SadToMadx
+from xsequence.helpers.sad_templates.sad_templates import SadTemplates
 from xsequence.conversion_utils.cpymad import cpymad_lattice_conv
 
 def from_sad_to_madx(sad_lattice, momentum, particle_type='electron'):
@@ -19,7 +19,7 @@ def from_sad_to_madx(sad_lattice, momentum, particle_type='electron'):
 
     
 def create_madx_seq_from_sad(sad_seq_path, mad_seq_path, momentum):
-    sm = SadToMadx(path_to_sad_sequence=sad_seq_path, madx_output_file=mad_seq_path, momentum=momentum)
-    sm.convert_to_madx()
+    sm = SadTemplates(path_to_sad_sequence=sad_seq_path, momentum=momentum)
+    sm.convert_to_madx(madx_output_file=mad_seq_path)
 
 

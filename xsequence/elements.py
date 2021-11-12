@@ -452,6 +452,7 @@ class RFCavity(BaseElement):
 class HKicker(BaseElement):
     """ Horizontal kicker element class """
     def __init__(self, name: str, **kwargs):
+        self.num_slices = kwargs.pop('num_slices', 1)
         self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
     
@@ -464,6 +465,7 @@ class HKicker(BaseElement):
 class VKicker(BaseElement):
     """ Vertical kicker element class """
     def __init__(self, name: str, **kwargs):
+        self.num_slices = kwargs.pop('num_slices', 1)
         self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
     
@@ -476,6 +478,7 @@ class VKicker(BaseElement):
 class TKicker(BaseElement):
     """ TKicker element class """
     def __init__(self, name: str, **kwargs):
+        self.num_slices = kwargs.pop('num_slices', 1)
         self.vkick = kwargs.pop('vkick', 0.0)
         self.hkick = kwargs.pop('hkick', 0.0)
         super().__init__(name, **kwargs)

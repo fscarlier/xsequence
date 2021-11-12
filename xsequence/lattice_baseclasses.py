@@ -29,6 +29,10 @@ class ElementDict(OrderedDict):
     @property
     def positions(self):
         return [self[element].position_data.position for element in self]
+    
+    @property
+    def lengths(self):
+        return [self[element].position_data.length for element in self]
 
     def get_last_element(self):
         return self[self.names[-1]]    
@@ -104,10 +108,11 @@ class Sequence(ElementDict):
             element_start = element.position_data.start
             if element_start > previous_end:
                 drift_length = element_start-previous_end
-                drift_pos = previous_end + drift_length/2.
-                drift_name = f'drift_{drift_count}'
-                line_w_drifts[drift_name] = xe.Drift(drift_name, length=drift_length, location=drift_pos)
-                drift_count += 1
+                if drift_length > 1e-10:
+                    drift_pos = previous_end + drift_length/2.
+                    drift_name = f'drift_{drift_count}'
+                    line_w_drifts[drift_name] = xe.Drift(drift_name, length=drift_length, location=drift_pos)
+                    drift_count += 1
             elif element_start < previous_end-1e-9: # Tolerance for rounding
                 raise ValueError(f'Negative drift at element {element.name}')
 

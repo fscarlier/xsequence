@@ -6,14 +6,13 @@ import os
 
 TEST_SEQ_DIR = Path(__file__).parent 
 
-class SadToMadx:
+class SadTemplates:
     """ Class that contains basic building blocks to convert lattices from sad to madx""" 
-    def __init__(self, momentum, path_to_sad_sequence, madx_output_file, **kwargs) -> None:
+    def __init__(self, momentum, path_to_sad_sequence, sad_gs_path='/home/fcarlier/git-projects/SAD/bin/gs', **kwargs) -> None:
+        self.sad_gs_path = sad_gs_path
         self.momentum = momentum 
         self.path_to_sad_sequence = path_to_sad_sequence
-        self.madx_output_file = madx_output_file
         self.n_cores = kwargs.pop('n_cores', 1)
-        self.sad_twiss_output = kwargs.pop('sad_twiss_output', '')     
 
         self.TWISS_FUNCTION = str(TEST_SEQ_DIR / "twiss.n")
         self.TUNE_MATCHING = str(TEST_SEQ_DIR / "tunematching.n")
@@ -65,41 +64,39 @@ class SadToMadx:
                 CALCULATE;
                 """
 
-        self.PRINT_TWISS = f"""
-                (* ----------------------PRINT TWISS----------------------------------------- *)
-                USE RING;
-                CELL;
-                CALCULATE;
-
-                Get["{self.TWISS_FUNCTION}"];
-                SaveTwissFile["{self.sad_twiss_output}"];
-                """
-
-
-        self.CONVERT_SAD_TO_MAD = f"""
-                (* ----------------------CONVERT SAD SEQUENCES TO MAD SEQUENCE--------------- *)
-                Get["{self.SAD_TO_MADX_FUNCTION}"];
-
-                mx=SAD2MADX[fname->"{self.madx_output_file}"];
-                mx@CreateMADX[];
-                """
         
         self.EXIT = "Exit[];"
 
 
-    def convert_to_madx(self, tune_matching = False):
-        if tune_matching:
-            command = self.READ_SAD + self.MATCH_TUNES + self.CONVERT_SAD_TO_MAD + self.EXIT
-        else:
-            command = self.READ_SAD + self.CONVERT_SAD_TO_MAD + self.EXIT
+    def convert_to_madx(self, madx_output_file):
+        CONVERT_SAD_TO_MAD = f"""
+            (* ----------------------CONVERT SAD SEQUENCES TO MAD SEQUENCE--------------- *)
+            Get["{self.SAD_TO_MADX_FUNCTION}"];
+
+            mx=SAD2MADX[fname->"{madx_output_file}"];
+            mx@CreateMADX[];
+            """
+        command = self.READ_SAD + CONVERT_SAD_TO_MAD + self.EXIT
+        self.run_sad_command(command)
+
+
+    def get_twiss(self, sad_twiss_output):
+        PRINT_TWISS = f"""
+            (* ----------------------PRINT TWISS----------------------------------------- *)
+            USE RING;
+            CELL;
+            CALCULATE;
+
+            Get["{self.TWISS_FUNCTION}"];
+            SaveTwissFile["{sad_twiss_output}"];
+            """
+        command = self.READ_SAD + PRINT_TWISS + self.EXIT
         self.run_sad_command(command)
 
 
     def run_sad_command(self, command):
-        
         f = open("temp.job", "w")
         f.write(command)
         f.close()
-        os.system(f"/home/fcarlier/git-projects/SAD/bin/gs temp.job")
+        os.system(f"{self.sad_gs_path} temp.job")
         os.remove("temp.job")
-
