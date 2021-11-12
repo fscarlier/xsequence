@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[11]:
 
 
 from xsequence.lattice import Lattice
@@ -13,7 +13,7 @@ plat = lat.to_pyat()
 
 # Accelerator toolbox import and specific matplotlib environment settings for Jupyter notebook.
 
-# In[2]:
+# In[12]:
 
 
 import at
@@ -24,7 +24,7 @@ plt.ion()
 
 # Creating pyAT optics plot
 
-# In[3]:
+# In[13]:
 
 
 plat.radiation_off()
@@ -39,7 +39,7 @@ plt.draw()
 
 # Defining update function for optics plot
 
-# In[4]:
+# In[14]:
 
 
 def update_twiss(plat,elements):
@@ -51,7 +51,7 @@ def update_twiss(plat,elements):
 
 # Setting up dependency manager
 
-# In[5]:
+# In[15]:
 
 
 import xdeps
@@ -68,7 +68,7 @@ pref.up=pref.update_twiss(pref,pref.e)
 
 # Creating knob 'dk' to modulate k1 of 'qc1l1.1' element
 
-# In[6]:
+# In[16]:
 
 
 pref.v.dk=0
@@ -77,19 +77,19 @@ pref.e['qc1l1.1'].K=-0.24949831119187935*(1+pref.v.dk)
 
 # Changing values of the knob will automaticall change the plot of beta functions.
 
-# In[10]:
+# In[17]:
 
 
 pref.v.dk = 0.0001
 
 
-# In[11]:
+# In[18]:
 
 
 pref.v.dk = 0.0003
 
 
-# In[12]:
+# In[19]:
 
 
 pref.v.dk = 0.0005

@@ -1,4 +1,0 @@
-option, echo=false, info=false, debug=false;
-call, file="FCCee_h.seq";
-SET, FORMAT="25.20e";
-beam, particle=electron, energy=120;
