@@ -43,7 +43,7 @@ DEPENDENCIES = [
     "cpymad>=1.8.1", 
     "xline", 
     "accelerator-toolbox",
-    "xdeps@https://github.com/xsuite/xdeps/tarball/master",
+    "xdeps@https://github.com/xsuite/xdeps/tarball/main",
     "lark",
     "rich",
     ]
