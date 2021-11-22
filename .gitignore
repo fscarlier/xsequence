@@ -19,3 +19,4 @@
 .cache
 /doc/_build/*
 *pycache*
+*.egg
