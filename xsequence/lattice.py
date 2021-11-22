@@ -13,6 +13,7 @@ from xsequence.conversion_utils.cpymad import cpymad_lattice_conv
 from xsequence.conversion_utils.pyat import pyat_lattice_conv
 from xsequence.conversion_utils.xline import xline_lattice_conv
 from xsequence.conversion_utils.sad import sad_lattice_conv
+from xsequence.conversion_utils.elegant import elegant_lattice_conv
 
 from xsequence.helpers import pyat_functions
 from collections import OrderedDict
@@ -64,7 +65,7 @@ class Lattice:
 
     def _update_harmonic_number(self):
         for cav in self.sequence.get_class('RFCavity'):
-            # Approximation for ultr-relativistic electrons
+            # Approximation for ultra-relativistic electrons
             self.sequence[cav].harmonic_number = int(self.sequence[cav].frequency*1e6/(scipy.constants.c/self.get_total_length()))
 
     @classmethod
@@ -101,6 +102,9 @@ class Lattice:
 
     def to_xline(self):
         xline_lattice_conv.to_xline(self.sliced.line) 
+
+    def to_elegant(self):
+        elegant_lattice_conv.to_elegant(self.name, self.params['energy'], self.sequence) 
 
     def optics(self, engine='madx', drop_drifts=False, pyat_idx_to_mad=False):
         """

@@ -1,5 +1,5 @@
 """
-Module xsequence.base_elements
+Module xsequence.elements
 ------------------
 :author: Felix Carlier (fcarlier@cern.ch)
 This is a Python3 module containing base element classes element property dataclasses for particle accelerator elements.
@@ -564,5 +564,3 @@ def convert_arbitrary_cpymad_element(cpymad_element):
 
 def convert_arbitrary_pyat_element(pyat_element):
     return PYAT_TO_FSF_MAP[pyat_element.__class__.__name__].from_pyat(pyat_element)
-
-
