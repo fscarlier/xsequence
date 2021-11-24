@@ -5,7 +5,7 @@ Module conversion_utils.xline_conv
 This is a Python3 module containing functions to convert elements from and to xline.
 """
 
-import xline as xl
+import xtrack as xl
 
 
 def marker_to_xline(element):
