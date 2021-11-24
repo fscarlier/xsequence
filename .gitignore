@@ -3,6 +3,7 @@
 *.eps
 *.ps
 *.log
+*.madx
 *.pyc
 *.gz
 *.swp
