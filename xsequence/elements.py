@@ -17,6 +17,7 @@ from xsequence.conversion_utils import conv_utils
 from xsequence.conversion_utils.cpymad import cpymad_conv
 from xsequence.conversion_utils.pyat import pyat_conv
 from xsequence.conversion_utils.xline import xline_conv
+from xsequence.conversion_utils.elegant import elegant_conv
 
 
 class ShouldUseMultipoleError(Exception):
@@ -65,6 +66,10 @@ class BaseElement:
     def to_xline(self):
         """ Create Xline element instance from element """
         return xline_conv.convert_element_to_xline(self)
+
+    def to_elegant(self):
+        """ Create Elegant element instance from element """
+        return elegant_conv.to_elegant(self)
 
     def _get_slice_positions(self, method='teapot'):
         """ Create Xline element instance from element """

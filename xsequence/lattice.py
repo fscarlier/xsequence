@@ -101,10 +101,10 @@ class Lattice:
         return pyat_lattice_conv.to_pyat(self.name, self.params['energy']*1e9, self.line)
 
     def to_xline(self):
-        xline_lattice_conv.to_xline(self.sliced.line) 
+        return xline_lattice_conv.to_xline(self.sliced.line) 
 
-    def to_elegant(self):
-        elegant_lattice_conv.to_elegant(self.name, self.params['energy'], self.sequence) 
+    def to_elegant(self, filename=None):
+        return elegant_lattice_conv.to_elegant(self.name, self.params['energy'], self.line, filename) 
 
     def optics(self, engine='madx', drop_drifts=False, pyat_idx_to_mad=False):
         """

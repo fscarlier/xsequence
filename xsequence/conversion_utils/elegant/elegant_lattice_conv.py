@@ -5,47 +5,33 @@ Module xsequence.lattice
 This is a Python3 module containing base Lattice class to manipulate accelerator sequences.
 """
 
-import numpy as np
+from pathlib import Path
+from typing import Union
 from xsequence.lattice_baseclasses import Line
-from xsequence.elements import (
-                    Marker, Drift, Collimator, Monitor, Placeholder, Instrument, 
-                    SectorBend,  RectangularBend, Solenoid, ThinMultipole, Quadrupole, 
-                    Sextupole, Octupole, RFCavity, HKicker, VKicker, TKicker, 
-                    ThinMultipole, ThinSolenoid, ThinRFMultipole)
 
 
+def to_elegant(seq_name: str, energy: float, line: Line, lte_file: Union[str, Path]=None) -> dict:
 
-XSEQUENCE_TO_ELEGANT={
-    Marker          : (lambda element: f"{element.name}: MARK;\n"),
-    Drift           : (lambda element: f"{element.name}: EDRIFT,        L={element.length};\n"),
-    Collimator      : (lambda element: f"{element.name}: RCOL,          L={element.length};\n"),
-    Monitor         : (lambda element: f"{element.name}: MONI,          L={element.length};\n"),
-    Placeholder     : (lambda element: f"{element.name}: MARK;\n"),
-    Instrument      : (lambda element: f"{element.name}: MARK;\n"),
-    SectorBend      : (lambda element: f"{element.name}: CSBEND,        L={element.length}, ANGLE={element.angle}, E1={element.e1}, E2={element.e2};\n"),
-    RectangularBend : (lambda element: f"{element.name}: CSBEND,        L={element.length}, ANGLE={element.angle}, E1={element.e1}, E2={element.e2};\n"),
-    Solenoid        : (lambda element: f"{element.name}: SOLE,          L={element.length}, KS={element.ks};\n"),
-    Quadrupole      : (lambda element: f"{element.name}: KQUAD,         L={element.length}, K1={element.k1};\n"),
-    Sextupole       : (lambda element: f"{element.name}: KSEXT,         L={element.length}, K2={element.k2};\n"),
-    Octupole        : (lambda element: f"{element.name}: KOCT,          L={element.length}, K3={element.k3};\n"),
-    RFCavity        : (lambda element: f"{element.name}: RFCA,          L={element.length}, VOLT={element.voltage}, PHASE={element.lag*180/np.pi}, FREQ={element.frequency};\n"),
-    HKicker         : (lambda element: f"{element.name}: EHKICK,        L={element.length}, KICK={element.kick};\n"),
-    VKicker         : (lambda element: f"{element.name}: EVKICK,        L={element.length}, KICK={element.kick};\n"),
-    TKicker         : (lambda element: f"{element.name}: KICKER,        L={element.length}, HKICK={element.hkick}, VKICK={element.vkick};\n"),
-    ThinMultipole   : (lambda element: ''.join([
-                                       f"{element.name}.K{order}: MULT, L={element.length}, KNL={strength}, ORDER={order};\n" 
-        for order, strength in enumerate(element.knl)
-                                        ])),
-    ThinSolenoid    : (lambda element: f"{element.name}: SOLE,          L={element.length}, KS={element.ks};\n"),
-}
+    elements_definition=""
+    # since elegant doesnt support multipoles with different components, 
+    # the thinmultipole is split into its different contribution and for each, a MULT element will be added
+    # as such, the conversion from the original line would break and line has to be built anew
+    element_order=f"{seq_name}: LINE=("
+    for name, element in line.items():
+        name, _, elegant_definition = element.to_elegant()
+        elements_definition=f"{elements_definition}{elegant_definition}\n"
+        element_order=f"{element_order}\n{name}"
+    element_order=f"{element_order})"
+    
+    if lte_file is not None:
+        write_elegant_lattice_file(lte_file, elements_definition, element_order)
 
-def to_elegant(seq_name: str, energy: float, line: Line) -> dict:
+    return elements_definition, element_order
+    
 
-    lat=[]
-    seq=f"{seq_name} : LINE=("
-    for element in line:
-        lat.append(XSEQUENCE_TO_ELEGANT[element.type()](element))
-        seq=f"{seq}{element.name}, "
-    seq=f"{seq})"
-    return {'lattice': lat, 'sequence':seq, 'script': ele}
+def write_elegant_lattice_file(filename: Union[str, Path], elements:str, line:str):
+    with open(Path(filename).with_suffix('.lte'), 'w') as f:
+        f.write(elements)
+        f.write('\n')
+        f.write(line)
 
