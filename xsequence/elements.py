@@ -6,7 +6,6 @@ This is a Python3 module containing base element classes element property datacl
 """
 
 import math
-from typing import TYPE_CHECKING
 import numpy as np
 from abc import ABC, abstractmethod
 
@@ -81,15 +80,15 @@ class BaseElement:
         return seq
 
     def _set_from_key(self, key, value):
-        if key == xed.ElementID.INIT_PROPERTIES:
+        if key in xed.ElementID.INIT_PROPERTIES:
             setattr(self.id_data, key, value)
-        elif key == xed.ElementParameterData.INIT_PROPERTIES:
+        elif key in xed.ElementParameterData.INIT_PROPERTIES:
             setattr(self.parameter_data, key, value)
-        elif key == xed.ElementPosition.INIT_PROPERTIES:
+        elif key in xed.ElementPosition.INIT_PROPERTIES:
             setattr(self.position_data, key, value)
-        elif key == xed.ApertureData.INIT_PROPERTIES:
+        elif key in xed.ApertureData.INIT_PROPERTIES:
             setattr(self.aperture_data, key, value)
-        elif key == xed.PyatData.INIT_PROPERTIES:
+        elif key in xed.PyatData.INIT_PROPERTIES:
             setattr(self.pyat_data, key, value)
         else:
             setattr(self, key, value)

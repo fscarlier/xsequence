@@ -5,8 +5,9 @@ Module xsequence.lattice
 This is a Python3 module containing base Lattice class to manipulate accelerator sequences.
 """
 
-import scipy
+import scipy.constants
 import numpy as np
+import pandas as pd
 import xsequence.elements as xe
 
 from xsequence.conversion_utils.cpymad import cpymad_lattice_conv
@@ -16,12 +17,11 @@ from xsequence.conversion_utils.sad import sad_lattice_conv
 
 from xsequence.helpers import pyat_functions
 from collections import OrderedDict
-from xsequence.lattice_baseclasses import Line, Sequence, ElementDict
-from typing import List
+from xsequence.lattice_baseclasses import Line, Sequence
 
 class Lattice:
     """ A class used to represent an accelerator lattice """
-    def __init__(self, name: str, element_dict: OrderedDict, key: str = 'line', **kwargs):
+    def __init__(self, name: str, element_dict: dict, key: str = 'line', **kwargs):
         self.name = name
         self.params = {'key':key, 'energy':kwargs.pop('energy', None)}
         
@@ -119,18 +119,20 @@ class Lattice:
             tw = cpymad_instance.table.twiss.dframe().copy()
             tw.name = [element[:-2] for element in tw.name]
             tw.set_index('name', inplace=True)
+            if drop_drifts:
+                tw = tw.drop(tw[tw['keyword']=='drift'].index)
+            return tw 
         if engine == 'pyat':
             pyat_instance = self.to_pyat()
             lin = pyat_functions.calc_optics_pyat(pyat_instance)
             tw = pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
             tw.set_index('name', inplace=True)
             if pyat_idx_to_mad:
-                tw.index = np.roll(tw.index, 1)
+                tw.set_index(pd.Index(np.roll(tw.index, 1)))
                 tw.keyword = np.roll(tw.keyword, 1)
-
-        if drop_drifts:
-            tw = tw.drop(tw[tw['keyword']=='drift'].index)
-        return tw 
+            if drop_drifts:
+                tw = tw.drop(tw[tw['keyword']=='drift'].index)
+            return tw 
 
     def remove_elements(self, index=None, names=None):
         if index:
