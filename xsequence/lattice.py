@@ -5,29 +5,23 @@ Module xsequence.lattice
 This is a Python3 module containing base Lattice class to manipulate accelerator sequences.
 """
 
+import os, sys
 import scipy.constants
 import numpy as np
 import pandas as pd
-import xsequence.elements as xe
 
-from xsequence.conversion_utils.cpymad import cpymad_lattice_conv
-from xsequence.conversion_utils.pyat import pyat_lattice_conv
-from xsequence.conversion_utils.xline import xline_lattice_conv
-from xsequence.conversion_utils.sad import sad_lattice_conv
 
-from xsequence.helpers import pyat_functions
-from collections import OrderedDict
-from xsequence.lattice_baseclasses import Line, Sequence
+from xsequence.lattice_baseclasses import Line, Sequence, Beam
 
 class Lattice:
     """ A class used to represent an accelerator lattice """
     def __init__(self, name: str, element_dict: dict, key: str = 'line', **kwargs):
         self.name = name
-        self.params = {'key':key, 'energy':kwargs.pop('energy', None)}
-        
-        if self.params['key'] == 'line':
+        self.beam = Beam(energy=kwargs.pop('energy', None), particle=kwargs.pop('particle', None))
+
+        if key == 'line':
             self.line = Line(element_dict)
-        elif self.params['key'] == 'sequence':
+        elif key == 'sequence':
             self.sequence = Sequence(element_dict)
 
         if 'xdeps_manager' in kwargs:
@@ -60,7 +54,7 @@ class Lattice:
 
     def _update_cavity_energy(self):
         for cav in self.sequence.get_class('RFCavity'):
-            self.sequence[cav].energy = self.params['energy']
+            self.sequence[cav].energy = self.beam.energy
 
     def _update_harmonic_number(self):
         for cav in self.sequence.get_class('RFCavity'):
@@ -69,11 +63,15 @@ class Lattice:
 
     @classmethod
     def from_madx_seqfile(cls, seq_file, seq_name, energy=None, dependencies=False, particle_type='electron'):
+        from xsequence.conversion_utils.cpymad import cpymad_lattice_conv
+        
         madx = cpymad_lattice_conv.from_madx_seqfile(seq_file, energy, particle_type)
         return cls.from_cpymad(madx, seq_name, energy=energy, dependencies=dependencies)
 
     @classmethod
     def from_cpymad(cls, madx, seq_name, energy=None, dependencies=False):
+        from xsequence.conversion_utils.cpymad import cpymad_lattice_conv
+        
         if dependencies:
             xdeps_manager, vref, mref, sref, element_seq = cpymad_lattice_conv.from_cpymad_with_dependencies(madx, seq_name)
             return cls(seq_name, element_seq, energy=energy, key='sequence', vref=vref, mref=mref, sref=sref, xdeps_manager=xdeps_manager) 
@@ -83,26 +81,46 @@ class Lattice:
 
     @classmethod
     def from_sad(cls, sad_lattice, seq_name, energy=None):
+        from xsequence.conversion_utils.sad import sad_lattice_conv
+        
         madx = sad_lattice_conv.from_sad_to_madx(sad_lattice, energy)
         return cls.from_cpymad(madx, seq_name, energy=energy)
 
     @classmethod
     def from_pyat(cls, pyat_lattice):
+        from xsequence.conversion_utils.pyat import pyat_lattice_conv
+        
         seq = pyat_lattice_conv.from_pyat(pyat_lattice)
         return cls(pyat_lattice.name, seq, energy=pyat_lattice.energy*1e-9) 
 
     def to_cpymad(self):
-        return cpymad_lattice_conv.to_cpymad(self.name, self.params['energy'], self.sequence)
+        from xsequence.conversion_utils.cpymad import cpymad_lattice_conv
+        
+        return cpymad_lattice_conv.to_cpymad(self.name, self.beam.energy, self.sequence)
 
     def to_pyat(self):
+        from xsequence.conversion_utils.pyat import pyat_lattice_conv
+        
         self._update_cavity_energy()
         self._update_harmonic_number()
-        return pyat_lattice_conv.to_pyat(self.name, self.params['energy']*1e9, self.line)
+        return pyat_lattice_conv.to_pyat(self.name, self.beam.energy*1e9, self.line)
+
+    def to_bmad(self, file_path=None):
+        from xsequence.conversion_utils.bmad import bmad_lattice_conv
+        
+        if file_path:
+            f = open(file_path, "w")
+            f.write(bmad_lattice_conv.to_bmad(self.name, self.beam, self.line))
+            f.close()
+        else:
+            return bmad_lattice_conv.to_bmad(self.name, self.beam, self.line) 
 
     def to_xline(self):
+        from xsequence.conversion_utils.xline import xline_lattice_conv
+        
         xline_lattice_conv.to_xline(self.sliced.line) 
 
-    def optics(self, engine='madx', drop_drifts=False, pyat_idx_to_mad=False):
+    def optics(self, engine='madx', drop_drifts=True, pyat_idx_to_mad=False):
         """
         Calculate optics 
 
@@ -117,22 +135,59 @@ class Lattice:
             cpymad_instance.use(self.name)
             cpymad_instance.twiss(sequence=self.name)
             tw = cpymad_instance.table.twiss.dframe().copy()
-            tw.name = [element[:-2] for element in tw.name]
+            tw['name'] = [nn[:-2] for nn in tw['name']]
             tw.set_index('name', inplace=True)
             if drop_drifts:
                 tw = tw.drop(tw[tw['keyword']=='drift'].index)
             return tw 
         if engine == 'pyat':
+            from xsequence.helpers import pyat_functions
+            
             pyat_instance = self.to_pyat()
             lin = pyat_functions.calc_optics_pyat(pyat_instance)
             tw = pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
-            tw.set_index('name', inplace=True)
             if pyat_idx_to_mad:
-                tw.set_index(pd.Index(np.roll(tw.index, 1)))
+                tw.name = np.roll(tw.name, 1)
                 tw.keyword = np.roll(tw.keyword, 1)
+            tw.set_index('name', inplace=True)
             if drop_drifts:
                 tw = tw.drop(tw[tw['keyword']=='drift'].index)
             return tw 
+        if engine == "bmad":
+            bmad_file = "temporary_lattice_for_twiss.bmad"
+            self.to_bmad(file_path=bmad_file)
+
+            TAO_PYTHON_DIR=os.environ['ACC_ROOT_DIR'] + '/tao/python'
+            sys.path.insert(0, TAO_PYTHON_DIR)
+            
+            import pytao
+            from io import StringIO
+
+            tao = pytao.Tao()
+            tao.init(f"-noinit -noplot -lattice_file {bmad_file}")
+            bmad_twiss = tao.cmd('show lattice -python -all -custom bmad_custom.twiss')
+            tw = pd.read_csv(StringIO("\n".join(line for line in bmad_twiss)), sep=';')
+            col_types = tw.iloc[0]
+            tw.drop([0], inplace=True)
+            
+            tw = tw[tw['name'] != 'BEGINNING']
+            tw = tw[tw['name'] != 'END']
+            
+            for col in tw:
+                if col_types[col] == 'INT':
+                    tw[col] = tw[col].astype(int)
+                elif col_types[col] == 'REAL':
+                    tw[col] = tw[col].astype(float)
+                elif col_types[col] == 'STR':
+                    tw[col] = tw[col].str.lower()
+
+            tw.set_index('name', inplace=True)
+            tw.drop(columns=['index'], inplace=True)
+
+            if drop_drifts:
+                tw = tw.drop(tw[tw['keyword']=='drift'].index)
+            return tw 
+
 
     def remove_elements(self, index=None, names=None):
         if index:

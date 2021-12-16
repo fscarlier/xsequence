@@ -16,6 +16,7 @@ from xsequence.conversion_utils import conv_utils
 from xsequence.conversion_utils.cpymad import cpymad_conv
 from xsequence.conversion_utils.pyat import pyat_conv
 from xsequence.conversion_utils.xline import xline_conv
+from xsequence.conversion_utils.bmad import bmad_conv
 
 
 class ShouldUseMultipoleError(Exception):
@@ -60,6 +61,10 @@ class BaseElement:
     def to_pyat(self):
         """ Create pyAT element instance from element """
         return pyat_conv.to_pyat(self)
+
+    def to_bmad(self):
+        """ Create cpymad element in madx instance from Element """
+        return bmad_conv.to_bmad_str(self)
 
     def to_xline(self):
         """ Create Xline element instance from element """

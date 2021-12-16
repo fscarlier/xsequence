@@ -6,6 +6,7 @@ This is a Python3 module containing base element dataclasses for particle accele
 """
 
 from collections import OrderedDict
+from dataclasses import dataclass
 import xsequence.elements as xe
 from typing import List, Tuple
 
@@ -120,4 +121,7 @@ class Sequence(ElementDict):
             previous_end = element.position_data.end
         return Line(line_w_drifts)
 
-
+@dataclass
+class Beam:
+    energy: float 
+    particle: str
