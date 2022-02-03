@@ -50,22 +50,6 @@ class ElementDict(OrderedDict):
         else:
             return ElementDict({name:self[name] for name in self if pattern in name})
 
-    def get_s_positions(self, reference='center'):
-        if reference == 'center': 
-            return [self[name].position_data.position for name in self.names]
-        elif reference == 'start': 
-            return [self[name].position_data.start for name in self.names]
-        elif reference == 'end': 
-            return [self[name].position_data.end for name in self.names]
-
-    def get_range_s(self, start_pos: float, end_pos: float):
-        start_name = next(idx for idx, name in enumerate(self.names) if self[name].position_data.start > start_pos)
-        stop_name = 1 + next(idx for idx, name in enumerate(self.names) if self[name].position_data.end > end_pos)
-        return self[start_name:stop_name]
-    
-    def _get_total_length(self):
-        return self[self.names[-1]].position_data.end
-
     def _get_names(self):
         return list(self.keys())
     
@@ -86,7 +70,60 @@ class ElementDict(OrderedDict):
         return f"{self.names}"
 
 
-class Line(ElementDict):
+@dataclass
+class Beam:
+    energy: float 
+    particle: str
+
+
+
+class Nodes:
+    """ Class to describe sequence of Nodes in accelerator lattice """
+    def __init__(self, nodes: List[Node]):
+        self.nodes = nodes
+
+    @property
+    def nodes(self):
+        return self._nodes
+
+    @nodes.setter
+    def nodes(self, nodes):
+        self._nodes = nodes
+        self._order_nodes_by_position()
+        self._set_ele_number()
+    
+    @property
+    def names(self):
+        return [node.name for node in self.nodes]
+    
+    @property
+    def positions(self):
+        return [node.position_data.position for node in self.nodes]
+
+    def _order_nodes_by_position(self):
+        """ Order nodes depending on longitudinal position in accelerator """
+        _, nodes = zip(*sorted(zip(self.positions, self.nodes)))                    
+        self._nodes = list(nodes) 
+
+    def _set_ele_number(self):
+        """ Set element number relating to occurence of element in lattice """
+        temp_dict = {}
+        for node in self.nodes:
+            name = node.name
+            if name in temp_dict:
+                temp_dict[name] += 1
+            else:
+                temp_dict[name] = 1
+            node.element_number = temp_dict[name]
+
+
+class ElementsLattice:
+    def __init__(self, elements_dict: ElementDict, nodes: Nodes):
+        self.elements_dict = elements_dict
+        self.nodes = nodes
+    
+
+class Line(ElementsLattice):
     def _set_positions(self):
         """ Calculate longitudinal positions of elements from line representation """
         previous_end = 0.0
@@ -99,7 +136,7 @@ class Line(ElementDict):
         return Sequence({k:self[k] for k in self if not isinstance(self[k], xe.Drift)})
 
 
-class Sequence(ElementDict):
+class Sequence(ElementsLattice):
     def _get_line(self):
         """ Convert sequence representation to line representation including drifts """
         previous_end = self[self._get_names()[0]].position_data.start
@@ -120,8 +157,3 @@ class Sequence(ElementDict):
             line_w_drifts[name] = element
             previous_end = element.position_data.end
         return Line(line_w_drifts)
-
-@dataclass
-class Beam:
-    energy: float 
-    particle: str

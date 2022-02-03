@@ -27,6 +27,20 @@ class ShouldUseMultipoleError(Exception):
         self.message = f'Cannot define {attr} for element {name} -> Should use Multipole class instead'
         super().__init__(self.message)
 
+class Node:
+    """Class containing base element properties and methods"""
+    
+    length = xef._property_factory('position_data', 'length', docstring='Get and set length attribute')
+    position = xef._property_factory('position_data', 'position', docstring='Get and set position attribute')
+    
+    def __init__(self, name: str, **kwargs):
+        self.name = name
+        self.element_number = kwargs.pop('element_number', 1)
+        if kwargs is None:
+            kwargs = {'empty_kw_dict':None}
+        self.position_data = kwargs.pop('position_data', conv_utils.get_position_data(**kwargs)) 
+        self.aperture_data = kwargs.pop('aperture_data', None)
+
 
 class BaseElement:
     """Class containing base element properties and methods"""
@@ -36,6 +50,7 @@ class BaseElement:
     
     def __init__(self, name: str, **kwargs):
         self.name = name
+        self.element_count = kwargs.pop('element_count', 1)
         if kwargs is None:
             kwargs = {'empty_kw_dict':None}
         self.id_data = kwargs.pop('id_data', conv_utils.get_id_data(**kwargs))
