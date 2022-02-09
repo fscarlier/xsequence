@@ -9,8 +9,6 @@ import os, sys
 import scipy.constants
 import numpy as np
 import pandas as pd
-
-
 from xsequence.lattice_baseclasses import Line, Sequence, Beam
 
 class Lattice:
@@ -115,10 +113,9 @@ class Lattice:
         else:
             return bmad_lattice_conv.to_bmad(self.name, self.beam, self.line) 
 
-    def to_xline(self):
-        from xsequence.conversion_utils.xline import xline_lattice_conv
-        
-        xline_lattice_conv.to_xline(self.sliced.line) 
+    def to_xtrack(self):
+        from xsequence.conversion_utils.xtrack import xtrack_lattice_conv
+        xtrack_lattice_conv.to_xtrack(self.sliced.line) 
 
     def optics(self, engine='madx', drop_drifts=True, pyat_idx_to_mad=False):
         """

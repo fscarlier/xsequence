@@ -144,7 +144,8 @@ def to_pyat(xe_element):
     return TO_PYAT_CONV[xe_element.__class__.__name__](**mapped_attr)
 
 
-TO_PYAT_CONV = {'Marker': at.Marker, 
+TO_PYAT_CONV = {'Monitor': at.Monitor, 
+                'Marker': at.Marker, 
                 'Drift':  at.Drift, 
                 'SectorBend':  at.Dipole, 
                 'RectangularBend':  at.Dipole, 

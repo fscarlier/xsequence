@@ -15,8 +15,8 @@ import xsequence.helpers.elements_functions as xef
 from xsequence.conversion_utils import conv_utils
 from xsequence.conversion_utils.cpymad import cpymad_conv
 from xsequence.conversion_utils.pyat import pyat_conv
-from xsequence.conversion_utils.xline import xline_conv
 from xsequence.conversion_utils.bmad import bmad_conv
+from xsequence.conversion_utils.xtrack import xtrack_conv
 
 
 class ShouldUseMultipoleError(Exception):
@@ -81,12 +81,11 @@ class BaseElement:
         """ Create cpymad element in madx instance from Element """
         return bmad_conv.to_bmad_str(self)
 
-    def to_xline(self):
-        """ Create Xline element instance from element """
-        return xline_conv.convert_element_to_xline(self)
+    def to_xtrack(self):
+        """ Create Xtrack element instance from element """
+        return xtrack_conv.convert_element_to_xtrack(self)
 
     def _get_slice_positions(self, method='teapot'):
-        """ Create Xline element instance from element """
         if method == 'teapot':
             return xef.get_teapot_slicing_positions(self.position_data, self.num_slices)
         elif method == 'uniform':
