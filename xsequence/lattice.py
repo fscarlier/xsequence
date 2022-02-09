@@ -12,7 +12,7 @@ import xsequence.elements as xe
 
 from xsequence.conversion_utils.cpymad import cpymad_lattice_conv
 from xsequence.conversion_utils.pyat import pyat_lattice_conv
-from xsequence.conversion_utils.xline import xline_lattice_conv
+from xsequence.conversion_utils.xtrack import xtrack_lattice_conv
 from xsequence.conversion_utils.sad import sad_lattice_conv
 
 from xsequence.helpers import pyat_functions
@@ -99,8 +99,8 @@ class Lattice:
         self._update_harmonic_number()
         return pyat_lattice_conv.to_pyat(self.name, self.params['energy']*1e9, self.line)
 
-    def to_xline(self):
-        xline_lattice_conv.to_xline(self.sliced.line) 
+    def to_xtrack(self):
+        xtrack_lattice_conv.to_xtrack(self.sliced.line) 
 
     def optics(self, engine='madx', drop_drifts=False, pyat_idx_to_mad=False):
         """
