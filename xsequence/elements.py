@@ -12,12 +12,6 @@ from abc import ABC, abstractmethod
 import xsequence.elements_dataclasses as xed
 import xsequence.helpers.elements_functions as xef
 
-from xsequence.conversion_utils import conv_utils
-from xsequence.conversion_utils.cpymad import cpymad_conv
-from xsequence.conversion_utils.pyat import pyat_conv
-from xsequence.conversion_utils.bmad import bmad_conv
-from xsequence.conversion_utils.xtrack import xtrack_conv
-
 
 class ShouldUseMultipoleError(Exception):
     """Exception raised for trying to define kn/ks for Quadrupole, Sextupole, Octupole."""
@@ -26,20 +20,6 @@ class ShouldUseMultipoleError(Exception):
         self.attr = attr
         self.message = f'Cannot define {attr} for element {name} -> Should use Multipole class instead'
         super().__init__(self.message)
-
-class Node:
-    """Class containing base element properties and methods"""
-    
-    length = xef._property_factory('position_data', 'length', docstring='Get and set length attribute')
-    position = xef._property_factory('position_data', 'position', docstring='Get and set position attribute')
-    
-    def __init__(self, name: str, **kwargs):
-        self.name = name
-        self.element_number = kwargs.pop('element_number', 1)
-        if kwargs is None:
-            kwargs = {'empty_kw_dict':None}
-        self.position_data = kwargs.pop('position_data', conv_utils.get_position_data(**kwargs)) 
-        self.aperture_data = kwargs.pop('aperture_data', None)
 
 
 class BaseElement:
@@ -53,37 +33,11 @@ class BaseElement:
         self.element_count = kwargs.pop('element_count', 1)
         if kwargs is None:
             kwargs = {'empty_kw_dict':None}
-        self.id_data = kwargs.pop('id_data', conv_utils.get_id_data(**kwargs))
-        self.parameter_data = kwargs.pop('parameter_data', conv_utils.get_parameter_data(**kwargs))
-        self.position_data = kwargs.pop('position_data', conv_utils.get_position_data(**kwargs)) 
+        self.id_data = kwargs.pop('id_data', xef.get_id_data(**kwargs))
+        self.parameter_data = kwargs.pop('parameter_data', xef.get_parameter_data(**kwargs))
+        self.position_data = kwargs.pop('position_data', xef.get_position_data(**kwargs)) 
         self.aperture_data = kwargs.pop('aperture_data', None)
         self.pyat_data = kwargs.pop('pyat_data', None)
-
-    @classmethod
-    def from_cpymad(cls, cpymad_element):
-        """ Create Xsequence Element instance from cpymad element """
-        return cpymad_conv.from_cpymad(cls, cpymad_element)
-
-    def to_cpymad(self, madx):
-        """ Create cpymad element in madx instance from Element """
-        return cpymad_conv.to_cpymad(self, madx)
-
-    @classmethod
-    def from_pyat(cls, pyat_element):
-        """ Create Xsequence Element instance from pyAT element """
-        return pyat_conv.from_pyat(cls, pyat_element)
-
-    def to_pyat(self):
-        """ Create pyAT element instance from element """
-        return pyat_conv.to_pyat(self)
-
-    def to_bmad(self):
-        """ Create cpymad element in madx instance from Element """
-        return bmad_conv.to_bmad_str(self)
-
-    def to_xtrack(self):
-        """ Create Xtrack element instance from element """
-        return xtrack_conv.convert_element_to_xtrack(self)
 
     def _get_slice_positions(self, method='teapot'):
         if method == 'teapot':

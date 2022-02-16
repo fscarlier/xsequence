@@ -41,3 +41,19 @@ def get_uniform_slicing_positions(position: xed.ElementPosition, num_slices: int
         for i in range(num_slices-1):
             thin_positions.append(thin_positions[-1] + separation)
         return thin_positions, position.length / num_slices 
+
+
+def get_id_data(id_class=xed.ElementID, **kwargs):
+    return id_class(**{k:kwargs[k] for k in id_class.INIT_PROPERTIES if k in kwargs})
+        
+def get_parameter_data(parameter_class=xed.ElementParameterData, **kwargs):
+    return parameter_class(**{k:kwargs[k] for k in parameter_class.INIT_PROPERTIES if k in kwargs})
+        
+def get_position_data(position_class=xed.ElementPosition, **kwargs):
+    return position_class(**{k:kwargs[k] for k in position_class.INIT_PROPERTIES if k in kwargs})
+
+def get_aperture_data(aperture_class=xed.ApertureData, **kwargs):
+    return aperture_class(**{k:kwargs[k] for k in aperture_class.INIT_PROPERTIES if k in kwargs})
+
+def get_pyat_data(pyat_class=xed.PyatData, **kwargs):
+    return pyat_class(**{k:kwargs[k] for k in pyat_class.INIT_PROPERTIES if k in kwargs})
