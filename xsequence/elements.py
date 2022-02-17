@@ -58,6 +58,9 @@ class BaseElement:
         return attr_dict
 
     def __eq__(self, other):
+        print("going through checks of EQ")
+        print(self)
+        print(other)
         if self.__class__.__name__ != other.__class__.__name__:
             return False
         for k in self.__dict__:
