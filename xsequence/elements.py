@@ -28,29 +28,11 @@ class BaseElement:
     length = xef._property_factory('position_data', 'length', docstring='Get and set length attribute')
     position = xef._property_factory('position_data', 'position', docstring='Get and set position attribute')
     
-    def __init__(self, name: str, **kwargs):
-        self.name = name
-        self.element_count = kwargs.pop('element_count', 1)
+    def __init__(self, **kwargs):
         if kwargs is None:
             kwargs = {'empty_kw_dict':None}
-        self.id_data = kwargs.pop('id_data', xef.get_id_data(**kwargs))
-        self.parameter_data = kwargs.pop('parameter_data', xef.get_parameter_data(**kwargs))
-        self.position_data = kwargs.pop('position_data', xef.get_position_data(**kwargs)) 
         self.aperture_data = kwargs.pop('aperture_data', None)
         self.pyat_data = kwargs.pop('pyat_data', None)
-
-    def _get_slice_positions(self, method='teapot'):
-        if method == 'teapot':
-            return xef.get_teapot_slicing_positions(self.position_data, self.num_slices)
-        elif method == 'uniform':
-            return xef.get_uniform_slicing_positions(self.position_data, self.num_slices)
-     
-    def _get_sliced_element(self, method='teapot', thin_class=None, **kwargs):
-        thin_positions, rad_length = self._get_slice_positions(method=method)
-        seq = []
-        for idx, thin_pos in enumerate(thin_positions):
-            seq.append(thin_class(f'{self.name}_{idx}', radiation_length=rad_length, location=thin_pos, **kwargs) )
-        return seq
 
     def _set_from_key(self, key, value):
         if key in xed.ElementID.INIT_PROPERTIES:
@@ -98,7 +80,6 @@ class BaseElement:
 class ThickElement(BaseElement):
     """ Thick element class """
     def __init__(self, name: str, **kwargs):
-        self.num_slices = kwargs.pop('num_slices', 1)
         super().__init__(name, **kwargs)
 
 
@@ -108,18 +89,12 @@ class ThinElement(BaseElement):
         super().__init__(name, **kwargs)
         assert self.length == 0.0, f"BaseElement, ThinElement {name} has non-zero length"
 
-    def slice_element(self):
-        return [self]
-
 
 class Marker(ThinElement):
     """ Marker element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
     
-    def slice_element(self):
-        return super().slice_element()
-
 
 class Drift(BaseElement):
     """ Drift element class """
@@ -127,8 +102,6 @@ class Drift(BaseElement):
         super().__init__(name, **kwargs)
         assert self.length >= 0.0, f"Drift {name} has zero or negative length"
 
-    def slice_element(self):
-        return [self]
 
 class Collimator(Drift):
     """ Collimator element class """
@@ -163,23 +136,6 @@ class SectorBend(ThickElement):
         self.k0 = kwargs.pop('k0', 0.0)
         super().__init__(name, **kwargs)
 
-    def _get_DipoleEdge(self, side):
-        h = self.angle/self.length
-        if side == 'entrance':
-            return DipoleEdge(f'{self.name}_edge_{side}', 
-                                side=side, h=h, edge_angle=self.e1, 
-                                location=self.position_data.start)
-        elif side == 'exit':
-            return DipoleEdge(f'{self.name}_edge_{side}', 
-                                side=side, h=h, edge_angle=self.e2, 
-                                location=self.position_data.end)
-
-    def slice_element(self):
-        knl = [self.angle / self.num_slices]
-        sliced_bend =  self._get_sliced_element(thin_class=ThinMultipole, knl=knl) 
-        sliced_bend.insert(0, self._get_DipoleEdge('entrance'))
-        sliced_bend.append(self._get_DipoleEdge('exit'))
-        return sliced_bend
 
     def _calc_chordlength(self, angle: float, length: float) :
         return length*(2*math.sin(angle/2.))/angle
@@ -209,9 +165,6 @@ class DipoleEdge(ThinElement):
         assert self.side in ['entrance', 'exit']
         super().__init__(name, **kwargs)
 
-    def slice_element(self):
-        return super().slice_element(self)
-
 
 class Solenoid(ThickElement):
     """ Solenoid element class """
@@ -226,10 +179,6 @@ class Solenoid(ThickElement):
     @ksi.setter
     def ksi(self, ksi: float):
         self.ks = ksi/self.length
-
-    def slice_element(self):
-        ksi_sliced = self.ksi / self.num_slices
-        return self._get_sliced_element(thin_class=ThinSolenoid, ksi=ksi_sliced) 
     
 
 class _BaseMultipole(ABC):
@@ -237,11 +186,6 @@ class _BaseMultipole(ABC):
     def __init__(self, magnetic_errors=xed.MultipoleError(), **kwargs):
         self.magnetic_errors = magnetic_errors
 
-    def slice_element(self):
-        knl_sliced = self.knl / self.num_slices
-        ksl_sliced = self.ksl / self.num_slices
-        return self._get_sliced_element(thin_class=ThinMultipole, knl=knl_sliced, ksl=ksl_sliced) 
-    
     @property
     @abstractmethod
     def kn(self):
@@ -324,9 +268,6 @@ class Quadrupole(ThickElement, _BaseMultipole):
         super().__init__(name, **kwargs)
         _BaseMultipole.__init__(self, **kwargs)
 
-    def slice_element(self):
-        return _BaseMultipole.slice_element(self)
-
     @property
     def kn(self):
         arr1, arr2 = self._update_arrays(np.array([0.0, self.k1]), self.magnetic_errors.kn_err)
@@ -354,9 +295,6 @@ class Sextupole(ThickElement, _BaseMultipole):
         self.k2s = kwargs.pop('k2s', 0.0)
         ThickElement.__init__(self, name, **kwargs)
         _BaseMultipole.__init__(self, **kwargs)
-
-    def slice_element(self):
-        return _BaseMultipole.slice_element(self)
     
     @property
     def kn(self):
@@ -384,9 +322,6 @@ class Octupole(ThickElement, _BaseMultipole):
         self.k3s = kwargs.pop('k3s', 0.0)
         ThickElement.__init__(self, name, **kwargs)
         _BaseMultipole.__init__(self, **kwargs)
-
-    def slice_element(self):
-        return _BaseMultipole.slice_element(self)
     
     @property
     def kn(self):
@@ -417,49 +352,27 @@ class RFCavity(BaseElement):
         self.harmonic_number = kwargs.pop('harmonic_number', 0.0)
         super().__init__(name, **kwargs)
 
-    def slice_element(self):
-        return [self]
-
 
 class HKicker(BaseElement):
     """ Horizontal kicker element class """
     def __init__(self, name: str, **kwargs):
-        self.num_slices = kwargs.pop('num_slices', 1)
         self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
-    
-    def slice_element(self):
-        kick_sliced = self.kick / self.num_slices
-        return self._get_sliced_element(method='uniform', 
-                                        thin_class=HKicker, kick=kick_sliced) 
 
 
 class VKicker(BaseElement):
     """ Vertical kicker element class """
     def __init__(self, name: str, **kwargs):
-        self.num_slices = kwargs.pop('num_slices', 1)
         self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
     
-    def slice_element(self):
-        kick_sliced = self.kick / self.num_slices
-        return self._get_sliced_element(method='uniform', 
-                                        thin_class=VKicker, kick=kick_sliced) 
-
 
 class TKicker(BaseElement):
     """ TKicker element class """
     def __init__(self, name: str, **kwargs):
-        self.num_slices = kwargs.pop('num_slices', 1)
         self.vkick = kwargs.pop('vkick', 0.0)
         self.hkick = kwargs.pop('hkick', 0.0)
         super().__init__(name, **kwargs)
-    
-    def slice_element(self):
-        hkick_sliced = self.hkick / self.num_slices
-        vkick_sliced = self.vkick / self.num_slices
-        return self._get_sliced_element(method='uniform', 
-                                        thin_class=TKicker, hkick=hkick_sliced, vkick=vkick_sliced) 
 
 
 class ThinMultipole(ThinElement):
@@ -469,18 +382,12 @@ class ThinMultipole(ThinElement):
         self.ksl = kwargs.pop('ksl', np.zeros(2))
         super().__init__(name, **kwargs)
 
-    def slice_element(self):
-        return ThinElement.slice_element(self)
-
 
 class ThinSolenoid(ThinElement):
     """ ThinSolenoid element class """
     def __init__(self, name: str, **kwargs):
         self.ksi = kwargs.pop('ksi', 0.0)
         super().__init__(name, **kwargs)
-    
-    def slice_element(self):
-        return ThinElement.slice_element(self)
 
     @property
     def ks(self):
