@@ -6,9 +6,11 @@ This is a Python3 module containing base element dataclasses for particle accele
 """
 
 from collections import OrderedDict
-import xsequence.elements as xe
-from typing import List, Tuple
+import numpy as np
+from typing import List
 from dataclasses import dataclass
+from scipy.spatial.transform import Rotation
+from numpy.typing import ArrayLike
 
 @dataclass
 class Beam:
@@ -16,116 +18,144 @@ class Beam:
     particle: str
 
 
-def _key_to_idx_slice(names, key):
-    if key.start:
-        start_idx = names.index(key.start)
-    else:
-        start_idx = 0
-    if key.stop:
-        stop_idx = names.index(key.stop)
-    else:
-        stop_idx = len(names)
-    return slice(start_idx, stop_idx)
+@dataclass
+class MagneticErrors:
+    knl_errors: np.ndarray = np.zeros(6) 
+    ksl_errors: np.ndarray = np.zeros(6) 
 
 
-class ElementDict(OrderedDict):
-    @property
-    def names(self):
-        return [self[element].name for element in self]
+@dataclass
+class AlignmentErrors:
+    error_anchor: str = 'start' 
+    translations: np.ndarray = np.zeros(3) 
+    rotations: np.ndarray = np.zeros(3)
     
-    @property
-    def positions(self):
-        return [self[element].position_data.position for element in self]
+    def rotate(self, xyz_vector: ArrayLike) -> np.ndarray:
+        xyz_vector = np.array(xyz_vector)
+        rotation_matrix = Rotation.from_euler('xyz', self.rotations)
+        return rotation_matrix.apply(xyz_vector)
     
-    @property
-    def lengths(self):
-        return [self[element].position_data.length for element in self]
+    def __repr__(self) -> str:
+        content = ", ".join([f"{x}={getattr(self, x)}" for x in self.__dict__])
+        return f'{self.__class__.__name__}({content})'
 
-    def get_last_element(self):
-        return self[self.names[-1]]    
+
+class Node:
+    """ Node class containing local element information """    
+    def __init__(self, 
+                 element_name: str, 
+                 element_number: int = 0,
+                 pos_anchor: str = 'center',
+                 length: float = 0.0, 
+                 location: float = 0.0,
+                 reference: float = 0.0,
+                 alignment_errors: AlignmentErrors = AlignmentErrors(),
+                 magnetic_errors: MagneticErrors = MagneticErrors(),
+                ):
+        self.element_name = element_name
+        self.element_number = element_number
+        self.length = length
+        self.pos_anchor  = pos_anchor
+        self.location  = location
+        self.reference = reference
+        self.alignment_errors = alignment_errors
+        self.magnetic_errors = magnetic_errors
+
+    @property
+    def start(self):
+        return self.calculate_positions()['start']
     
-    def get_class(self, class_type: List[str]) -> List[xe.BaseElement]:
-        """ Get list of elements matching given class """
-        return ElementDict({name:self[name] for name in self if self[name].__class__.__name__ in class_type})
+    @property
+    def end(self):
+        return self.calculate_positions()['end']
+    
+    @property
+    def position(self):
+        return self.calculate_positions()['center']
+
+    @property
+    def coordinates(self):
+        return self.calculate_coordinates()
+
+    def calculate_positions(self):
+        position = {}
+        if self.pos_anchor == 'start':
+            loc = self.location + self.reference
+            position['start'] = loc
+            position['center'] = loc + self.length/2
+            position['end'] = loc + self.length
+        elif self.pos_anchor == 'center':
+            loc = self.location + self.reference
+            position['start'] = loc - self.length/2
+            position['center'] = loc
+            position['end'] = loc + self.length/2
+        elif self.pos_anchor == 'end':
+            loc = self.location + self.reference
+            position['start'] = loc - self.length
+            position['center'] = loc - self.length/2
+            position['end'] = loc
+        return position
+
+    def _calc_misalign(self, place: float) -> np.ndarray:
+        return self.alignment_errors.translations + self.alignment_errors.rotate([0, 0, place]) - np.array([0, 0, place])
+
+    def calculate_coordinates(self):
+        coordinates = {}
+        if self.alignment_errors.error_anchor == 'start':
+            coordinates['center'] = self._calc_misalign(self.length/2)
+            coordinates['end']    = self._calc_misalign(self.length)
+        elif self.alignment_errors.error_anchor == 'center':                                                                                   
+            coordinates['start']  = self._calc_misalign(-self.length/2)
+            coordinates['end']    = self._calc_misalign( self.length/2)
+        elif self.alignment_errors.error_anchor == 'end':                                                                                    
+            coordinates['start']  = self._calc_misalign(-self.length)
+            coordinates['center'] = self._calc_misalign(-self.length/2)
+        return coordinates
+
+    def __repr__(self) -> str:
+        content = ''.join([f', {x}={getattr(self, x)}' for x in self.__dict__ if x != 'name'])
+        return f'{self.__class__.__name__}({self.element_name}{content})'
+
+
+class NodesList(List):
+    @property
+    def names(self) -> list:
+        return [node.element_name for node in self]
+    
+    @property
+    def positions(self) -> list:
+        return self.get_positions()
+    
+    @property
+    def lengths(self) -> list:
+        return [node.length for node in self]
+
+    @property
+    def coordinates(self) -> list:
+        return self.get_coordinates()
+    
+    def get_positions(self, pos_anchor:str = 'center') -> list:
+        return [node.positions[pos_anchor] for node in self] 
+
+    def get_coordinates(self, error_anchor:str = 'center') -> list:
+        return [node.coordinates[error_anchor] for node in self] 
 
     def find_elements(self, pattern):
         if pattern.startswith('*'):
-            return ElementDict({name:self[name] for name in self if name.endswith(pattern[1:])})
+            return NodesList([node for node in self if node.element_name.endswith(pattern[1:])])
         elif pattern.endswith('*'):
-            return ElementDict({name:self[name] for name in self if name.startswith(pattern[:-1])})
+            return NodesList([node for node in self if node.element_name.startswith(pattern[:-1])])
         else:
-            return ElementDict({name:self[name] for name in self if pattern in name})
+            return NodesList([node for node in self if pattern in node.element_name])
 
-    def get_s_positions(self, reference='center'):
-        if reference == 'center': 
-            return [self[name].position_data.position for name in self.names]
-        elif reference == 'start': 
-            return [self[name].position_data.start for name in self.names]
-        elif reference == 'end': 
-            return [self[name].position_data.end for name in self.names]
-
-    def get_range_s(self, start_pos: float, end_pos: float):
-        start_name = next(idx for idx, name in enumerate(self.names) if self[name].position_data.start > start_pos)
-        stop_name = 1 + next(idx for idx, name in enumerate(self.names) if self[name].position_data.end > end_pos)
-        return self[start_name:stop_name]
+    def get_range_s(self, start_location: float, end_location: float):
+        start_idx = next(idx for idx, node in enumerate(self) if node.start > start_location)
+        stop_idx = 1 + next(idx for idx, node in enumerate(self) if node.end > end_location)
+        return self[start_idx:stop_idx]
     
     def _get_total_length(self):
-        return self[self.names[-1]].position_data.end
-
-    def _get_names(self):
-        return list(self.keys())
-    
-    def __getitem__(self, key):
-        if isinstance(key, slice):
-            names = self._get_names()
-            if isinstance(key.start, str):
-                key = _key_to_idx_slice(names, key)
-            names = names[key]
-            return ElementDict({name:self[name] for name in names})
-        else:
-            if isinstance(key, int):
-                return self[self.names[key]]
-            else:
-                return super().__getitem__(key)
+        return self[-1].end
 
     def __repr__(self):
         return f"{self.names}"
-
-
-class Line(ElementDict):
-    def _set_positions(self):
-        """ Calculate longitudinal positions of elements from line representation """
-        previous_end = 0.0
-        for name, element in self.items():
-            element.position_data.set_position(location=previous_end+element.length/2.) 
-            previous_end += element.length
-
-    def _get_sequence(self):
-        self._set_positions()
-        return Sequence({k:self[k] for k in self if not isinstance(self[k], xe.Drift)})
-
-
-class Sequence(ElementDict):
-    def _get_line(self):
-        """ Convert sequence representation to line representation including drifts """
-        previous_end = self[self._get_names()[0]].position_data.start
-        drift_count = 0
-        line_w_drifts = OrderedDict()
-        for name, element in self.items():
-            element_start = element.position_data.start
-            if element_start > previous_end:
-                drift_length = element_start-previous_end
-                if drift_length > 1e-10:
-                    drift_pos = previous_end + drift_length/2.
-                    drift_name = f'drift_{drift_count}'
-                    line_w_drifts[drift_name] = xe.Drift(drift_name, length=drift_length, location=drift_pos)
-                    drift_count += 1
-            elif element_start < previous_end-1e-9: # Tolerance for rounding
-                raise ValueError(f'Negative drift at element {element.name}')
-
-            line_w_drifts[name] = element
-            previous_end = element.position_data.end
-        return Line(line_w_drifts)
-
-
 

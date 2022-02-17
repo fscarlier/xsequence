@@ -15,10 +15,9 @@ import xsequence.helpers.elements_functions as xef
 
 class ShouldUseMultipoleError(Exception):
     """Exception raised for trying to define kn/ks for Quadrupole, Sextupole, Octupole."""
-    def __init__(self, name: str, attr: str):
-        self.name = name
+    def __init__(self, attr: str):
         self.attr = attr
-        self.message = f'Cannot define {attr} for element {name} -> Should use Multipole class instead'
+        self.message = f'Cannot define {attr} -> Should use Multipole class instead'
         super().__init__(self.message)
 
 
@@ -33,6 +32,7 @@ class BaseElement:
             kwargs = {'empty_kw_dict':None}
         self.aperture_data = kwargs.pop('aperture_data', None)
         self.pyat_data = kwargs.pop('pyat_data', None)
+        self.num_slices = kwargs.pop('num_slices', 1)
 
     def _set_from_key(self, key, value):
         if key in xed.ElementID.INIT_PROPERTIES:
@@ -73,69 +73,73 @@ class BaseElement:
         return True
 
     def __repr__(self) -> str:
-        content = ''.join([f', {x}={getattr(self, x)}' for x in self.__dict__ if x != 'name'])
-        return f'{self.__class__.__name__}({self.name}{content})'
+        content = ''.join([f', {x}={getattr(self, x)}' for x in self.__dict__])
+        return f'{self.__class__.__name__}({content})'
 
 
 class ThickElement(BaseElement):
     """ Thick element class """
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class ThinElement(BaseElement):
     """ Thin element class """
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
-        assert self.length == 0.0, f"BaseElement, ThinElement {name} has non-zero length"
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        assert self.length == 0.0, f"BaseElement, ThinElement has non-zero length"
 
 
 class Marker(ThinElement):
     """ Marker element class """
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, **kwargs):
+        self._thin_type = Marker
+        super().__init__(**kwargs)
     
 
 class Drift(BaseElement):
     """ Drift element class """
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
-        assert self.length >= 0.0, f"Drift {name} has zero or negative length"
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        assert self.length >= 0.0, f"Drift has zero or negative length"
 
 
 class Collimator(Drift):
     """ Collimator element class """
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class Monitor(Drift):
     """ Monitor element class """
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class Placeholder(Drift):
     """ Placeholder element class """
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class Instrument(Drift):
     """ Instrument element class """
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class SectorBend(ThickElement):
     """ Sector bend element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.angle = kwargs.pop('angle', 0.0)
         self.e1 = kwargs.pop('e1', 0.0)
         self.e2 = kwargs.pop('e2', 0.0)
         self.k0 = kwargs.pop('k0', 0.0)
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
 
+    def _get_thin_element(self):
+        knl = [self.angle / self.num_slices]
+        return ThinMultipole(radiation_length=rad_length, knl=knl)
 
     def _calc_chordlength(self, angle: float, length: float) :
         return length*(2*math.sin(angle/2.))/angle
@@ -143,14 +147,14 @@ class SectorBend(ThickElement):
 
 class RectangularBend(SectorBend):   
     """ Rectangular bend element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self._chord_length = kwargs.pop('length', 0)
         self._rbend_e1 = kwargs.pop('e1', 0)
         self._rbend_e2 = kwargs.pop('e2', 0)
         kwargs['length'] = self._calc_arclength(kwargs['angle'], self._chord_length)
         kwargs['e1'] = self._rbend_e1+abs(kwargs['angle'])/2.
         kwargs['e2'] = self._rbend_e2+abs(kwargs['angle'])/2.
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
 
     def _calc_arclength(self, angle: float, chord_length: float):
         return (angle*chord_length)/(2*math.sin(angle/2.))
@@ -158,20 +162,24 @@ class RectangularBend(SectorBend):
 
 class DipoleEdge(ThinElement):
     """ Dipole edge element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.h = kwargs.pop('h', 0.0) 
         self.edge_angle = kwargs.pop('edge_angle', 0.0)
         self.side = kwargs.pop('side', 'entrance')
         assert self.side in ['entrance', 'exit']
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
 
 
 class Solenoid(ThickElement):
     """ Solenoid element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.ks = kwargs.pop('ks', 0.0)
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
         
+    def _get_thin_element(self):
+        ksi_sliced = self.ksi / self.num_slices
+        return ThinSolenoid(radiation_length=rad_length, ksi=ksi_sliced) 
+    
     @property
     def ksi(self):
         return self.ks*self.length
@@ -185,7 +193,12 @@ class _BaseMultipole(ABC):
     """ Multipole element class """
     def __init__(self, magnetic_errors=xed.MultipoleError(), **kwargs):
         self.magnetic_errors = magnetic_errors
-
+    
+    def _get_thin_element(self):
+        knl_sliced = self.knl / self.num_slices
+        ksl_sliced = self.ksl / self.num_slices
+        return ThinMultipole(radiation_length=rad_length, knl=knl_sliced, ksl=ksl_sliced)
+    
     @property
     @abstractmethod
     def kn(self):
@@ -235,10 +248,10 @@ class _BaseMultipole(ABC):
 
 class Multipole(ThickElement, _BaseMultipole):
     """ Multipole element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.kn = kwargs.pop('kn', np.zeros(2))
         self.ks = kwargs.pop('ks', np.zeros(2))
-        ThickElement.__init__(self, name, **kwargs)
+        ThickElement.__init__(self, **kwargs)
         _BaseMultipole.__init__(self, **kwargs)
         
     @property
@@ -262,10 +275,10 @@ class Multipole(ThickElement, _BaseMultipole):
 
 class Quadrupole(ThickElement, _BaseMultipole):
     """ Quadrupole element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.k1 = kwargs.pop('k1', 0.0)
         self.k1s = kwargs.pop('k1s', 0.0)
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
         _BaseMultipole.__init__(self, **kwargs)
 
     @property
@@ -280,20 +293,20 @@ class Quadrupole(ThickElement, _BaseMultipole):
     
     @kn.setter
     def kn(self, kn):
-        raise ShouldUseMultipoleError(self.name, 'kn') 
+        raise ShouldUseMultipoleError('kn') 
 
     @ks.setter
     def ks(self, ks):
-        raise ShouldUseMultipoleError(self.name, 'ks') 
+        raise ShouldUseMultipoleError('ks') 
 
 
 
 class Sextupole(ThickElement, _BaseMultipole):
     """ Sextupole element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.k2 = kwargs.pop('k2', 0.0)
         self.k2s = kwargs.pop('k2s', 0.0)
-        ThickElement.__init__(self, name, **kwargs)
+        ThickElement.__init__(self, **kwargs)
         _BaseMultipole.__init__(self, **kwargs)
     
     @property
@@ -308,19 +321,19 @@ class Sextupole(ThickElement, _BaseMultipole):
     
     @kn.setter
     def kn(self, kn):
-        raise ShouldUseMultipoleError(self.name, 'kn') 
+        raise ShouldUseMultipoleError('kn') 
 
     @ks.setter
     def ks(self, ks):
-        raise ShouldUseMultipoleError(self.name, 'ks') 
+        raise ShouldUseMultipoleError('ks') 
 
 
 class Octupole(ThickElement, _BaseMultipole):
     """ Octupole element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.k3 = kwargs.pop('k3', 0.0)
         self.k3s = kwargs.pop('k3s', 0.0)
-        ThickElement.__init__(self, name, **kwargs)
+        ThickElement.__init__(self, **kwargs)
         _BaseMultipole.__init__(self, **kwargs)
     
     @property
@@ -335,59 +348,72 @@ class Octupole(ThickElement, _BaseMultipole):
     
     @kn.setter
     def kn(self, kn):
-        raise ShouldUseMultipoleError(self.name, 'kn') 
+        raise ShouldUseMultipoleError('kn') 
 
     @ks.setter
     def ks(self, ks):
-        raise ShouldUseMultipoleError(self.name, 'ks') 
+        raise ShouldUseMultipoleError('ks') 
 
 
 class RFCavity(BaseElement):
     """ RFCavity element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.voltage = kwargs.pop('voltage', 0.0)
         self.frequency = kwargs.pop('frequency', 0.0)
         self.lag = kwargs.pop('lag', 0.0)
         self.energy = kwargs.pop('energy', 0.0)
         self.harmonic_number = kwargs.pop('harmonic_number', 0.0)
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
 
 
 class HKicker(BaseElement):
     """ Horizontal kicker element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.kick = kwargs.pop('kick', 0.0)
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
+    
+    def _get_thin_element(self):
+        kick_sliced = self.kick / self.num_slices
+        return HKicker(radiation_length=rad_length, kick=kick_sliced)
 
 
 class VKicker(BaseElement):
     """ Vertical kicker element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.kick = kwargs.pop('kick', 0.0)
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
+    
+    def _get_thin_element(self):
+        kick_sliced = self.kick / self.num_slices
+        return VKicker(radiation_length=rad_length, kick=kick_sliced)
     
 
 class TKicker(BaseElement):
     """ TKicker element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.vkick = kwargs.pop('vkick', 0.0)
         self.hkick = kwargs.pop('hkick', 0.0)
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
+    
+    def _get_thin_element(self):
+        hkick_sliced = self.hkick / self.num_slices
+        vkick_sliced = self.vkick / self.num_slices
+        return TKicker(radiation_length=rad_length, hkick=hkick_sliced, vkick=vkick_sliced)
 
 
 class ThinMultipole(ThinElement):
     """ Thin multipole element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.knl = kwargs.pop('knl', np.zeros(2))
         self.ksl = kwargs.pop('ksl', np.zeros(2))
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
 
 
 class ThinSolenoid(ThinElement):
     """ ThinSolenoid element class """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, **kwargs):
         self.ksi = kwargs.pop('ksi', 0.0)
-        super().__init__(name, **kwargs)
+        super().__init__(**kwargs)
 
     @property
     def ks(self):
@@ -399,8 +425,8 @@ class ThinSolenoid(ThinElement):
 
 
 class ThinRFMultipole(ThinElement):
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 CPYMAD_TO_FSF_MAP = { 
