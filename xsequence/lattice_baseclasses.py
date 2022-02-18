@@ -111,6 +111,21 @@ class Node:
             coordinates['start']  = self._calc_misalign(-self.length)
             coordinates['center'] = self._calc_misalign(-self.length/2)
         return coordinates
+    
+    def __eq__(self, other):
+        if self.__class__.__name__ != other.__class__.__name__:
+            return False
+        for k in self.__dict__:
+            if getattr(self, k) != getattr(other, k):
+                if isinstance(getattr(self, k), float):
+                    f1 = getattr(self, k) 
+                    f2 = getattr(other, k)    
+                    rel_diff = (f2-f1)/f1
+                    if rel_diff > 1e-19:
+                        return False
+                else:
+                    return False
+        return True
 
     def __repr__(self) -> str:
         content = ''.join([f', {x}={getattr(self, x)}' for x in self.__dict__ if x != 'name'])
