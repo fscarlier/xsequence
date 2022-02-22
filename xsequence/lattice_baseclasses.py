@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from scipy.spatial.transform import Rotation
 from numpy.typing import ArrayLike
 
+
 @dataclass
 class Beam:
     energy: float 
@@ -49,6 +50,7 @@ class Node:
                  length: float = 0.0, 
                  location: float = 0.0,
                  reference: float = 0.0,
+                 reference_element: str = '',
                  alignment_errors: AlignmentErrors = AlignmentErrors(),
                  magnetic_errors: MagneticErrors = MagneticErrors(),
                 ):
@@ -58,6 +60,7 @@ class Node:
         self.pos_anchor  = pos_anchor
         self.location  = location
         self.reference = reference
+        self.reference_element = reference_element
         self.alignment_errors = alignment_errors
         self.magnetic_errors = magnetic_errors
 
@@ -86,9 +89,9 @@ class Node:
             position['end'] = loc + self.length
         elif self.pos_anchor == 'center':
             loc = self.location + self.reference
-            position['start'] = loc - self.length/2
+            position['start'] = loc - self.length/2.
             position['center'] = loc
-            position['end'] = loc + self.length/2
+            position['end'] = loc + self.length/2.
         elif self.pos_anchor == 'end':
             loc = self.location + self.reference
             position['start'] = loc - self.length

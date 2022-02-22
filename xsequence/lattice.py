@@ -1,3 +1,5 @@
+from asyncio.constants import SENDFILE_FALLBACK_READBUFFER_SIZE
+from tkinter import W
 import xdeps 
 import numpy as np
 import scipy.constants
@@ -12,20 +14,20 @@ class Lattice:
                  name:str, 
                  elements:dict, 
                  sequence: NodesList,
-                 key: str,
-                 beam: Beam,
+                 beam: Beam = None,
+                 key: str = 'sequence',
                  global_variables: dict = {}, 
                  ):
         
         self.name = name
         self.beam = beam
-        self.elements = elements
         self.globals = global_variables
         
         if key == 'line':
-            self.sequence = self._set_sequence_from_line(sequence)
+            self._set_sequence_from_line(sequence, elements)
         elif key == 'sequence':
-            self.sequence = self._order_nodes_by_position(sequence)
+            self.elements = elements
+            self.sequence = sequence
         
         self.dep_mgr=xdeps.Manager()
         self._elements = self.dep_mgr.ref(self.elements, 'elements')
@@ -75,18 +77,27 @@ class Lattice:
         
     def _order_nodes_by_position(self, nodes) -> NodesList:
         """ Order nodes depending on longitudinal position in accelerator """
-        _, nodes = zip(*sorted(zip([node.positions['center'] for node in nodes], nodes))) 
+        _, nodes = zip(*sorted(zip([node.position for node in nodes], nodes))) 
         return NodesList(nodes)
     
-    def _set_sequence_from_line(self, nodes: NodesList) -> NodesList:
+    def _set_sequence_from_line(self, nodes: NodesList, elements: dict) -> NodesList:
         """ Calculate longitudinal positions of elements from line representation """
         previous_end = 0.0
         for node in nodes:
-            node.length = self.elements[node.element_name].length
+            if node.length == 0.0:
+                node.length = elements[node.element_name].length
             node.location = previous_end + node.length/2. 
-            previous_end += node.length
-        return NodesList([node for node in nodes if not isinstance(self.elements[node.element_name], xe.Drift)])
-    
+            previous_end =  previous_end + node.length
+
+        sequence = NodesList()
+        sequence_elements = {}
+        for node in nodes:
+            if not isinstance(elements[node.element_name], xe.Drift):
+                sequence.append(node)
+                sequence_elements[node.element_name] = elements[node.element_name]
+        self.elements = sequence_elements
+        self.sequence = sequence
+
     def _check_negative_drifts(self):
         """ Check any occurence of negative drifts in sequence """
         start = np.array( self.sequence.get_positions(pos_anchor='start') )
@@ -107,15 +118,14 @@ class Lattice:
         nodes_with_drifts = NodesList()
         elements_with_drifts = self.elements.copy()
         for node in self.sequence:
-            node_start = node.start
-            drift_length = node_start-previous_end
+            drift_length = node.start-previous_end
             if drift_length > 1e-10:
                 drift_pos = previous_end + drift_length/2.
                 drift_name = f'drift_{drift_count}'
                 elements_with_drifts[drift_name] = xe.Drift(drift_name, length=drift_length)
                 nodes_with_drifts.append(Node(element_name=drift_name, length=drift_length, location=drift_pos))
                 drift_count += 1
-            elif node_start < previous_end-1e-9: # Tolerance for rounding
+            elif node.start < previous_end-1e-9: # Tolerance for rounding
                 raise ValueError(f'Negative drift at element {node.element_name} {node.element_number}')
 
             nodes_with_drifts.append(node)
