@@ -100,7 +100,7 @@ class Lattice:
         return pyat_lattice_conv.to_pyat(self.name, self.params['energy']*1e9, self.line)
 
     def to_xtrack(self):
-        xtrack_lattice_conv.to_xtrack(self.sliced.line) 
+        return xtrack_lattice_conv.to_xtrack(self.sliced.line) 
 
     def optics(self, engine='madx', drop_drifts=False, pyat_idx_to_mad=False):
         """
