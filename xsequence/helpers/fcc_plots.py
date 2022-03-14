@@ -36,8 +36,7 @@ def fcc_axes(y_label=None):
     fig.patch.set_facecolor('white')
     ax = plt.axes([0.17, 0.15, 0.8, 0.75])
     ax.set_xlabel('s [m]', fontsize=14)
-    if y_label:
-        ax.set_ylabel(LABELS[y_label], fontsize=14)
+    ax.set_ylabel(y_label, fontsize=14)
     lhc_length = 97756.02181750233 
     ax.set_xlim([0, lhc_length])
     ips_pos = [0, 48878.01090875525]

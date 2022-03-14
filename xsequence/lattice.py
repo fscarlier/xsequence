@@ -1,5 +1,4 @@
-from asyncio.constants import SENDFILE_FALLBACK_READBUFFER_SIZE
-from tkinter import W
+import math, copy
 import xdeps 
 import numpy as np
 import scipy.constants
@@ -14,25 +13,34 @@ class Lattice:
                  name:str, 
                  elements:dict, 
                  sequence: NodesList,
-                 beam: Beam = None,
+                 beam: Beam ,
                  key: str = 'sequence',
-                 global_variables: dict = {}, 
+                 global_variables: dict = {},
+                 order_nodes: str = False, 
                  ):
         
         self.name = name
         self.beam = beam
-        self.globals = global_variables
         
+        if order_nodes:
+            sequence = self._order_nodes_by_position(sequence)
+
         if key == 'line':
-            self._set_sequence_from_line(sequence, elements)
-        elif key == 'sequence':
-            self.elements = elements
-            self.sequence = sequence
+            elements, sequence = self._get_sequence_from_line(sequence, elements)
+        
+        self._data_globals  = global_variables
+        self._data_elements = elements
+        self._data_sequence = sequence
         
         self.dep_mgr=xdeps.Manager()
-        self._elements = self.dep_mgr.ref(self.elements, 'elements')
-        self._sequence = self.dep_mgr.ref(self.sequence, 'sequence')
-        self._globals = self.dep_mgr.ref(self.globals, 'globals')
+        self._elements = self.dep_mgr.ref(self._data_elements, 'elements')
+        self._sequence = self.dep_mgr.ref(self._data_sequence, 'sequence')
+        self._globals  = self.dep_mgr.ref(self._data_globals , 'globals' )
+        self._math  = self.dep_mgr.ref(math, 'math' )
+        
+        self.elements = xdeps.madxutils.Mix(self._data_elements, self._elements)
+        self.sequence = xdeps.madxutils.Mix(self._data_sequence, self._sequence)
+        self.globals  = xdeps.madxutils.Mix(self._data_globals , self._globals )
         
         self._set_lengths_of_nodes()
         self._set_element_number()
@@ -47,7 +55,7 @@ class Lattice:
         return NodesList([node for node in self.sequence if type(self.elements[node.element_name]) in class_types])
 
     def get_total_length(self) -> float:
-        return self.sequence._get_total_length()
+        return self.sequence._v._get_total_length()
 
     def _update_cavity_energy(self, force=True):
         """ Update the energy of RF cavities. Needed for pyat """
@@ -73,14 +81,14 @@ class Lattice:
         """ Set lengths of in nodes of sequence, as dependencies of element lengths """
         for idx, node in enumerate(self.sequence):
             name = node.element_name
-            self._sequence[idx].length = self.elements[name].length
+            self.sequence[idx].length = self.elements[name].length
         
     def _order_nodes_by_position(self, nodes) -> NodesList:
         """ Order nodes depending on longitudinal position in accelerator """
         _, nodes = zip(*sorted(zip([node.position for node in nodes], nodes))) 
         return NodesList(nodes)
     
-    def _set_sequence_from_line(self, nodes: NodesList, elements: dict) -> NodesList:
+    def _get_sequence_from_line(self, nodes: NodesList, elements: dict) -> "Tuple[dict, NodesList]":
         """ Calculate longitudinal positions of elements from line representation """
         previous_end = 0.0
         for node in nodes:
@@ -95,8 +103,7 @@ class Lattice:
             if not isinstance(elements[node.element_name], xe.Drift):
                 sequence.append(node)
                 sequence_elements[node.element_name] = elements[node.element_name]
-        self.elements = sequence_elements
-        self.sequence = sequence
+        return sequence_elements, sequence
 
     def _check_negative_drifts(self):
         """ Check any occurence of negative drifts in sequence """
@@ -116,7 +123,7 @@ class Lattice:
         previous_end = self.sequence[0].start
         drift_count = 0
         nodes_with_drifts = NodesList()
-        elements_with_drifts = self.elements.copy()
+        elements_with_drifts = self.elements._v.copy()
         for node in self.sequence:
             drift_length = node.start-previous_end
             if drift_length > 1e-10:
@@ -125,8 +132,8 @@ class Lattice:
                 elements_with_drifts[drift_name] = xe.Drift(drift_name, length=drift_length)
                 nodes_with_drifts.append(Node(element_name=drift_name, length=drift_length, location=drift_pos))
                 drift_count += 1
-            elif node.start < previous_end-1e-9: # Tolerance for rounding
-                raise ValueError(f'Negative drift at element {node.element_name} {node.element_number}')
+            elif node.start < previous_end-1e-6: # Tolerance for rounding
+                raise ValueError(f'Negative drift at element {node.element_name} {node.element_number}, {drift_length}, node = {node}')
 
             nodes_with_drifts.append(node)
             previous_end = node.end
@@ -169,7 +176,7 @@ class Lattice:
         self._thin_sequence = self.dep_mgr.ref(self.thin_sequence, 'thin_sequence')
         
         for idx, node in enumerate(self.sequence): 
-            element = self._elements[node]
+            element = self.elements[node]
             
             if isinstance(element, xe.SectorBend):
                 h = element.angle/element.length
