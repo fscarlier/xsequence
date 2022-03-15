@@ -32,10 +32,14 @@ class ShouldUseMultipoleError(Exception):
 
 class BaseElement:
     """Class containing base element properties and methods"""
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, 
+                 name: str, 
+                 length: float, 
+                 num_slices: int=1, 
+                 **kwargs):
         self.name = name
-        self.length = kwargs.pop('length', 0.0)
-        self.num_slices = kwargs.pop('num_slices', 1)
+        self.length = length
+        self.num_slices = num_slices
         
         if kwargs is None:
             kwargs = {'empty_kw_dict':None}
@@ -203,13 +207,15 @@ class Solenoid(BaseElement):
 
 class Multipole(BaseElement):
     """ Multipole element class """
-    REQUIREMENTS = ['knl', 'ksl']
+    REQUIREMENTS = ['length', 'knl', 'ksl']
 
-    def __init__(self, name: str, **kwargs):
-        print(kwargs['knl'])
-        print(kwargs['ksl'])
-        self.knl = kwargs.pop('knl', np.zeros(20))
-        self.ksl = kwargs.pop('ksl', np.zeros(20))
+    def __init__(self, 
+                 name: str, 
+                 knl: np.ndarray=np.zeros(20), 
+                 ksl: np.ndarray=np.zeros(20), 
+                 **kwargs):
+        self.knl = knl
+        self.ksl = ksl
         super().__init__(name, **kwargs)
     
     @property
@@ -272,8 +278,6 @@ class Sextupole(BaseElement):
     def __init__(self, name: str, **kwargs):
         self.k2  = kwargs.pop('k2', 0.0)
         self.k2s = kwargs.pop('k2s', 0.0)
-        kwargs['k2']  = kwargs.pop('k2', 0.0)
-        kwargs['k2s'] = kwargs.pop('k2s', 0.0)
         super().__init__(name, **kwargs)
 
     @property
@@ -333,10 +337,15 @@ class RFCavity(BaseElement):
     """ RFCavity element class """
     REQUIREMENTS = ['length', 'voltage', 'frequency', 'lag']
 
-    def __init__(self, name: str, **kwargs):
-        self.voltage = kwargs.pop('voltage', 0.0)
-        self.frequency = kwargs.pop('frequency', 0.0)
-        self.lag = kwargs.pop('lag', 0.0)
+    def __init__(self, 
+                 name: str,
+                 voltage: float,
+                 frequency: float,
+                 lag: float, 
+                 **kwargs):
+        self.voltage = voltage
+        self.frequency = frequency
+        self.lag = lag
         self.energy = kwargs.pop('energy', 0.0)
         self.harmonic_number = kwargs.pop('harmonic_number', 0.0)
         super().__init__(name, **kwargs)
