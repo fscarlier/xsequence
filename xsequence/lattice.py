@@ -126,10 +126,10 @@ class Lattice:
             pyat_instance = self.to_pyat()
             lin = pyat_functions.calc_optics_pyat(pyat_instance)
             tw = pyat_functions.pyat_optics_to_pandas_df(pyat_instance, lin)
-            tw.set_index('name', inplace=True)
             if pyat_idx_to_mad:
-                tw.set_index(pd.Index(np.roll(tw.index, 1)))
+                tw.name = np.roll(tw.name, 1)
                 tw.keyword = np.roll(tw.keyword, 1)
+            tw.set_index('name', inplace=True)
             if drop_drifts:
                 tw = tw.drop(tw[tw['keyword']=='drift'].index)
             return tw 
