@@ -121,8 +121,11 @@ def to_pyat(xe_element):
     mapped_attr = attr_mapping_to_pyat(element_dict)
 
     if xe_element.aperture_data is not None: 
-        if isinstance(xe_element.aperture_data, xed.EllipticalAperture):
+        if isinstance(xe_element.aperture_data, xed.CircularAperture):
             ### NOTE: aperture offsets not converted to pyat for elliptical apertures
+            size = xe_element.aperture_data.aperture_size[0]
+            mapped_attr['EApertures'] = [size, size] 
+        elif isinstance(xe_element.aperture_data, xed.EllipticalAperture):
             mapped_attr['EApertures'] = xe_element.aperture_data.aperture_size 
         elif isinstance(xe_element.aperture_data, xed.RectangularAperture):
             mapped_attr['RApertures'] = xe_element.aperture_data.get_4_array()

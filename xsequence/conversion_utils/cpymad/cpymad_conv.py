@@ -6,6 +6,7 @@ This is a Python3 module with functions for importing and exporting elements fro
 """
 
 import xsequence.conversion_utils.cpymad.cpymad_properties as cpymad_properties
+from xsequence.conversion_utils import conv_utils
 
 
 def attr_mapping_from_cpymad(cpymad_element):
@@ -23,6 +24,9 @@ def from_cpymad(xs_cls, cpymad_element, name=None):
             elemdata[parname]=par.value
         cpymad_element = elemdata
     mapped_attr = attr_mapping_from_cpymad(cpymad_element)
+    
+    if sum(mapped_attr['aperture_size']) > 0:
+        mapped_attr['aperture_data'] = conv_utils.get_aperture_data(**mapped_attr)
     if mapped_attr['location'] > 1e19:
         mapped_attr.pop('location')
     return xs_cls(name, **mapped_attr)

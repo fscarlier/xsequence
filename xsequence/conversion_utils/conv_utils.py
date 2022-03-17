@@ -37,8 +37,13 @@ def get_parameter_data(parameter_class=xed.ElementParameterData, **kwargs):
 def get_position_data(position_class=xed.ElementPosition, **kwargs):
     return position_class(**{k:kwargs[k] for k in position_class.INIT_PROPERTIES if k in kwargs})
 
-def get_aperture_data(aperture_class=xed.ApertureData, **kwargs):
-    return aperture_class(**{k:kwargs[k] for k in aperture_class.INIT_PROPERTIES if k in kwargs})
+def get_aperture_data(**kwargs):
+    if kwargs['aperture_type'] == 'circle':
+        return xed.CircularAperture(**{k:kwargs[k] for k in xed.CircularAperture.INIT_PROPERTIES if k in kwargs})
+    elif kwargs['aperture_type'] == 'ellipse':
+        return xed.EllipticalAperture(**{k:kwargs[k] for k in xed.EllipticalAperture.INIT_PROPERTIES if k in kwargs})
+    elif kwargs['aperture_type'] == 'rectangle':
+        return xed.RectangularAperture(**{k:kwargs[k] for k in xed.RectangularAperture.INIT_PROPERTIES if k in kwargs})
 
 def get_pyat_data(pyat_class=xed.PyatData, **kwargs):
     return pyat_class(**{k:kwargs[k] for k in pyat_class.INIT_PROPERTIES if k in kwargs})

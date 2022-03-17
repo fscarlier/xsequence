@@ -132,6 +132,12 @@ class ApertureData(BaseElementData):
 
 
 @dataclass
+class CircularAperture(ApertureData):
+    INIT_PROPERTIES = ['aperture_type'] + ApertureData.INIT_PROPERTIES
+    aperture_type: Optional[str] = 'circular'
+
+
+@dataclass
 class EllipticalAperture(ApertureData):
     INIT_PROPERTIES = ['aperture_type'] + ApertureData.INIT_PROPERTIES
     aperture_type: Optional[str] = 'elliptical'
