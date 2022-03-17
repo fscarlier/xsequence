@@ -34,7 +34,7 @@ class BaseElement:
     """Class containing base element properties and methods"""
     def __init__(self, 
                  name: str, 
-                 length: float, 
+                 length: float=0.0, 
                  num_slices: int=1, 
                  **kwargs):
         self.name = name
