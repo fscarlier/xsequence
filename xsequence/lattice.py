@@ -100,7 +100,7 @@ class Lattice:
         sequence = NodesList()
         sequence_elements = {}
         for node in nodes:
-            if not isinstance(elements[node.element_name], xe.Drift):
+            if elements[node.element_name].__class__.__name__ != 'Drift':
                 sequence.append(node)
                 sequence_elements[node.element_name] = elements[node.element_name]
         return sequence_elements, sequence

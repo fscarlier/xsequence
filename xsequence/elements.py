@@ -56,27 +56,27 @@ class BaseElement:
     
     def get_dict(self):
         attr_dict = {}
-        for k in self.__dict__:
-            if isinstance(getattr(self, k), xed.BaseElementData):
-                attr_dict.update(dict(getattr(self,k)))
+        for key in self.__dict__:
+            if isinstance(getattr(self, key), xed.BaseElementData):
+                attr_dict.update(dict(getattr(self,key)))
             else:
-                attr_dict[k] = getattr(self, k)
+                attr_dict[key] = getattr(self, key)
         return attr_dict
 
     def __eq__(self, other):
         if self.__class__.__name__ != other.__class__.__name__:
             return False
-        for k in self.__dict__:
-            if k in ['kn', 'ks', 'knl', 'ksl']:
-                array_1 = np.trim_zeros(getattr(self, k), trim='b')
-                array_2 = np.trim_zeros(getattr(other, k), trim='b')
+        for key in self.__dict__:
+            if key in ['kn', 'ks', 'knl', 'ksl']:
+                array_1 = np.trim_zeros(getattr(self, key), trim='b')
+                array_2 = np.trim_zeros(getattr(other, key), trim='b')
                 if len(array_1) != len(array_2):
                     return False
                 arr_eq = np.isclose(array_1, array_2, rtol=1e-8)
                 if False in arr_eq:
                     return False
             else:
-                if getattr(self, k) != getattr(other, k):
+                if getattr(self, key) != getattr(other, key):
                     return False
         return True
 
@@ -144,6 +144,7 @@ class SectorBend(BaseElement):
         self.e1 = kwargs.pop('e1', 0.0)
         self.e2 = kwargs.pop('e2', 0.0)
         self.k0 = kwargs.pop('k0', 0.0)
+        self.k1 = kwargs.pop('k1', 0.0)
         super().__init__(name, **kwargs)
 
     def _get_thin_element(self):
