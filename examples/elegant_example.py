@@ -22,3 +22,5 @@ element_dict = {'d0':d0, 'q1':q1, 'd1':d1,
 lat = Lattice('lat_name', element_dict, key='line')
 
 elements, line =lat.to_elegant(filename='./example.lte')
+
+lat.optics(engine='madx')
