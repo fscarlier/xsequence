@@ -14,7 +14,7 @@ CONVERT_ELEMENT_DICT={
     'quadrupole'      : (lambda element: f"{element['name']}: KQUAD,         L={element['length']}, K1={element['k1']}"),
     'sextupole'       : (lambda element: f"{element['name']}: KSEXT,         L={element['length']}, K2={element['k2']}"),
     'octupole'        : (lambda element: f"{element['name']}: KOCT,          L={element['length']}, K3={element['k3']}"),
-    'rfcavity'        : (lambda element: f"{element['name']}: RFCA,          L={element['length']}, VOLT={element['voltage']}, PHASE={element['lag']*180/np.pi}, FREQ={element['frequency']}"),
+    'rfcavity'        : (lambda element: f"{element['name']}: RFCA,          L={element['length']}, VOLT={element['voltage']*10**6}, PHASE={element['lag']*180/np.pi}, FREQ={element['frequency']*10**6}"),
     'hkicker'         : (lambda element: f"{element['name']}: EHKICK,        L={element['length']}, KICK={element['kick']}"),
     'vkicker'         : (lambda element: f"{element['name']}: EVKICK,        L={element['length']}, KICK={element['kick'] }"),
     'tkicker'         : (lambda element: f"{element['name']}: KICKER,        L={element['length']}, HKICK={element['hkick']}, VKICK={element['vkick']}"),
