@@ -46,7 +46,7 @@ class Lattice:
         self._set_element_number()
     
     def get_drifts(self) -> NodesList:
-        """ Get list of elements matching given classes """
+        """ Get list of Drift elements """
         self._set_line()
         return NodesList([node for node in self.sequence if type(self.elements[node.element_name]) is xe.Drift])
 
