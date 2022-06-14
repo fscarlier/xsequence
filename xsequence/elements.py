@@ -8,10 +8,8 @@ This is a Python3 module containing base element classes element property datacl
 import math
 import numpy as np
 from abc import ABC, abstractmethod
-
 import xsequence.elements_dataclasses as xed
 import xsequence.helpers.elements_functions as xef
-
 from xsequence.conversion_utils import conv_utils
 from xsequence.conversion_utils.cpymad import cpymad_conv
 from xsequence.conversion_utils.pyat import pyat_conv
@@ -29,17 +27,17 @@ class ShouldUseMultipoleError(Exception):
 
 class BaseElement:
     """Class containing base element properties and methods"""
-    
+
     length = xef._property_factory('position_data', 'length', docstring='Get and set length attribute')
     position = xef._property_factory('position_data', 'position', docstring='Get and set position attribute')
-    
+
     def __init__(self, name: str, **kwargs):
         self.name = name
         if kwargs is None:
             kwargs = {'empty_kw_dict':None}
         self.id_data = kwargs.pop('id_data', conv_utils.get_id_data(**kwargs))
         self.parameter_data = kwargs.pop('parameter_data', conv_utils.get_parameter_data(**kwargs))
-        self.position_data = kwargs.pop('position_data', conv_utils.get_position_data(**kwargs)) 
+        self.position_data = kwargs.pop('position_data', conv_utils.get_position_data(**kwargs))
         self.aperture_data = kwargs.pop('aperture_data', None)
         self.pyat_data = kwargs.pop('pyat_data', None)
 
@@ -70,7 +68,7 @@ class BaseElement:
             return xef.get_teapot_slicing_positions(self.position_data, self.num_slices)
         elif method == 'uniform':
             return xef.get_uniform_slicing_positions(self.position_data, self.num_slices)
-     
+
     def _get_sliced_element(self, method='teapot', thin_class=None, **kwargs):
         thin_positions, rad_length = self._get_slice_positions(method=method)
         seq = []
@@ -91,7 +89,7 @@ class BaseElement:
             setattr(self.pyat_data, key, value)
         else:
             setattr(self, key, value)
-    
+
     def get_dict(self):
         attr_dict = {}
         for k in self.__dict__:
@@ -142,7 +140,7 @@ class Marker(ThinElement):
     """ Marker element class """
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
-    
+
     def slice_element(self):
         return super().slice_element()
 
@@ -192,17 +190,17 @@ class SectorBend(ThickElement):
     def _get_DipoleEdge(self, side):
         h = self.angle/self.length
         if side == 'entrance':
-            return DipoleEdge(f'{self.name}_edge_{side}', 
-                                side=side, h=h, edge_angle=self.e1, 
+            return DipoleEdge(f'{self.name}_edge_{side}',
+                                side=side, h=h, edge_angle=self.e1,
                                 location=self.position_data.start)
         elif side == 'exit':
-            return DipoleEdge(f'{self.name}_edge_{side}', 
-                                side=side, h=h, edge_angle=self.e2, 
+            return DipoleEdge(f'{self.name}_edge_{side}',
+                                side=side, h=h, edge_angle=self.e2,
                                 location=self.position_data.end)
 
     def slice_element(self):
         knl = [self.angle / self.num_slices]
-        sliced_bend =  self._get_sliced_element(thin_class=ThinMultipole, knl=knl) 
+        sliced_bend =  self._get_sliced_element(thin_class=ThinMultipole, knl=knl)
         sliced_bend.insert(0, self._get_DipoleEdge('entrance'))
         sliced_bend.append(self._get_DipoleEdge('exit'))
         return sliced_bend
@@ -211,7 +209,7 @@ class SectorBend(ThickElement):
         return length*(2*math.sin(angle/2.))/angle
 
 
-class RectangularBend(SectorBend):   
+class RectangularBend(SectorBend):
     """ Rectangular bend element class """
     def __init__(self, name: str, **kwargs):
         self._chord_length = kwargs.pop('length', 0)
@@ -229,7 +227,7 @@ class RectangularBend(SectorBend):
 class DipoleEdge(ThinElement):
     """ Dipole edge element class """
     def __init__(self, name: str, **kwargs):
-        self.h = kwargs.pop('h', 0.0) 
+        self.h = kwargs.pop('h', 0.0)
         self.edge_angle = kwargs.pop('edge_angle', 0.0)
         self.side = kwargs.pop('side', 'entrance')
         assert self.side in ['entrance', 'exit']
@@ -244,7 +242,7 @@ class Solenoid(ThickElement):
     def __init__(self, name: str, **kwargs):
         self.ks = kwargs.pop('ks', 0.0)
         super().__init__(name, **kwargs)
-        
+
     @property
     def ksi(self):
         return self.ks*self.length
@@ -255,8 +253,8 @@ class Solenoid(ThickElement):
 
     def slice_element(self):
         ksi_sliced = self.ksi / self.num_slices
-        return self._get_sliced_element(thin_class=ThinSolenoid, ksi=ksi_sliced) 
-    
+        return self._get_sliced_element(thin_class=ThinSolenoid, ksi=ksi_sliced)
+
 
 class _BaseMultipole(ABC):
     """ Multipole element class """
@@ -266,40 +264,40 @@ class _BaseMultipole(ABC):
     def slice_element(self):
         knl_sliced = self.knl / self.num_slices
         ksl_sliced = self.ksl / self.num_slices
-        return self._get_sliced_element(thin_class=ThinMultipole, knl=knl_sliced, ksl=ksl_sliced) 
-    
+        return self._get_sliced_element(thin_class=ThinMultipole, knl=knl_sliced, ksl=ksl_sliced)
+
     @property
     @abstractmethod
     def kn(self):
-        pass 
-    
+        pass
+
     @property
     @abstractmethod
     def ks(self):
-        pass 
-    
+        pass
+
     @kn.setter
     @abstractmethod
     def kn(self):
-        pass 
-    
+        pass
+
     @ks.setter
     @abstractmethod
     def ks(self):
-        pass 
-    
+        pass
+
     @property
     def knl(self):
         return self.kn*self.length
-    
+
     @property
     def ksl(self):
         return self.kn*self.length
-    
+
     @knl.setter
     def knl(self, knl):
         self.kn = knl / self.length
-    
+
     @ksl.setter
     def ksl(self, ksl):
         self.kn = ksl / self.length
@@ -322,25 +320,25 @@ class Multipole(ThickElement, _BaseMultipole):
         self.ks = kwargs.pop('ks', np.zeros(2))
         ThickElement.__init__(self, name, **kwargs)
         _BaseMultipole.__init__(self, **kwargs)
-        
+
     @property
     def kn(self):
         arr1, arr2 = self._update_arrays(self._kn, self.magnetic_errors.kn_err)
-        return arr1 + arr2 
+        return arr1 + arr2
 
     @property
     def ks(self):
         arr1, arr2 = self._update_arrays(self._ks, self.magnetic_errors.ks_err)
-        return arr1 + arr2 
+        return arr1 + arr2
 
     @kn.setter
     def kn(self, kn):
-        self._kn = kn 
-    
+        self._kn = kn
+
     @ks.setter
     def ks(self, ks):
-        self._ks = ks 
-    
+        self._ks = ks
+
 
 class Quadrupole(ThickElement, _BaseMultipole):
     """ Quadrupole element class """
@@ -356,20 +354,20 @@ class Quadrupole(ThickElement, _BaseMultipole):
     @property
     def kn(self):
         arr1, arr2 = self._update_arrays(np.array([0.0, self.k1]), self.magnetic_errors.kn_err)
-        return arr1 + arr2 
+        return arr1 + arr2
 
     @property
     def ks(self):
         arr1, arr2 = self._update_arrays(np.array([0.0, self.k1s]), self.magnetic_errors.ks_err)
-        return arr1 + arr2 
-    
+        return arr1 + arr2
+
     @kn.setter
     def kn(self, kn):
-        raise ShouldUseMultipoleError(self.name, 'kn') 
+        raise ShouldUseMultipoleError(self.name, 'kn')
 
     @ks.setter
     def ks(self, ks):
-        raise ShouldUseMultipoleError(self.name, 'ks') 
+        raise ShouldUseMultipoleError(self.name, 'ks')
 
 
 
@@ -383,24 +381,24 @@ class Sextupole(ThickElement, _BaseMultipole):
 
     def slice_element(self):
         return _BaseMultipole.slice_element(self)
-    
+
     @property
     def kn(self):
         arr1, arr2 = self._update_arrays(np.array([0.0, 0.0, self.k2]), self.magnetic_errors.kn_err)
-        return arr1 + arr2 
+        return arr1 + arr2
 
     @property
     def ks(self):
         arr1, arr2 = self._update_arrays(np.array([0.0, 0.0, self.k2s]), self.magnetic_errors.ks_err)
-        return arr1 + arr2 
-    
+        return arr1 + arr2
+
     @kn.setter
     def kn(self, kn):
-        raise ShouldUseMultipoleError(self.name, 'kn') 
+        raise ShouldUseMultipoleError(self.name, 'kn')
 
     @ks.setter
     def ks(self, ks):
-        raise ShouldUseMultipoleError(self.name, 'ks') 
+        raise ShouldUseMultipoleError(self.name, 'ks')
 
 
 class Octupole(ThickElement, _BaseMultipole):
@@ -413,24 +411,24 @@ class Octupole(ThickElement, _BaseMultipole):
 
     def slice_element(self):
         return _BaseMultipole.slice_element(self)
-    
+
     @property
     def kn(self):
         arr1, arr2 = self._update_arrays(np.array([0.0, 0.0, 0.0, self.k3]), self.magnetic_errors.kn_err)
-        return arr1 + arr2 
+        return arr1 + arr2
 
     @property
     def ks(self):
         arr1, arr2 = self._update_arrays(np.array([0.0, 0.0, 0.0, self.k3s]), self.magnetic_errors.ks_err)
-        return arr1 + arr2 
-    
+        return arr1 + arr2
+
     @kn.setter
     def kn(self, kn):
-        raise ShouldUseMultipoleError(self.name, 'kn') 
+        raise ShouldUseMultipoleError(self.name, 'kn')
 
     @ks.setter
     def ks(self, ks):
-        raise ShouldUseMultipoleError(self.name, 'ks') 
+        raise ShouldUseMultipoleError(self.name, 'ks')
 
 
 class RFCavity(BaseElement):
@@ -453,11 +451,11 @@ class HKicker(BaseElement):
         self.num_slices = kwargs.pop('num_slices', 1)
         self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
-    
+
     def slice_element(self):
         kick_sliced = self.kick / self.num_slices
-        return self._get_sliced_element(method='uniform', 
-                                        thin_class=HKicker, kick=kick_sliced) 
+        return self._get_sliced_element(method='uniform',
+                                        thin_class=HKicker, kick=kick_sliced)
 
 
 class VKicker(BaseElement):
@@ -466,11 +464,11 @@ class VKicker(BaseElement):
         self.num_slices = kwargs.pop('num_slices', 1)
         self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
-    
+
     def slice_element(self):
         kick_sliced = self.kick / self.num_slices
-        return self._get_sliced_element(method='uniform', 
-                                        thin_class=VKicker, kick=kick_sliced) 
+        return self._get_sliced_element(method='uniform',
+                                        thin_class=VKicker, kick=kick_sliced)
 
 
 class TKicker(BaseElement):
@@ -480,12 +478,12 @@ class TKicker(BaseElement):
         self.vkick = kwargs.pop('vkick', 0.0)
         self.hkick = kwargs.pop('hkick', 0.0)
         super().__init__(name, **kwargs)
-    
+
     def slice_element(self):
         hkick_sliced = self.hkick / self.num_slices
         vkick_sliced = self.vkick / self.num_slices
-        return self._get_sliced_element(method='uniform', 
-                                        thin_class=TKicker, hkick=hkick_sliced, vkick=vkick_sliced) 
+        return self._get_sliced_element(method='uniform',
+                                        thin_class=TKicker, hkick=hkick_sliced, vkick=vkick_sliced)
 
 
 class ThinMultipole(ThinElement):
@@ -504,14 +502,14 @@ class ThinSolenoid(ThinElement):
     def __init__(self, name: str, **kwargs):
         self.ksi = kwargs.pop('ksi', 0.0)
         super().__init__(name, **kwargs)
-    
+
     def slice_element(self):
         return ThinElement.slice_element(self)
 
     @property
     def ks(self):
         return self.ksi/self.position_data.radiation_length
-    
+
     @ks.setter
     def ks(self, ks: float):
         self.ksi = ks * self.position_data.radiation_length
@@ -522,37 +520,37 @@ class ThinRFMultipole(ThinElement):
         super().__init__(name, **kwargs)
 
 
-CPYMAD_TO_FSF_MAP = { 
-                    'marker'          : Marker         ,  
-                    'drift'           : Drift          ,  
-                    'collimator'      : Collimator     ,  
-                    'monitor'         : Monitor        ,  
-                    'placeholder'     : Placeholder    ,  
-                    'instrument'      : Instrument     ,  
-                    'sbend'           : SectorBend     ,  
-                    'rbend'           : RectangularBend,     
-                    'dipedge'         : DipoleEdge     ,  
-                    'solenoid'        : Solenoid       ,  
-                    'multipole'       : ThinMultipole      ,  
-                    'quadrupole'      : Quadrupole     ,  
-                    'sextupole'       : Sextupole      ,  
-                    'octupole'        : Octupole       ,  
-                    'rfcavity'        : RFCavity       ,  
-                    'hkicker'         : HKicker        ,  
-                    'vkicker'         : VKicker        ,  
-                    'tkicker'         : TKicker        ,  
-                    'thinmultipole'   : ThinMultipole  ,  
-                    'thinsolenoid'    : ThinSolenoid   ,  
-                    'thinrfmultipole' : ThinRFMultipole, 
+CPYMAD_TO_FSF_MAP = {
+                    'marker'          : Marker         ,
+                    'drift'           : Drift          ,
+                    'collimator'      : Collimator     ,
+                    'monitor'         : Monitor        ,
+                    'placeholder'     : Placeholder    ,
+                    'instrument'      : Instrument     ,
+                    'sbend'           : SectorBend     ,
+                    'rbend'           : RectangularBend,
+                    'dipedge'         : DipoleEdge     ,
+                    'solenoid'        : Solenoid       ,
+                    'multipole'       : ThinMultipole      ,
+                    'quadrupole'      : Quadrupole     ,
+                    'sextupole'       : Sextupole      ,
+                    'octupole'        : Octupole       ,
+                    'rfcavity'        : RFCavity       ,
+                    'hkicker'         : HKicker        ,
+                    'vkicker'         : VKicker        ,
+                    'tkicker'         : TKicker        ,
+                    'thinmultipole'   : ThinMultipole  ,
+                    'thinsolenoid'    : ThinSolenoid   ,
+                    'thinrfmultipole' : ThinRFMultipole,
                     }
 
 
-PYAT_TO_FSF_MAP = {'Marker': Marker, 
-                   'Drift':  Drift, 
-                   'Dipole':  SectorBend, 
-                   'Quadrupole': Quadrupole, 
-                   'Sextupole': Sextupole, 
-                   'Collimator': Collimator, 
+PYAT_TO_FSF_MAP = {'Marker': Marker,
+                   'Drift':  Drift,
+                   'Dipole':  SectorBend,
+                   'Quadrupole': Quadrupole,
+                   'Sextupole': Sextupole,
+                   'Collimator': Collimator,
                    'RFCavity': RFCavity}
 
 
