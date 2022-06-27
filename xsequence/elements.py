@@ -1,7 +1,6 @@
 """
 Module xsequence.base_elements
 ------------------
-:author: Felix Carlier (fcarlier@cern.ch)
 This is a Python3 module containing base element classes element property dataclasses for particle accelerator elements.
 """
 
@@ -32,15 +31,15 @@ class ShouldUseMultipoleError(Exception):
 
 class BaseElement:
     """Class containing base element properties and methods"""
-    def __init__(self, 
-                 name: str, 
-                 length: float=0.0, 
-                 num_slices: int=1, 
+    def __init__(self,
+                 name: str,
+                 length: float=0.0,
+                 num_slices: int=1,
                  **kwargs):
         self.name = name
         self.length = length
         self.num_slices = num_slices
-        
+
         if kwargs is None:
             kwargs = {'empty_kw_dict':None}
         self.aperture_data = kwargs.pop('aperture_data', None)
@@ -53,7 +52,7 @@ class BaseElement:
             setattr(self.pyat_data, key, value)
         else:
             setattr(self, key, value)
-    
+
     def get_dict(self):
         attr_dict = {}
         for key in self.__dict__:
@@ -96,11 +95,11 @@ class ThinElement(BaseElement):
 class Marker(ThinElement):
     """ Marker element class """
     REQUIREMENTS = ['']
-    
+
     def __init__(self, name: str, **kwargs):
         self._thin_type = Marker
         super().__init__(name, **kwargs)
-    
+
 
 class Drift(BaseElement):
     """ Drift element class """
@@ -138,7 +137,7 @@ class Instrument(Drift):
 class SectorBend(BaseElement):
     """ Sector bend element class """
     REQUIREMENTS = ['angle', 'e1', 'e2']
-    
+
     def __init__(self, name: str, **kwargs):
         self.angle = kwargs.pop('angle', 0.0)
         self.e1 = kwargs.pop('e1', 0.0)
@@ -155,7 +154,7 @@ class SectorBend(BaseElement):
         return length*(2*math.sin(angle/2.))/angle
 
 
-class RectangularBend(SectorBend):   
+class RectangularBend(SectorBend):
     """ Rectangular bend element class """
     def __init__(self, name: str, **kwargs):
         self._chord_length = kwargs.pop('length', 0)
@@ -176,9 +175,9 @@ class RectangularBend(SectorBend):
 class DipoleEdge(ThinElement):
     """ Dipole edge element class """
     REQUIREMENTS = ['edge_angle', 'h', 'side']
-    
+
     def __init__(self, name: str, **kwargs):
-        self.h = kwargs.pop('h', 0.0) 
+        self.h = kwargs.pop('h', 0.0)
         self.edge_angle = kwargs.pop('edge_angle', 0.0)
         self.side = kwargs.pop('side', 'entrance')
         assert self.side in ['entrance', 'exit']
@@ -188,15 +187,15 @@ class DipoleEdge(ThinElement):
 class Solenoid(BaseElement):
     """ Solenoid element class """
     REQUIREMENTS = ['ks']
-    
+
     def __init__(self, name: str, **kwargs):
         self.ks = kwargs.pop('ks', 0.0)
         super().__init__(name, **kwargs)
-        
+
     def _get_thin_element(self):
         ksi_sliced = self.ksi / self.num_slices
-        return ThinSolenoid(self.name, radiation_length=self.length/self.num_slices, ksi=ksi_sliced) 
-    
+        return ThinSolenoid(self.name, radiation_length=self.length/self.num_slices, ksi=ksi_sliced)
+
     @property
     def ksi(self):
         return self.ks*self.length
@@ -204,42 +203,42 @@ class Solenoid(BaseElement):
     @ksi.setter
     def ksi(self, ksi: float):
         self.ks = ksi/self.length
-    
+
 
 class Multipole(BaseElement):
     """ Multipole element class """
     REQUIREMENTS = ['length', 'knl', 'ksl']
 
-    def __init__(self, 
-                 name: str, 
-                 knl: np.ndarray=np.zeros(20), 
-                 ksl: np.ndarray=np.zeros(20), 
+    def __init__(self,
+                 name: str,
+                 knl: np.ndarray=np.zeros(20),
+                 ksl: np.ndarray=np.zeros(20),
                  **kwargs):
         self.knl = knl
         self.ksl = ksl
         super().__init__(name, **kwargs)
-    
+
     @property
     def kn(self):
         return self.knl/self.length
-    
+
     @property
     def ks(self):
         return self.ksl/self.length
-    
+
     @kn.setter
     def kn(self, kn):
         self.knl = kn * self.length
-    
+
     @ks.setter
     def ks(self, ks):
         self.ksl = ks * self.length
-    
+
     def _get_thin_element(self):
         knl_sliced = self.knl / self.num_slices
         ksl_sliced = self.ksl / self.num_slices
         return ThinMultipole(self.name, radiation_length=self.length/self.num_slices, knl=knl_sliced, ksl=ksl_sliced)
-    
+
 
 class Quadrupole(BaseElement):
     """ Quadrupole element class """
@@ -253,7 +252,7 @@ class Quadrupole(BaseElement):
     @property
     def kn(self):
         return np.array([0.0, self.k1])
-    
+
     @property
     def ks(self):
         return np.array([0.0, self.k1s])
@@ -261,7 +260,7 @@ class Quadrupole(BaseElement):
     @property
     def knl(self):
         return self.kn*self.length
-    
+
     @property
     def ksl(self):
         return self.ks*self.length
@@ -270,7 +269,7 @@ class Quadrupole(BaseElement):
         knl_sliced = self.knl / self.num_slices
         ksl_sliced = self.ksl / self.num_slices
         return ThinMultipole(self.name, radiation_length=self.length/self.num_slices, knl=knl_sliced, ksl=ksl_sliced)
-    
+
 
 class Sextupole(BaseElement):
     """ Sextupole element class """
@@ -284,7 +283,7 @@ class Sextupole(BaseElement):
     @property
     def kn(self):
         return np.array([0.0, 0.0, self.k2])
-    
+
     @property
     def ks(self):
         return np.array([0.0, 0.0, self.k2s])
@@ -292,7 +291,7 @@ class Sextupole(BaseElement):
     @property
     def knl(self):
         return self.kn*self.length
-    
+
     @property
     def ksl(self):
         return self.ks*self.length
@@ -301,7 +300,7 @@ class Sextupole(BaseElement):
         knl_sliced = self.knl / self.num_slices
         ksl_sliced = self.ksl / self.num_slices
         return ThinMultipole(self.name, radiation_length=self.length/self.num_slices, knl=knl_sliced, ksl=ksl_sliced)
-    
+
 
 class Octupole(BaseElement):
     REQUIREMENTS = ['length', 'k3', 'k3s']
@@ -315,7 +314,7 @@ class Octupole(BaseElement):
     @property
     def kn(self):
         return np.array([0.0, 0.0, 0.0, self.k3])
-    
+
     @property
     def ks(self):
         return np.array([0.0, 0.0, 0.0, self.k3s])
@@ -323,7 +322,7 @@ class Octupole(BaseElement):
     @property
     def knl(self):
         return self.kn*self.length
-    
+
     @property
     def ksl(self):
         return self.ks*self.length
@@ -332,17 +331,17 @@ class Octupole(BaseElement):
         knl_sliced = self.knl / self.num_slices
         ksl_sliced = self.ksl / self.num_slices
         return ThinMultipole(self.name, radiation_length=self.length/self.num_slices, knl=knl_sliced, ksl=ksl_sliced)
-    
+
 
 class RFCavity(BaseElement):
     """ RFCavity element class """
     REQUIREMENTS = ['length', 'voltage', 'frequency', 'lag']
 
-    def __init__(self, 
+    def __init__(self,
                  name: str,
                  voltage: float,
                  frequency: float,
-                 lag: float, 
+                 lag: float,
                  **kwargs):
         self.voltage = voltage
         self.frequency = frequency
@@ -359,7 +358,7 @@ class HKicker(BaseElement):
     def __init__(self, name: str, **kwargs):
         self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
-    
+
     def _get_thin_element(self):
         kick_sliced = self.kick / self.num_slices
         return HKicker(self.name, radiation_length=self.length/self.num_slices, kick=kick_sliced)
@@ -372,11 +371,11 @@ class VKicker(BaseElement):
     def __init__(self, name: str, **kwargs):
         self.kick = kwargs.pop('kick', 0.0)
         super().__init__(name, **kwargs)
-    
+
     def _get_thin_element(self):
         kick_sliced = self.kick / self.num_slices
         return VKicker(self.name, radiation_length=self.length/self.num_slices, kick=kick_sliced)
-    
+
 
 class TKicker(BaseElement):
     """ TKicker element class """
@@ -386,7 +385,7 @@ class TKicker(BaseElement):
         self.vkick = kwargs.pop('vkick', 0.0)
         self.hkick = kwargs.pop('hkick', 0.0)
         super().__init__(name, **kwargs)
-    
+
     def _get_thin_element(self):
         hkick_sliced = self.hkick / self.num_slices
         vkick_sliced = self.vkick / self.num_slices
@@ -414,7 +413,7 @@ class ThinSolenoid(ThinElement):
     @property
     def ks(self):
         return self.ksi/self.radiation_length
-    
+
     @ks.setter
     def ks(self, ks: float):
         self.ksi = ks * self.radiation_length
