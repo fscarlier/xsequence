@@ -6,7 +6,7 @@ authors = ["Felix Carlier"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8"
 numpy = "^1.19.0"
 pandas = "^1.0"
 xtrack = {git = "https://github.com/xsuite/xtrack.git", branch="main"}
@@ -16,9 +16,9 @@ lark = "^1.1.2"
 rich = "^12.4.4"
 accelerator-toolbox = "^0.2.2"
 scipy = "^1.5.0"
+pytest = "^7.1.2"
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.1.2"
 Sphinx = "^5.0.2"
 
 [build-system]
