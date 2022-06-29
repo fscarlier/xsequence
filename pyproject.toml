@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "xsequence"
+version = "0.1.0"
+description = "Package for describing accelerator lattices in python"
+authors = ["Felix Carlier"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.19.0"
+pandas = "^1.0"
+xtrack = {git = "https://github.com/xsuite/xtrack.git", branch="main"}
+xdeps = {git = "https://github.com/xsuite/xdeps.git", branch="main"}
+cpymad = "^1.8.1"
+lark = "^1.1.2"
+rich = "^12.4.4"
+accelerator-toolbox = "^0.2.2"
+scipy = "^1.5.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+Sphinx = "^5.0.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
