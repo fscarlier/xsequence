@@ -6,7 +6,7 @@ authors = ["Felix Carlier"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8"
 numpy = "^1.19.0"
 pandas = "^1.0"
 xtrack = {git = "https://github.com/xsuite/xtrack.git", branch="main"}
