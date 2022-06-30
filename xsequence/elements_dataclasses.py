@@ -1,16 +1,14 @@
-"""
-Module xsequence.base_elements
-------------------
-:author: Felix Carlier (fcarlier@cern.ch)
-This is a Python3 module containing base element dataclasses for particle accelerator elements.
-"""
+# copyright #################################### #
+# This file is part of the Xsequence Package.    #
+# Copyright (c) CERN, 2022.                      #
+# ############################################## #
 
 from typing import List, Optional
 from dataclasses import dataclass, field
 import numpy as np
 
 
-class BaseElementData: 
+class BaseElementData:
     def __iter__(self):
         for key in self.INIT_PROPERTIES:
             yield key, getattr(self, key)
@@ -18,7 +16,7 @@ class BaseElementData:
 
 @dataclass
 class ElementID(BaseElementData):
-    INIT_PROPERTIES = ['slot_id', 'assembly_id'] 
+    INIT_PROPERTIES = ['slot_id', 'assembly_id']
     slot_id: Optional[int] = None
     assembly_id: Optional[int] = None
 
@@ -27,15 +25,15 @@ class ElementID(BaseElementData):
         if self.assembly_id == 0.0: self.assembly_id = None
 
 
-@dataclass 
-class ElementParameterData(BaseElementData): 
+@dataclass
+class ElementParameterData(BaseElementData):
     INIT_PROPERTIES = ['polarity', 'calibration', 'kmax', 'kmin', 'tilt']
     polarity: int = 0.0
     calibration: float = 0.0
     kmax: float = None
     kmin: float = None
     tilt: float = 0.0
-    
+
     def __post_init__(self):
         if self.kmax == 0.0: self.kmax = None
         if self.kmin == 0.0: self.kmin = None
@@ -44,7 +42,7 @@ class ElementParameterData(BaseElementData):
 @dataclass
 class ElementPosition(BaseElementData):
     """ Dataclass containing all relevant information about element position in [m] """
-    INIT_PROPERTIES = ['length', 'radiation_length', 'location', 'reference', 'reference_element', 'mech_sep'] 
+    INIT_PROPERTIES = ['length', 'radiation_length', 'location', 'reference', 'reference_element', 'mech_sep']
     length: float = 0.0
     radiation_length: float = 0.0
     _length: float = field(init=False, repr=False, default=0.0)
@@ -89,15 +87,15 @@ class ElementPosition(BaseElementData):
     def reference(self, reference: float):
         self._reference = reference
         self.calc_position()
-    
+
     @property
     def start(self) -> float:
         return self.get_position(loc='start')
-    
+
     @property
     def position(self) -> float:
         return self.get_position(loc='centre')
-    
+
     @property
     def end(self) -> float:
         return self.get_position(loc='end')
@@ -115,16 +113,16 @@ class ElementPosition(BaseElementData):
     def calc_position(self):
         try:
             pos = self.location + self.reference
-            self._position = {'centre':pos, 
+            self._position = {'centre':pos,
                             'start':pos - self.length/2.,
                             'end':pos + self.length/2.}
         except: AttributeError
-    
+
 
 @dataclass
 class ApertureData(BaseElementData):
     """Represents an aperture for elements"""
-    INIT_PROPERTIES = ['aperture_size', 'aperture_offset', 'aper_vx', 'aper_vy'] 
+    INIT_PROPERTIES = ['aperture_size', 'aperture_offset', 'aper_vx', 'aper_vy']
     aperture_size: List = field(default_factory=lambda: [0.0, 0.0])
     aperture_offset: List = field(default_factory=lambda: [0.0, 0.0])
     aper_vx: float = None
@@ -163,25 +161,25 @@ class RectangularAperture(ApertureData):
 
 @dataclass
 class AlignmentError(BaseElementData):
-    INIT_PROPERTIES = ['kn_err', 'ks_err'] 
+    INIT_PROPERTIES = ['kn_err', 'ks_err']
     dx: float= 0.0  # Horizontal displacement [m]
     dy: float= 0.0  # Vertical displacement [m]
-    ds: float= 0.0  # Longitudinal displacement [m] 
-    dphi: float= 0.0    # Rotation about x-axis [rad] 
+    ds: float= 0.0  # Longitudinal displacement [m]
+    dphi: float= 0.0    # Rotation about x-axis [rad]
     dtheta: float= 0.0  # Rotation about y-axis [rad]
     dpsi: float= 0.0    # Rotation about s-axis [rad]
 
 
 @dataclass
 class MultipoleError(BaseElementData):
-    INIT_PROPERTIES = ['kn_err', 'ks_err'] 
-    kn_err: List = field(default_factory=lambda: np.array([0.0, 0.0, 0.0, 0.0]))  
-    ks_err: List = field(default_factory=lambda: np.array([0.0, 0.0, 0.0, 0.0])) 
+    INIT_PROPERTIES = ['kn_err', 'ks_err']
+    kn_err: List = field(default_factory=lambda: np.array([0.0, 0.0, 0.0, 0.0]))
+    ks_err: List = field(default_factory=lambda: np.array([0.0, 0.0, 0.0, 0.0]))
 
 
 @dataclass
 class PyatData(BaseElementData):
     """ Specifc PyAT only data dataclass """
-    INIT_PROPERTIES = ['NumIntSteps', 'PassMethod'] 
+    INIT_PROPERTIES = ['NumIntSteps', 'PassMethod']
     NumIntSteps: int = None
     PassMethod: str = None

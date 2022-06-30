@@ -1,5 +1,10 @@
+# copyright #################################### #
+# This file is part of the Xsequence Package.    #
+# Copyright (c) CERN, 2022.                      #
+# ############################################## #
+
 import math, copy
-import xdeps 
+import xdeps
 import numpy as np
 import scipy.constants
 import xsequence.elements as xe
@@ -9,42 +14,42 @@ from xsequence.lattice_baseclasses import Node, NodesList, Beam
 
 class Lattice:
     """ Class to describe an accelerator lattice """
-    def __init__(self, 
-                 name:str, 
-                 elements:dict, 
+    def __init__(self,
+                 name:str,
+                 elements:dict,
                  sequence: NodesList,
                  beam: Beam ,
                  key: str = 'sequence',
                  global_variables: dict = {},
-                 order_nodes: str = False, 
+                 order_nodes: str = False,
                  ):
-        
+
         self.name = name
         self.beam = beam
-        
+
         if order_nodes:
             sequence = self._order_nodes_by_position(sequence)
 
         if key == 'line':
             elements, sequence = self._get_sequence_from_line(sequence, elements)
-        
+
         self._data_globals  = global_variables
         self._data_elements = elements
         self._data_sequence = sequence
-        
+
         self.dep_mgr=xdeps.Manager()
         self._elements = self.dep_mgr.ref(self._data_elements, 'elements')
         self._sequence = self.dep_mgr.ref(self._data_sequence, 'sequence')
         self._globals  = self.dep_mgr.ref(self._data_globals , 'globals' )
         self._math  = self.dep_mgr.ref(math, 'math' )
-        
+
         self.elements = xdeps.madxutils.Mix(self._data_elements, self._elements)
         self.sequence = xdeps.madxutils.Mix(self._data_sequence, self._sequence)
         self.globals  = xdeps.madxutils.Mix(self._data_globals , self._globals )
-        
+
         self._set_lengths_of_nodes()
         self._set_element_number()
-    
+
     def get_drifts(self) -> NodesList:
         """ Get list of Drift elements """
         self._set_line()
@@ -61,20 +66,20 @@ class Lattice:
         """ Update the energy of RF cavities. Needed for pyat """
         for cavity_node in self.get_class(class_types=[xe.RFCavity]):
             element = self.elements[cavity_node.element_name]
-            if force: 
+            if force:
                 element.energy = self.beam.energy
-            else: 
-                if element.energy in [0.0, None]: 
+            else:
+                if element.energy in [0.0, None]:
                     element.energy = self.beam.energy
 
     def _update_harmonic_number(self, force=True):
         """ Update the harmonic number of RF cavities using ultra-relativistic approximation. Needed for pyat """
         for cavity_node in self.get_class(class_types=[xe.RFCavity]):
             element = self.elements[cavity_node.element_name]
-            if force: 
+            if force:
                 element.harmonic_number = int(element.frequency*1e6/(scipy.constants.c/self.get_total_length()))
-            else: 
-                if element.harmonic_number in [0.0, None]: 
+            else:
+                if element.harmonic_number in [0.0, None]:
                     element.harmonic_number = int(element.frequency*1e6/(scipy.constants.c/self.get_total_length()))
 
     def _set_lengths_of_nodes(self):
@@ -82,19 +87,19 @@ class Lattice:
         for idx, node in enumerate(self.sequence):
             name = node.element_name
             self.sequence[idx].length = self.elements[name].length
-        
+
     def _order_nodes_by_position(self, nodes) -> NodesList:
         """ Order nodes depending on longitudinal position in accelerator """
-        _, nodes = zip(*sorted(zip([node.position for node in nodes], nodes))) 
+        _, nodes = zip(*sorted(zip([node.position for node in nodes], nodes)))
         return NodesList(nodes)
-    
+
     def _get_sequence_from_line(self, nodes: NodesList, elements: dict) -> "Tuple[dict, NodesList]":
         """ Calculate longitudinal positions of elements from line representation """
         previous_end = 0.0
         for node in nodes:
             if node.length == 0.0:
                 node.length = elements[node.element_name].length
-            node.location = previous_end + node.length/2. 
+            node.location = previous_end + node.length/2.
             previous_end =  previous_end + node.length
 
         sequence = NodesList()
@@ -111,7 +116,7 @@ class Lattice:
         end = np.array( self.sequence.get_positions(pos_anchor='end') )
         end = np.insert(end, 0, 0)[:-1]
         assert np.all(start - end >= 0), "Negative drift detected"
-        
+
     def _set_line(self):
         """ Set line representation of sequence with explicit drifts """
         line, line_elements = self._get_line()
@@ -138,7 +143,7 @@ class Lattice:
             nodes_with_drifts.append(node)
             previous_end = node.end
         return nodes_with_drifts, elements_with_drifts
-    
+
     def _set_element_number(self):
         """ Set element number to count multiple occurences of same element in sequence """
         temp_dict = {}
@@ -149,7 +154,7 @@ class Lattice:
             else:
                 temp_dict[name] = 1
             self.sequence[idx].element_number = temp_dict[name]
-    
+
     def update_sequence(self):
         """ Update sequence and perform checks """
         # self._order_nodes_by_position(nodes)
@@ -174,22 +179,22 @@ class Lattice:
         self.thin_sequence = []
         self._thin_elements = self.dep_mgr.ref(self.thin_elements, 'thin_elements')
         self._thin_sequence = self.dep_mgr.ref(self.thin_sequence, 'thin_sequence')
-        
-        for idx, node in enumerate(self.sequence): 
+
+        for idx, node in enumerate(self.sequence):
             element = self.elements[node]
-            
+
             if isinstance(element, xe.SectorBend):
                 h = element.angle/element.length
                 thin_name = f'{node.element_name}_sliced_entrance'
                 self._thin_sequence.append(Node(thin_name, reference=node.position, location=node.start, length=0.0))
                 self._thin_elements[thin_name] = xe.DipoleEdge(thin_name, side='entrance', h=h, edge_angle=element.e1)
-    
+
             thin_positions = slicing.get_slice_positions(element, method=method)
             for idx, thin_pos in enumerate(thin_positions):
                 thin_name = f'{node.element_name}_sliced_{idx}'
                 self._thin_sequence.append(Node(thin_name, reference=node.position, location=thin_pos, length=0.0))
                 self._thin_elements[thin_name] = element._get_thin_element()
-            
+
             if isinstance(element, xe.SectorBend):
                 h = element.angle/element.length
                 thin_name = f'{node.element_name}_sliced_exit'

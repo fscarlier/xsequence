@@ -1,8 +1,7 @@
-"""
-Module xsequence.base_elements
-------------------
-This is a Python3 module containing base element classes element property dataclasses for particle accelerator elements.
-"""
+# copyright #################################### #
+# This file is part of the Xsequence Package.    #
+# Copyright (c) CERN, 2022.                      #
+# ############################################## #
 
 import math
 import numpy as np
