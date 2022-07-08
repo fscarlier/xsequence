@@ -85,6 +85,7 @@ class BaseElement:
 
 class ThinElement(BaseElement):
     """ Thin element class """
+
     def __init__(self, name: str, **kwargs):
         self.radiation_length = kwargs.pop('radiation_length', 0.0)
         super().__init__(name, **kwargs)
@@ -93,7 +94,7 @@ class ThinElement(BaseElement):
 
 class Marker(ThinElement):
     """ Marker element class """
-    REQUIREMENTS = ['']
+    REQUIREMENTS = []
 
     def __init__(self, name: str, **kwargs):
         self._thin_type = Marker
@@ -111,31 +112,35 @@ class Drift(BaseElement):
 
 class Collimator(Drift):
     """ Collimator element class """
+
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
 
 
 class Monitor(Drift):
     """ Monitor element class """
+
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
 
 
 class Placeholder(Drift):
     """ Placeholder element class """
+
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
 
 
 class Instrument(Drift):
     """ Instrument element class """
+
     def __init__(self, name: str, **kwargs):
         super().__init__(name, **kwargs)
 
 
 class SectorBend(BaseElement):
     """ Sector bend element class """
-    REQUIREMENTS = ['angle', 'e1', 'e2']
+    REQUIREMENTS = ['length', 'angle', 'e1', 'e2']
 
     def __init__(self, name: str, **kwargs):
         self.angle = kwargs.pop('angle', 0.0)
@@ -155,6 +160,7 @@ class SectorBend(BaseElement):
 
 class RectangularBend(SectorBend):
     """ Rectangular bend element class """
+
     def __init__(self, name: str, **kwargs):
         self._chord_length = kwargs.pop('length', 0)
         self._rbend_e1 = kwargs.pop('e1', 0)
@@ -185,7 +191,7 @@ class DipoleEdge(ThinElement):
 
 class Solenoid(BaseElement):
     """ Solenoid element class """
-    REQUIREMENTS = ['ks']
+    REQUIREMENTS = ['length', 'ks']
 
     def __init__(self, name: str, **kwargs):
         self.ks = kwargs.pop('ks', 0.0)
