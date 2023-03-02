@@ -1,26 +1,31 @@
-[tool.poetry]
+[project]
 name = "xsequence"
 version = "0.1.0"
-description = "Package for describing accelerator lattices in python"
-authors = ["Felix Carlier"]
+description = "Package to describe accelerator lattices in python"
+authors = [
+    {name = "Felix Carlier", email = "fcarlier@cern.ch"},
+    ]
 license = "MIT"
+requires-python = ">=3.8"
 
-[tool.poetry.dependencies]
-python = "^3.8"
-numpy = "^1.19.0"
-pandas = "^1.0"
-xtrack = {git = "https://github.com/xsuite/xtrack.git", branch="main"}
-xdeps = {git = "https://github.com/xsuite/xdeps.git", branch="main"}
-cpymad = "^1.8.1"
-lark = "^1.1.2"
-rich = "^12.4.4"
-accelerator-toolbox = "^0.2.2"
-scipy = "^1.5.0"
-pytest = "^7.1.2"
 
-[tool.poetry.dev-dependencies]
-Sphinx = "^5.0.2"
+dependencies = [
+"numpy >= 1.19.0", 
+"pandas >= 1.0",
+"xtrack @ git+https://github.com/xsuite/xtrack.git@main",
+"xdeps @ git+https://github.com/xsuite/xdeps.git@main",
+"cpymad >= 1.8.1", 
+"lark >= 1.1.2", 
+"rich >= 12.4.4", 
+"accelerator-toolbox >= 0.2.2", 
+"scipy >= 1.5.0", 
+"pytest >= 7.1.2", 
+]
+
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
