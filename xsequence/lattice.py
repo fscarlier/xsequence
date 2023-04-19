@@ -181,7 +181,7 @@ class Lattice:
         self._thin_sequence = self.dep_mgr.ref(self.thin_sequence, 'thin_sequence')
 
         for idx, node in enumerate(self.sequence):
-            element = self.elements[node]
+            element = self.elements[node.element_name]
 
             if isinstance(element, xe.SectorBend):
                 h = element.angle/element.length

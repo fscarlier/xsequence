@@ -4,6 +4,7 @@
 # ############################################## #
 
 import math
+import copy
 import numpy as np
 import xsequence.elements_dataclasses as xed
 
@@ -90,6 +91,9 @@ class ThinElement(BaseElement):
         self.radiation_length = kwargs.pop('radiation_length', 0.0)
         super().__init__(name, **kwargs)
         assert self.length == 0.0, f"BaseElement, ThinElement has non-zero length"
+    
+    def _get_thin_element(self):
+        return copy.copy(self) 
 
 
 class Marker(ThinElement):
@@ -354,6 +358,9 @@ class RFCavity(BaseElement):
         self.energy = kwargs.pop('energy', 0.0)
         self.harmonic_number = kwargs.pop('harmonic_number', 0.0)
         super().__init__(name, **kwargs)
+    
+    def _get_thin_element(self):
+        return copy.copy(self) 
 
 
 class HKicker(BaseElement):
